@@ -1,0 +1,6 @@
+export { chartDataFn, chartDataFn2, chartDataFn3 } from './chart-data.js'
+export { default as loginFn } from './login.js'
+export { default as revenueListFn } from './revenue-list.js'
+export { robotQueryFn, robotAddFn, robotDeleteFn, robotUpdateFn } from './robot.js'
+export { orderQueryFn, orderDeleteFn } from './order.js'
+export { markerListFn } from './map.js'

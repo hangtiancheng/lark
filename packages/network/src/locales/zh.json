@@ -1,0 +1,69 @@
+{
+  "task": {
+    "network_status": {
+      "name": "网络状态",
+      "success": "在线 ({{effectiveType}}{{dataSaver}}), 延迟: {{rtt}}ms",
+      "offline_error": "浏览器报告离线状态",
+      "unknown_error": "未知错误",
+      "recommendation": "请确保设备连接到网络 (WiFi/以太网)"
+    },
+    "location": {
+      "name": "位置和 ISP 检测",
+      "error": "获取位置信息失败: {{message}}",
+      "recommendation": "可能是网络屏蔽或 API 速率限制, 核心功能不受影响"
+    },
+    "speed": {
+      "name": "网速测试",
+      "success": "下载速度: {{mbps}} Mbps",
+      "download_error": "下载测试文件失败",
+      "error": "{{message}}",
+      "recommendation": "网络连接不稳定, 尝试切换网络环境"
+    },
+    "api": {
+      "name": "API 连通性",
+      "skipped": "未配置 API 列表",
+      "success": "{{reachable}}/{{total}} API 可达",
+      "recommendation": "部分 API 无法访问, 请检查防火墙或服务状态"
+    },
+    "resource": {
+      "name": "静态资源加载",
+      "skipped": "未配置资源列表",
+      "success": "{{loaded}}/{{total}} 个资源加载成功",
+      "recommendation": "加载 CDN 资源失败, 可能是 CDN 节点故障或本地 DNS 问题"
+    }
+  },
+  "repair": {
+    "success": "修复成功",
+    "failure": "修复失败",
+    "running": "修复中..."
+  },
+  "ui": {
+    "title": "网络诊断",
+    "online": "在线",
+    "yes": "是",
+    "no": "否",
+    "network_type": "网络类型",
+    "downlink": "下载带宽",
+    "max_downlink": "最大带宽",
+    "rtt": "延迟 (RTT)",
+    "data_saver": "流量节省模式",
+    "on": "开启",
+    "off": "关闭",
+    "unknown": "未知",
+    "ip": "IP 地址",
+    "location": "地理位置",
+    "isp": "运营商",
+    "download_speed": "下载速度",
+    "latency": "延迟",
+    "ok": "正常",
+    "fail": "失败",
+    "start_msg": "点击右下角按钮开始网络诊断",
+    "start_btn": "开始诊断",
+    "diagnosing_btn": "诊断中...",
+    "on_call_btn": "发起 OnCall",
+    "diag_id": "诊断 ID",
+    "recommendation": "修复建议",
+    "repair_btn": "一键修复",
+    "repairing_btn": "修复中..."
+  }
+}

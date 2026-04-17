@@ -1,0 +1,20 @@
+{
+  "name": "lark",
+  "scripts": {
+    "test:bloom-filter": "pnpm --filter @lark/bloom-filter test",
+    "test:distributed-lock": "pnpm --filter @lark/distributed-lock test",
+    "test:math": "pnpm --filter @lark/math test",
+    "test:mini-zustand": "pnpm --filter @lark/mini-zustand test",
+    "test:react-vue": "pnpm --filter @lark/react-vue test",
+    "test:vue-reactivity": "pnpm --filter @lark/vue-reactivity test",
+    "test": "concurrently \"pnpm test:bloom-filter\" \"pnpm test:distributed-lock\" \"pnpm test:math\" \"pnpm test:mini-zustand\" \"pnpm test:react-vue\" \"pnpm test:vue-reactivity\"'"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "concurrently": "^9.2.1",
+    "jsdom": "^26.1.0",
+    "vitest": "^4.1.4"
+  },
+  "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
+}

@@ -1,0 +1,37 @@
+{
+  "name": "@lark/promises-a-plus",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/MyPromise.ts",
+  "types": "src/MyPromise.ts",
+  "exports": {
+    ".": {
+      "types": "./src/MyPromise.ts",
+      "import": "./src/MyPromise.ts",
+      "default": "./src/MyPromise.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint ./ --fix",
+    "format": "prettier -w ./",
+    "build": "rm -rf ./dist && tsc",
+    "test": "pnpm build && node ./dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.5.0",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "promises-aplus-tests": "^2.1.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.1"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  }
+}

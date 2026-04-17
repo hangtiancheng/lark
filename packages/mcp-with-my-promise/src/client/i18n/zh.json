@@ -1,0 +1,17 @@
+{
+  "app_title": "Prompt 管理",
+  "app_subtitle": "管理 AI 提示词",
+  "form_title": "创建新提示词",
+  "prompt_name_label": "提示词名称",
+  "prompt_name_placeholder": "例如: code review 专家",
+  "description_label": "描述",
+  "description_placeholder": "提示词描述",
+  "content_label": "内容",
+  "content_placeholder": "提示词内容...",
+  "save_button": "保存提示词",
+  "saving": "保存中...",
+  "success_message": "提示词创建成功！",
+  "error_message": "错误",
+  "network_error": "网络错误",
+  "switch_lang": "EN / 文"
+}

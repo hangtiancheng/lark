@@ -1,0 +1,64 @@
+{
+  "author": "https://github.com/hangtiancheng",
+  "description": "libpool",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.2",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@types/ffi-napi": "^4.0.10",
+    "@types/node": "^25.5.0",
+    "@types/ref-napi": "^3.0.12",
+    "@vitest/coverage-v8": "4.1.0",
+    "concurrently": "^9.2.1",
+    "rollup": "^4.60.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "keywords": [
+    "libpool"
+  ],
+  "license": "MIT",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "name": "@lark/libpool",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "build": "rollup -c",
+    "cmake:mac": "cd ../libheap && yarn cmake",
+    "build:mac": "concurrently \"tsc\" \"sleep 1 && yarn cmake:mac\"",
+    "cmake:linux": "cd ../libheap && yarn cmake",
+    "build:linux": "concurrently \"tsc\" \"sleep 1 && yarn cmake:linux\"",
+    "example:process": "node ./dist/examples/main-process.js",
+    "example:tcp": "concurrently \"node ./dist/examples/server.js\" \"sleep 1 && node ./dist/examples/client.js\""
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "version": "1.0.0",
+  "engines": {
+    "node": "20"
+  },
+  "packageManager": "yarn@1.22.22",
+  "dependencies": {
+    "ffi-napi": "npm:@2060.io/ffi-napi@^4.0.9",
+    "ref-array-napi": "^1.2.2",
+    "ref-napi": "npm:@2060.io/ref-napi@^3.0.6",
+    "uuid": "^13.0.0"
+  }
+}

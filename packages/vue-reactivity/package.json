@@ -1,0 +1,15 @@
+{
+  "name": "@lark/vue-reactivity",
+  "version": "1.0.0",
+  "private": true,
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.0.16",
+    "@lark/vue-shared": "workspace:*"
+  },
+  "type": "module"
+}

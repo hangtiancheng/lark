@@ -1,0 +1,55 @@
+{
+  "name": "@lark/conditional-bundle-plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/core/index.cjs",
+  "module": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.cjs",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./vite": {
+      "import": "./dist/vite/index.js",
+      "require": "./dist/vite/index.cjs",
+      "types": "./dist/vite/index.d.ts"
+    },
+    "./webpack": {
+      "import": "./dist/webpack/index.js",
+      "require": "./dist/webpack/index.cjs",
+      "types": "./dist/webpack/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "dev": "rollup -c rollup.config.js -w",
+    "format": "prettier -w ./"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.3",
+  "dependencies": {
+    "magic-string": "^0.30.21",
+    "picomatch": "^4.0.4"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.8",
+    "@rollup/plugin-node-resolve": "^15.3.1",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^25.5.0",
+    "@types/picomatch": "^4.0.2",
+    "@types/webpack": "^5.28.5",
+    "prettier": "^3.8.1",
+    "rollup": "^4.60.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.3"
+  }
+}

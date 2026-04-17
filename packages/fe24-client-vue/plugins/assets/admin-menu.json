@@ -1,0 +1,36 @@
+[
+  {
+    "name": "数据看板",
+    "url": "/dashboard",
+    "icon": "DataScreen"
+  },
+  {
+    "name": "机器人",
+    "icon": "Cooking",
+    "children": [
+      { "name": "机器人列表", "url": "/main", "icon": "SurveillanceCameras" },
+      { "name": "机器人网格", "url": "/main/grid", "icon": "RobotOne" }
+    ]
+  },
+  {
+    "name": "Web 地图",
+    "url": "/map",
+    "icon": "LocalTwo"
+  },
+  {
+    "name": "快捷操作",
+    "icon": "Tag",
+    "children": [
+      {
+        "name": "订单管理",
+        "url": "/order",
+        "icon": "Order"
+      },
+      {
+        "name": "订单详情",
+        "url": "/order/detail",
+        "icon": "Find"
+      }
+    ]
+  }
+]

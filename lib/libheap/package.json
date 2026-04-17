@@ -1,0 +1,28 @@
+{
+  "name": "@lark/libheap",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "build/Release/heap.node",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "cmake": "cmake -S ./ -B ./build && cmake --build ./build"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "packageManager": "yarn@1.22.22",
+  "dependencies": {
+    "node-addon-api": "^8.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15"
+  },
+  "gypfile": true,
+  "keywords": [
+    "heap",
+    "priority-queue"
+  ],
+  "license": "MIT",
+  "author": "https://github.com/hangtiancheng"
+}

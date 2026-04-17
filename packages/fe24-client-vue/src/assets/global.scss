@@ -1,0 +1,72 @@
+// .float-left {
+//   float: left;
+// }
+
+// .float-right {
+//   float: right;
+// }
+
+// .clear-float::after {
+//   content: '';
+//   /* height: 0; */
+//   display: block;
+//   clear: both;
+// }
+
+// ::-webkit-scrollbar {
+//   display: none;
+// }
+
+::-webkit-scrollbar {
+  width: 10px; // 垂直滚动条宽度
+  height: 10px; // 水平滚动条高度
+  cursor: pointer;
+}
+
+// 滚动条的方块
+::-webkit-scrollbar-thumb {
+  width: 10px;
+  border-radius: 10px;
+  background-color: var(--color-green-light);
+  cursor: pointer;
+}
+
+// 滚动条的轨道
+::-webkit-scrollbar-track {
+  width: 10px;
+  border-radius: 10px;
+  // background: var(--color-5th);
+  cursor: pointer;
+}
+
+:root {
+  --color-green: rgba(184, 233, 134); // #b8e986;
+  --color-green-light: rgba(184, 233, 134, 0.5); // #b8e98680
+  font-family: 'Iosevka', 'Menlo', 'Cascadia Code', 'PingFang SC', 'Microsoft YaHei' !important;
+  --color-1st: #3d8d7a;
+  --color-2nd: #b3d8a8;
+  --color-3rd: #fbffe4;
+  --color-4th: #a3d1c6;
+  --color-5th: #e8f9ff;
+  --color-6th: #c4d9ff;
+  --color-7th: #a1e3f9;
+  --color-8th: #d1f8ef;
+}
+
+@mixin glass-container($blurVal) {
+  // position: relative; // 父元素相对定位, 参考点: 原位置
+  z-index: 1;
+  &::before {
+    content: '';
+    position: absolute; // 子元素绝对定位, 参考点: 包含块
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur($blurVal);
+    backdrop-filter: blur($blurVal);
+    z-index: -1;
+    border-radius: 24px;
+  }
+}

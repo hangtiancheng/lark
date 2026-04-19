@@ -10,7 +10,7 @@ import { setupMockMiddlewares } from './plugins/webpack-server.js'
 import createJsonFiles from './plugins/create-json.js'
 import WebpackConditionalBundlePlugin from '@lark/conditional-bundle-plugin/webpack'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
-import { checkbox } from '@inquirer/prompts'
+import { createConditionalVars, resolveSelectedRoutes } from './shared.js'
 // import type { Application } from 'express'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -20,44 +20,10 @@ const isProduction = process.env.NODE_ENV === 'production'
 const envFile = isProduction ? '.env.production' : '.env.development'
 
 export default async () => {
-  // Allow user to select routes during dev startup if not specified in env
-  let selectedRoutes = process.env.SELECTED_ROUTES ? process.env.SELECTED_ROUTES.split(',') : null
-
-  if (!isProduction && !selectedRoutes) {
-    const choices = [
-      { name: 'All Routes', value: '*' },
-      { name: 'Dashboard', value: 'dashboard', checked: true },
-      { name: 'Main (fe24)', value: 'main' },
-      { name: 'Robot Grid', value: 'main/grid' },
-      { name: 'Map', value: 'map' },
-      { name: 'Order', value: 'order' },
-      { name: 'Order Detail', value: 'order/detail' },
-    ]
-
-    try {
-      selectedRoutes = await checkbox({
-        message: 'Select routes to compile:',
-        choices,
-        required: true,
-      })
-    } catch {
-      console.log('Using default routes')
-      selectedRoutes = ['dashboard', 'main', 'main/grid', 'map', 'order', 'order/detail']
-    }
-  }
-
-  // Create a record for fast lookup
-  const isAllRoutes = selectedRoutes && selectedRoutes.includes('*')
-  const allRoutes = ['dashboard', 'main', 'main/grid', 'map', 'order', 'order/detail']
-  const routesToCompile = isAllRoutes ? allRoutes : selectedRoutes || []
-
-  const activeRoutes = routesToCompile.reduce(
-    (acc, route) => {
-      acc[`ROUTE_${route.toUpperCase().replace(/\//g, '_')}`] = true
-      return acc
-    },
-    {} as Record<string, boolean>,
-  )
+  const { routeFlags } = await resolveSelectedRoutes({
+    mode: isProduction ? 'production' : 'development',
+    interactive: !isProduction,
+  })
 
   const config: Configuration = {
     entry: './src/main.tsx',
@@ -131,11 +97,7 @@ export default async () => {
     plugins: [
       new WebpackConditionalBundlePlugin({
         includes: ['**/*.ts', '**/*.tsx'],
-        vars: {
-          MY_ENV: process.env.MY_ENV || 'prod',
-          app: process.env.app || '1',
-          ...activeRoutes,
-        },
+        vars: createConditionalVars(routeFlags),
       }),
       new HtmlWebpackPlugin({
         template: './index.html',

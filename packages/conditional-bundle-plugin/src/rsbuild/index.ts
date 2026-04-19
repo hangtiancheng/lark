@@ -47,7 +47,7 @@ export default function RsbuildConditionalBundlePlugin(
       api.transform(
         {
           enforce: "pre",
-          test: /.*/,
+          test: /\.[cm]?[jt]sx?$/,
         },
         ({ code, resourcePath }) => {
           if (!filter(resourcePath)) {

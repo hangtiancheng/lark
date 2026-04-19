@@ -4,23 +4,22 @@ import { mockOrderList, mockRobotList } from './mock/index.js'
 import { randNum } from './utils/index.js'
 
 export default function createJsonFiles() {
-  const root = process.cwd()
-  const p = path.resolve(root, 'plugins/assets')
+  const assetsDir = path.resolve(process.cwd(), 'plugins/assets')
 
-  if (!fs.existsSync(p)) {
-    fs.mkdirSync(p, { recursive: true })
+  if (!fs.existsSync(assetsDir)) {
+    fs.mkdirSync(assetsDir, { recursive: true })
   }
 
-  const r_path = path.resolve(p, 'robot-list.json')
-  const o_path = path.resolve(p, 'order-list.json')
+  const robotList = mockRobotList(randNum(50, 100))
+  robotList[0].lat = 121.391229
+  robotList[0].lng = 31.251326
 
-  if (!fs.existsSync(r_path)) {
-    const robotList = mockRobotList(randNum(300, 500))
-    fs.writeFileSync(r_path, JSON.stringify(robotList, null, 2))
+  fs.writeFileSync(path.resolve(assetsDir, 'robot-list.json'), JSON.stringify(robotList), {
+    encoding: 'utf8',
+  })
 
-    if (!fs.existsSync(o_path)) {
-      const orderList = mockOrderList(randNum(5000, 10000), robotList)
-      fs.writeFileSync(o_path, JSON.stringify(orderList, null, 2))
-    }
-  }
+  const orderList = mockOrderList(randNum(250, 500), robotList)
+  fs.writeFileSync(path.resolve(assetsDir, 'order-list.json'), JSON.stringify(orderList), {
+    encoding: 'utf8',
+  })
 }

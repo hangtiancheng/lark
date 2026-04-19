@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import './index.css'
+import './assets/tailwind.css'
+import './assets/global.scss'
 import '@icon-park/react/styles/index.css'
 import 'animate.css'
 import { ConfigProvider } from 'antd'

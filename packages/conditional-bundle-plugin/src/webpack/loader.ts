@@ -1,7 +1,7 @@
 import type { LoaderContext } from "webpack";
 import {
   createFilter,
-  transformConditional,
+  transformConditionalSource,
   type ConditionalBundleOptions,
 } from "../core/index.js";
 
@@ -18,12 +18,7 @@ export default function loader(
     return source;
   }
 
-  // Quick check to avoid parsing files that definitely don't have directives
-  if (!source.includes("#if")) {
-    return source;
-  }
-
-  const result = transformConditional(source, vars);
+  const result = transformConditionalSource(source, vars);
   if (result) {
     this.callback(null, result.code, result.map);
     return;

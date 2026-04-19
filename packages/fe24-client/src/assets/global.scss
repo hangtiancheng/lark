@@ -1,0 +1,75 @@
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar-thumb {
+  width: 10px;
+  border-radius: 10px;
+  background-color: var(--color-green-light);
+  cursor: pointer;
+}
+
+::-webkit-scrollbar-track {
+  width: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+:root {
+  --color-green: rgba(184, 233, 134);
+  --color-green-light: rgba(184, 233, 134, 0.5);
+  font-family: 'Iosevka', 'Menlo', 'Cascadia Code', 'PingFang SC', 'Microsoft YaHei' !important;
+  --color-1st: #3d8d7a;
+  --color-2nd: #b3d8a8;
+  --color-3rd: #fbffe4;
+  --color-4th: #a3d1c6;
+  --color-5th: #e8f9ff;
+  --color-6th: #c4d9ff;
+  --color-7th: #a1e3f9;
+  --color-8th: #d1f8ef;
+}
+
+@mixin glass-container($blurVal) {
+  z-index: 1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur($blurVal);
+    backdrop-filter: blur($blurVal);
+    z-index: -1;
+    border-radius: 24px;
+  }
+}
+
+.glass-container {
+  position: relative;
+  @include glass-container(5px);
+}
+
+.rotate-x {
+  animation: rotateX 2s linear;
+}
+
+@keyframes rotateX {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

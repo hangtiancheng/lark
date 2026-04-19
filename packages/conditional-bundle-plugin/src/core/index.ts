@@ -1,3 +1,4 @@
+import path from "path";
 import MagicString, { type SourceMap } from "magic-string";
 import picomatch from "picomatch";
 
@@ -6,6 +7,8 @@ export interface ConditionalBundleOptions {
   excludes?: string[];
   vars?: Record<string, unknown>;
 }
+
+const DEFAULT_INCLUDES = ["**/*"];
 
 export function evaluateCondition(
   condition: string,
@@ -29,14 +32,55 @@ export function evaluateCondition(
 }
 
 export function createFilter(includes?: string[], excludes?: string[]) {
-  const isMatch = picomatch(includes || ["**/*"]);
+  const isMatch = picomatch(includes || DEFAULT_INCLUDES);
   const isExclude = excludes ? picomatch(excludes) : () => false;
+  const cwd = normalizeFileId(process.cwd());
 
   return function (id: string): boolean {
     if (!id || typeof id !== "string") return false;
-    if (id.includes("node_modules")) return false;
-    return isMatch(id) && !isExclude(id);
+
+    const normalizedId = normalizeFileId(id);
+    if (
+      !normalizedId ||
+      normalizedId.startsWith("\0") ||
+      normalizedId.includes("/node_modules/")
+    ) {
+      return false;
+    }
+
+    const candidates = getMatchCandidates(normalizedId, cwd);
+    const included = candidates.some((candidate) => isMatch(candidate));
+    const excluded = candidates.some((candidate) => isExclude(candidate));
+
+    return included && !excluded;
   };
+}
+
+export function normalizeFileId(id: string): string {
+  return id.split("?")[0].split("#")[0].replaceAll("\\", "/");
+}
+
+export function hasConditionalDirective(code: string): boolean {
+  return (
+    code.includes("#if") ||
+    code.includes("#elif") ||
+    code.includes("#else") ||
+    code.includes("#endif")
+  );
+}
+
+function getMatchCandidates(id: string, cwd: string): string[] {
+  const candidates = new Set<string>();
+  const normalizedId = normalizeFileId(id);
+
+  candidates.add(normalizedId);
+  candidates.add(path.posix.basename(normalizedId));
+
+  if (normalizedId.startsWith(`${cwd}/`)) {
+    candidates.add(normalizedId.slice(cwd.length + 1));
+  }
+
+  return [...candidates];
 }
 
 const ifRegex = /^[ \t]*\/\/[ \t]*#if[ \t]+(.+)$/;
@@ -134,4 +178,15 @@ export function transformConditional(
     };
   }
   return null;
+}
+
+export function transformConditionalSource(
+  code: string,
+  vars: Record<string, unknown> = {},
+): { code: string; map: SourceMap } | null {
+  if (!hasConditionalDirective(code)) {
+    return null;
+  }
+
+  return transformConditional(code, vars);
 }

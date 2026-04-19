@@ -96,7 +96,7 @@ export const HeaderMain: React.FC<HeaderMainProps> = ({ onSwitchWatermark }) => 
   )
 }
 
-const HeaderTabs: React.FC = () => {
+export const HeaderTabs: React.FC = () => {
   const tabList = useTabStore((state) => state.tabList)
   const removeTab = useTabStore((state) => state.removeTab)
   const navigate = useNavigate()

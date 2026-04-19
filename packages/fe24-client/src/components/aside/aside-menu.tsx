@@ -21,7 +21,12 @@ const AsideMenu: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-        <Menu mode="inline" selectedKeys={[location.pathname]} className="border-none" theme="light">
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          className="border-none"
+          theme="light"
+        >
           {menuList.map((item) => (
             <RecursiveChild key={item.url} item={item} />
           ))}

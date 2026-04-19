@@ -69,7 +69,7 @@ const DraggableWindow: React.FC<DraggableWindowProps> = ({
   return (
     <div
       ref={containerRef}
-      className="glass-container border-green fixed left-1/2 top-1/2 z-10 w-75 -translate-x-1/2 -translate-y-1/2 rounded-3xl border-[3px] px-5 pb-5"
+      className="glass-container border-green fixed top-1/2 left-1/2 z-10 w-75 -translate-x-1/2 -translate-y-1/2 rounded-3xl border-[3px] px-5 pb-5"
     >
       <div className="flex cursor-pointer items-center justify-between pt-5">
         <div>{header}</div>

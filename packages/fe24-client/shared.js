@@ -35,7 +35,7 @@ const __dirname = path.dirname(__filename)
  * @typedef {{ outDir: string; scripts?: string[]; styles?: string[] }} WriteHtmlFileOptions
  */
 
-export const packageRoot = path.resolve(__dirname, '..')
+export const packageRoot = __dirname
 export const srcRoot = path.resolve(packageRoot, 'src')
 export const publicRoot = path.resolve(packageRoot, 'public')
 export const htmlTemplatePath = path.resolve(packageRoot, 'index.html')
@@ -166,13 +166,9 @@ export function createConditionalVars(routeFlags) {
  * @returns {ClientEnv}
  */
 export function createClientEnv(mode, routeFlags) {
-  return {
+  /** @type {Partial<ClientEnv> & Record<string, string>} */
+  const clientEnv = {
     NODE_ENV: mode,
-    SERVER_URL: process.env.SERVER_URL || 'http://localhost:3000',
-    AMAP_JS_KEY: process.env.AMAP_JS_KEY || '',
-    AMAP_WEB_KEY: process.env.AMAP_WEB_KEY || '',
-    MY_ENV: process.env.MY_ENV || 'prod',
-    app: process.env.app || '1',
     SELECTED_ROUTES: Object.entries(routeFlags)
       .filter(([, enabled]) => enabled)
       .map(([key]) =>
@@ -183,6 +179,18 @@ export function createClientEnv(mode, routeFlags) {
       )
       .join(','),
   }
+
+  for (const [key, value] of Object.entries(process.env)) {
+    clientEnv[key] = value || ''
+  }
+
+  clientEnv.SERVER_URL = clientEnv.SERVER_URL || 'http://localhost:3000'
+  clientEnv.AMAP_JS_KEY = clientEnv.AMAP_JS_KEY || ''
+  clientEnv.AMAP_WEB_KEY = clientEnv.AMAP_WEB_KEY || ''
+  clientEnv.MY_ENV = clientEnv.MY_ENV || 'prod'
+  clientEnv.app = clientEnv.app || '1'
+
+  return /** @type {ClientEnv} */ (clientEnv)
 }
 
 /**

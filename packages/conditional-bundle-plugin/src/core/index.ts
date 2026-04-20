@@ -24,7 +24,7 @@ export function evaluateCondition(
       return false;
     }
     console.warn(
-      `[ConditionalPlugin] Failed to evaluate condition: ${condition}`,
+      `[ConditionalBundle] Failed to evaluate condition: ${condition}`,
       e,
     );
     return false;
@@ -126,7 +126,7 @@ export function transformConditional(
     } else if ((match = line.match(elifRegex))) {
       const condition = match[1];
       if (stack.length === 0) {
-        console.warn("[ConditionalPlugin] #elif without #if");
+        console.warn("[ConditionalBundle] #elif without #if");
         currentOffset += lineLength;
         continue;
       }
@@ -141,7 +141,7 @@ export function transformConditional(
       isDirective = true;
     } else if ((match = line.match(elseRegex))) {
       if (stack.length === 0) {
-        console.warn("[ConditionalPlugin] #else without #if");
+        console.warn("[ConditionalBundle] #else without #if");
         currentOffset += lineLength;
         continue;
       }
@@ -151,7 +151,7 @@ export function transformConditional(
       isDirective = true;
     } else if ((match = line.match(endifRegex))) {
       if (stack.length === 0) {
-        console.warn("[ConditionalPlugin] #endif without #if");
+        console.warn("[ConditionalBundle] #endif without #if");
         currentOffset += lineLength;
         continue;
       }

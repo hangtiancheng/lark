@@ -68,7 +68,7 @@ const a = 3;
 | `src/core`    | 核心算法：文件过滤、指令识别、条件求值、源码裁剪 | 已实现   |
 | `src/vite`    | Vite 条件编译插件                                | 已实现   |
 | `src/rollup`  | Rollup 条件编译插件                              | 已实现   |
-| `src/esbuild` | esbuild 条件编译插件（TS 版本）                  | 已实现   |
+| `src/esbuild` | esbuild 条件编译插件（本）                  | 已实现   |
 | `src/rsbuild` | Rsbuild 条件编译插件                             | 已实现   |
 | `src/webpack` | Webpack 条件编译插件与 loader 适配               | 已实现   |
 
@@ -90,7 +90,7 @@ const a = 3;
 
 ### `src/core`
 
-`src/core/index.ts` 是整个插件包最核心的部分。所有 TS 版本的 bundler 适配层都尽量复用这里的能力。
+`src/core/index.ts` 是整个插件包最核心的部分。所有的 bundler 适配层都尽量复用这里的能力。
 
 它主要负责 4 件事：
 
@@ -134,7 +134,7 @@ const a = 3;
 
 ### `src/esbuild`
 
-`src/esbuild/index.ts` 是 esbuild 的 TS 版本插件。
+`src/esbuild/index.ts` 是 esbuild 的插件。
 
 实现特点：
 
@@ -179,7 +179,7 @@ Webpack 这一套比其他 bundler 稍重，因为它不是单纯的 `transform(
 
 ## 插件配置
 
-所有 TS 版本适配层共享同一个配置结构：
+所有适配层共享同一个配置结构：
 
 ```ts
 interface ConditionalBundleOptions {
@@ -305,14 +305,12 @@ const appName = "other";
 
 核心解析逻辑基于逐行扫描。
 
-在 TS 版中：
-
 - 使用正则识别一行是否为 `#if / #elif / #else / #endif`
 - 维护一个栈来描述当前分支激活状态
 
 ### 4. 条件求值
 
-在 TS 版中，条件表达式会根据传入的 `vars` 求值。
+条件表达式会根据传入的 `vars` 求值。
 
 这意味着支持如下条件：
 
@@ -329,7 +327,7 @@ MY_ENV == "dev" && app == "1";
 
 最终保留下来的源码是一个合法的、已经消除无关分支的文件。
 
-TS 版使用 `magic-string` 生成最终结果和 sourcemap：
+使用 `magic-string` 生成最终结果和 sourcemap：
 
 - 方便与 bundler 的后续 sourcemap 合并
 - 避免粗暴字符串替换导致位置信息丢失
@@ -343,7 +341,7 @@ TS 版使用 `magic-string` 生成最终结果和 sourcemap：
 - `#endif` 前面没有 `#if`
 - 文件结束后仍有未闭合的 `#if`
 
-TS 版也有相同语义的保护逻辑。
+也有相同语义的保护逻辑。
 
 ### 7. 一次完整处理链路
 

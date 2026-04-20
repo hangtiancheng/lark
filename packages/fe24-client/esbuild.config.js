@@ -1,13 +1,8 @@
-// @ts-check
-
-/** @typedef {import('esbuild').BuildOptions} BuildOptions */
-/** @typedef {import('esbuild').Metafile} Metafile */
-/** @typedef {{ extract?: boolean; postcss?: { plugins?: unknown[] } }} StylePluginOptions */
-
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/postcss'
 import { build } from 'esbuild'
-import stylePlugin from '@apivm/esbuild-style-plugin'
+import { sassPlugin } from 'esbuild-sass-plugin'
+import postcssPlugin from 'esbuild-postcss-plugin'
 import EsbuildConditionalBundlePlugin from '@lark/conditional-bundle-plugin/esbuild'
 import {
   copyPublicAssets,
@@ -26,15 +21,21 @@ const { routeFlags } = await resolveSelectedRoutes({
   interactive: false,
 })
 
-/** @type {StylePluginOptions} */
-const stylePluginOptions = /** @type {any} */ ({
-  extract: true,
-  postcss: {
-    plugins: [tailwindcss()],
-  },
-})
+function createEsbuildPlugin(plugin, options) {
+  const created = plugin(options)
+  return {
+    name: created.name,
+    setup(build) {
+      created.setup(build)
+    },
+  }
+}
 
-/** @type {BuildOptions} */
+const stylePluginOptions = {
+  plugins: [tailwindcss()],
+  disableCache: true,
+}
+
 const buildOptions = {
   absWorkingDir: packageRoot,
   entryPoints: [path.resolve(packageRoot, 'src/main.tsx')],
@@ -66,24 +67,29 @@ const buildOptions = {
       includes: ['**/*.ts', '**/*.tsx'],
       vars: createConditionalVars(routeFlags),
     }),
-    stylePlugin(/** @type {any} */ (stylePluginOptions)),
+    sassPlugin({
+      filter: /\.module\.scss$/,
+      type: 'local-css',
+    }),
+    sassPlugin({
+      filter: /\.scss$/,
+      type: 'css',
+    }),
+    createEsbuildPlugin(postcssPlugin, stylePluginOptions),
   ],
 }
 
 const result = await build(buildOptions)
 
-/** @type {Metafile | undefined} */
 const metafile = result.metafile
 const outputs = Object.keys(metafile?.outputs ?? {})
 
-/** @type {string[]} */
 const scripts = outputs
   .filter((file) => file.endsWith('.js') && metafile?.outputs[file]?.entryPoint)
   .map(
     (file) => `./${path.relative(outDir, path.resolve(packageRoot, file)).replaceAll('\\', '/')}`,
   )
 
-/** @type {string[]} */
 const styles = outputs
   .filter((file) => file.endsWith('.css'))
   .map(

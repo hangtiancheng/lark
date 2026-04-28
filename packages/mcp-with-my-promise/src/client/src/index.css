@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* daisyUI 内置多种主题，
+如果不指定主题，则默认注入所有主题
+指定使用 bumblebee 主题，可以减小产物体积 */
+@plugin "daisyui" {
+  themes: bumblebee;
+}
+
+:root {
+  font-family:
+    "Iosevka", Menlo, "Cascadia Code", "PingFang SC", "Microsoft YaHei",
+    monospace;
+}
+
+/* Override daisyUI input/textarea focus styles to use 1px orange border */
+.input:focus,
+.input:focus-within,
+.textarea:focus,
+.textarea:focus-within {
+  @apply border-orange-400 shadow-none outline-none;
+}

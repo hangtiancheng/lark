@@ -1,0 +1,17 @@
+{
+  "app_title": "Prompt Manage",
+  "app_subtitle": "Manage AI prompts",
+  "form_title": "Create New Prompt",
+  "prompt_name_label": "Prompt Name",
+  "prompt_name_placeholder": "e.g. code review expert",
+  "description_label": "Description",
+  "description_placeholder": "Description of the prompt",
+  "content_label": "Content",
+  "content_placeholder": "The prompt content...",
+  "save_button": "Save Prompt",
+  "saving": "Saving...",
+  "success_message": "Prompt created successfully!",
+  "error_message": "Error",
+  "network_error": "Network error",
+  "switch_lang": "文 / EN"
+}

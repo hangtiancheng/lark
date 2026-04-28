@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: mytheme --default;
+}
+
+@plugin "daisyui/theme" {
+  name: "mytheme";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: var(--color-sky-50);
+  --color-base-200: var(--color-sky-100);
+  --color-base-300: var(--color-sky-200);
+  --color-base-content: var(--color-sky-950);
+
+  --color-primary: var(--color-sky-500);
+  --color-primary-content: var(--color-white);
+
+  --color-secondary: var(--color-blue-400);
+  --color-secondary-content: var(--color-blue-950);
+
+  --color-accent: var(--color-cyan-400);
+  --color-accent-content: var(--color-cyan-950);
+
+  --color-neutral: var(--color-slate-600);
+  --color-neutral-content: var(--color-slate-50);
+
+  --color-info: var(--color-sky-400);
+  --color-info-content: var(--color-sky-950);
+
+  --color-success: var(--color-emerald-400);
+  --color-success-content: var(--color-emerald-950);
+
+  --color-warning: var(--color-amber-400);
+  --color-warning-content: var(--color-amber-950);
+
+  --color-error: var(--color-rose-500);
+  --color-error-content: var(--color-rose-50);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+
+  --border: 0.5px;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --depth: 0;
+  --noise: 0;
+}
+
+:root {
+  font-family:
+    "Iosevka", Menlo, "Cascadia Code", "PingFang SC", "Microsoft YaHei",
+    monospace;
+}

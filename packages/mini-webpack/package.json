@@ -1,0 +1,21 @@
+{
+  "name": "@lark/mini-webpack",
+  "version": "1.0.0",
+  "description": "mini-webpack",
+  "main": "src/index.js",
+  "author": "hangtiancheng.github.io",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:hangtiancheng/wheel.git"
+  },
+  "dependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/parser": "^7.29.2",
+    "@babel/traverse": "^7.29.0",
+    "ejs": "^3.1.10",
+    "tapable": "^2.3.0"
+  }
+}

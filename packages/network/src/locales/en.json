@@ -1,0 +1,69 @@
+{
+  "task": {
+    "network_status": {
+      "name": "Network Status",
+      "success": "Online ({{effectiveType}}{{dataSaver}}), RTT: {{rtt}}ms",
+      "offline_error": "Browser reports offline status",
+      "unknown_error": "Unknown error",
+      "recommendation": "Please ensure device is connected to a network (WiFi/Ethernet)."
+    },
+    "location": {
+      "name": "Location & ISP Check",
+      "error": "Failed to retrieve location information: {{message}}",
+      "recommendation": "This might be due to network blocking or API rate limits. Core functionality is not affected."
+    },
+    "speed": {
+      "name": "Speed Test",
+      "success": "Download Speed: {{mbps}} Mbps",
+      "download_error": "Failed to download test file",
+      "error": "{{message}}",
+      "recommendation": "Network connection may be unstable. Try switching to a different network environment."
+    },
+    "api": {
+      "name": "API Connectivity",
+      "skipped": "No API list configured",
+      "success": "{{reachable}}/{{total}} API reachable",
+      "recommendation": "Some APIs are unreachable. Please check your firewall or the service status."
+    },
+    "resource": {
+      "name": "Static Resource Loading",
+      "skipped": "No resource list configured",
+      "success": "{{loaded}}/{{total}} resources loaded successfully",
+      "recommendation": "Failed to load CDN resources. This might be due to a CDN node failure or a local DNS issue."
+    }
+  },
+  "repair": {
+    "success": "Repair successful",
+    "failure": "Repair failed",
+    "running": "Repairing..."
+  },
+  "ui": {
+    "title": "Network Diagnostics",
+    "online": "Online",
+    "yes": "Yes",
+    "no": "No",
+    "network_type": "Network Type",
+    "downlink": "Downlink",
+    "max_downlink": "Max Downlink",
+    "rtt": "RTT",
+    "data_saver": "Data Saver",
+    "on": "On",
+    "off": "Off",
+    "unknown": "Unknown",
+    "ip": "IP",
+    "location": "Location",
+    "isp": "ISP",
+    "download_speed": "Download Speed",
+    "latency": "Latency",
+    "ok": "OK",
+    "fail": "Fail",
+    "start_msg": "Click the button below to start network diagnostics",
+    "start_btn": "Start Diagnosis",
+    "diagnosing_btn": "Diagnosing...",
+    "on_call_btn": "Create OnCall",
+    "diag_id": "Diagnostic ID",
+    "recommendation": "Recommendation",
+    "repair_btn": "One-click Fix",
+    "repairing_btn": "Fixing..."
+  }
+}

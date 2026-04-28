@@ -1,0 +1,29 @@
+(function (absoluteFilePath2moduleFn) {
+
+  function __webpack_require(absoluteFilePath) {
+    const [moduleFn, relativeDepPath2absoluteDepPath] =
+      absoluteFilePath2moduleFn[absoluteFilePath];
+    if (!moduleFn) {
+      return;
+    }
+
+    const __decorated_require = (relativeFilePath) => {
+      const absoluteFilePath =
+        relativeDepPath2absoluteDepPath[relativeFilePath];
+      return __webpack_require(absoluteFilePath);
+    };
+    const __webpack_module = { exports: {} };
+    moduleFn(__decorated_require, __webpack_module, __webpack_module.exports);
+    return __webpack_module.exports;
+  }
+
+  __webpack_require(
+    "<%- absoluteMainFilePath %>"
+  );
+})({
+  <% assetArr.forEach((asset) => { %>
+    "<%- asset['absoluteFilePath'] %>": [function (__webpack_require, __webpack_module, exports) {
+      <%- asset['sourceCode'] %>
+    }, <%- JSON.stringify(asset['relativeDepPath2absoluteDepPath']) %>],
+  <% }); %>
+});

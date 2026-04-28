@@ -1,0 +1,26 @@
+{
+  "name": "@lark/distributed-lock",
+  "version": "1.0.0",
+  "description": "A distributed lock implementation using Redis and TypeScript",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "redis",
+    "distributed-lock",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.3",
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "redis": "^5.11.0"
+  }
+}

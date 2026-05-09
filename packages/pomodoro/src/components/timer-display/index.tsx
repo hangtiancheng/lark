@@ -33,7 +33,7 @@ export const TimerDisplay = ({ timeLeft, mode }: TimerDisplayProps) => {
         {/* Time Text */}
         <view className="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300">
           <text
-            className={`text-lg font-bold mb-2 uppercase tracking-widest transition-colors duration-500 ${modeColors[mode].split(' ')[1]}`}
+            className={`text-lg mb-2 uppercase tracking-widest transition-colors duration-500 ${modeColors[mode].split(' ')[1]}`}
           >
             {modeLabels[mode]}
           </text>

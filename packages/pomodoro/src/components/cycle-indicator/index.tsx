@@ -6,7 +6,7 @@ interface CycleIndicatorProps {
 export const CycleIndicator = ({ completed, total }: CycleIndicatorProps) => {
   return (
     <view className="flex flex-col items-center mt-2 text-gray-500 text-sm">
-      <text className="mb-3 uppercase tracking-wider text-xs font-semibold text-gray-400">
+      <text className="mb-3 uppercase tracking-wider text-xs text-gray-400">
         Cycles
       </text>
       <view className="flex flex-row gap-3">

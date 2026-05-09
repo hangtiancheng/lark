@@ -5,29 +5,33 @@ export const Pinia = defineComponent(
   () => useMainStore(),
   ({ $patch, count, doubled }) => {
     return (
-      <div className="bg-white p-5 m-3 rounded-xl shadow-sm border border-sky-100 transition-shadow hover:shadow-md [&>p]:text-sky-600 [&>p]:font-mono [&>p]:leading-relaxed [&>p]:pb-4 [&>p]:pt-1 [&>p]:text-sm">
-        <p>Pinia B</p>
-        <button
-          onClick={() =>
-            $patch({
-              count: count + 1,
-            })
-          }
-        >
-          Inc +
-        </button>
-        <table>
-          <tbody>
-            <tr>
-              <td>Count</td>
-              <td>{count}</td>
-            </tr>
-            <tr>
-              <td>Doubled</td>
-              <td>{doubled}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="card border-base-300 bg-base-100 border shadow-sm">
+        <div className="card-body gap-4">
+          <h3 className="card-title text-base">Pinia B</h3>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() =>
+              $patch({
+                count: count + 1,
+              })
+            }
+          >
+            Increment
+          </button>
+          <table className="table-sm table">
+            <tbody>
+              <tr>
+                <td>Count</td>
+                <td className="text-right font-mono">{count}</td>
+              </tr>
+              <tr>
+                <td>Doubled</td>
+                <td className="text-right font-mono">{doubled}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   },

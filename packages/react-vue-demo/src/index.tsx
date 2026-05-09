@@ -8,5 +8,23 @@ const app = createApp();
 
 app.use(createPinia());
 
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-createRoot(document.getElementById("root")!).render(<App />);
+const container = document.getElementById("root");
+
+async function enableMocking() {
+  if (!import.meta.env.DEV) return;
+
+  const { worker } = await import("./mocks/browser");
+  await worker.start({
+    onUnhandledRequest: "bypass",
+  });
+}
+
+async function bootstrap() {
+  await enableMocking();
+
+  if (!container) return;
+
+  createRoot(container).render(<App />);
+}
+
+bootstrap();

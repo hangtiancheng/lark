@@ -40,20 +40,16 @@ export const Settings = ({
         bindtap={handleOpen}
         className="w-20 h-8 rounded-full bg-gray-50 flex items-center justify-center shadow-sm"
       >
-        <text className="text-gray-500 text-sm font-bold tracking-wider">
-          Settings
-        </text>
+        <text className="text-gray-500 text-sm tracking-wider">Settings</text>
       </view>
 
       {isOpen && (
         <view className="fixed inset-0 flex items-center justify-center px-4 bg-black/50 z-50">
           <view className="relative w-full max-w-[320px] bg-white rounded-2xl p-6 shadow-2xl">
             <view className="flex flex-row justify-between items-center mb-6">
-              <text className="text-xl font-bold text-gray-800">
-                Timer Settings
-              </text>
+              <text className="text-xl text-gray-800">Timer Settings</text>
               <view bindtap={() => setIsOpen(false)} className="p-2">
-                <text className="text-gray-400 text-xl font-bold">X</text>
+                <text className="text-gray-400 text-xl">X</text>
               </view>
             </view>
 
@@ -67,7 +63,7 @@ export const Settings = ({
                     bindtap={() => handleAdjust('work', -1)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <text className="text-gray-600 font-bold">-</text>
+                    <text className="text-gray-600">-</text>
                   </view>
                   <text className="w-12 p-2 border border-gray-200 rounded-lg text-center text-base font-medium">
                     {localConfig.work}
@@ -76,7 +72,7 @@ export const Settings = ({
                     bindtap={() => handleAdjust('work', 1)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <text className="text-gray-600 font-bold">+</text>
+                    <text className="text-gray-600">+</text>
                   </view>
                   <text className="text-gray-400 text-sm ml-1">min</text>
                 </view>
@@ -91,7 +87,7 @@ export const Settings = ({
                     bindtap={() => handleAdjust('shortBreak', -1)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <text className="text-gray-600 font-bold">-</text>
+                    <text className="text-gray-600">-</text>
                   </view>
                   <text className="w-12 p-2 border border-gray-200 rounded-lg text-center text-base font-medium">
                     {localConfig.shortBreak}
@@ -100,7 +96,7 @@ export const Settings = ({
                     bindtap={() => handleAdjust('shortBreak', 1)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <text className="text-gray-600 font-bold">+</text>
+                    <text className="text-gray-600">+</text>
                   </view>
                   <text className="text-gray-400 text-sm ml-1">min</text>
                 </view>
@@ -115,7 +111,7 @@ export const Settings = ({
                     bindtap={() => handleAdjust('longBreak', -1)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <text className="text-gray-600 font-bold">-</text>
+                    <text className="text-gray-600">-</text>
                   </view>
                   <text className="w-12 p-2 border border-gray-200 rounded-lg text-center text-base font-medium">
                     {localConfig.longBreak}
@@ -124,7 +120,7 @@ export const Settings = ({
                     bindtap={() => handleAdjust('longBreak', 1)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                   >
-                    <text className="text-gray-600 font-bold">+</text>
+                    <text className="text-gray-600">+</text>
                   </view>
                   <text className="text-gray-400 text-sm ml-1">min</text>
                 </view>

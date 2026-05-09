@@ -10,10 +10,12 @@ export const Battery = defineComponent(
   },
   ({ level, charging }) => {
     return (
-      <div className="bg-white p-5 m-3 rounded-xl shadow-sm border border-sky-100 transition-shadow hover:shadow-md [&>p]:text-sky-600 [&>p]:font-mono [&>p]:leading-relaxed [&>p]:pb-4 [&>p]:pt-1 [&>p]:text-sm">
-        <p>useBattery</p>
-        <div className="p-1">
-          Battery: {Math.round(level * 100)}%{charging ? "⚡️" : ""}
+      <div className="card border-base-300 bg-base-100 border shadow-sm">
+        <div className="card-body gap-3">
+          <h3 className="card-title text-base">useBattery</h3>
+          <div className="font-mono text-sm">
+            {Math.round(level * 100)}% {charging ? "charging" : "idle"}
+          </div>
         </div>
       </div>
     );

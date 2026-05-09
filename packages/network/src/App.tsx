@@ -46,7 +46,7 @@ function App() {
     <div className="bg-base-100 text-base-content flex min-h-screen flex-col items-center p-8">
       <div className="w-full max-w-4xl">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-primary text-3xl font-bold">{t("app.title")}</h1>
+          <h1 className="text-primary text-3xl">{t("app.title")}</h1>
 
           <div className="dropdown dropdown-end">
             <div tabIndex={0} role="button" className="btn m-1">

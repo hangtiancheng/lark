@@ -54,14 +54,14 @@ export const PromptForm: FC = () => {
   return (
     <div className="card bg-base-100 w-full shadow-xl shadow-orange-900/5 transition-shadow duration-300 hover:shadow-2xl">
       <div className="card-body p-8 lg:p-12">
-        <h2 className="card-title text-base-content border-base-200 mb-8 border-b pb-4 text-3xl font-bold">
+        <h2 className="card-title text-base-content border-base-200 mb-8 border-b pb-4 text-3xl">
           {t("form_title")}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <label className="form-control w-full">
             <div className="label">
-              <span className="label-text text-base-content/80 font-semibold">
+              <span className="label-text text-base-content/80">
                 {t("prompt_name_label")}
               </span>
             </div>
@@ -77,7 +77,7 @@ export const PromptForm: FC = () => {
 
           <label className="form-control w-full">
             <div className="label">
-              <span className="label-text text-base-content/80 font-semibold">
+              <span className="label-text text-base-content/80">
                 {t("description_label")}
               </span>
             </div>
@@ -93,7 +93,7 @@ export const PromptForm: FC = () => {
 
           <label className="form-control w-full">
             <div className="label">
-              <span className="label-text text-base-content/80 font-semibold">
+              <span className="label-text text-base-content/80">
                 {t("content_label")}
               </span>
             </div>

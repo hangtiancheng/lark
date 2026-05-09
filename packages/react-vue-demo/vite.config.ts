@@ -2,6 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import v8 from "v8";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [
@@ -29,6 +34,7 @@ export default defineConfig({
       vue: "@lark/react-vue",
       "@vue/composition-api": "@lark/react-vue",
       "@vue/runtime-dom": "@lark/react-vue",
+      "@": resolve(__dirname, "src"),
     },
   },
   /**

@@ -13,15 +13,17 @@ export const Query = defineComponent(
   },
   ({ data, isFetching, error }) => {
     return (
-      <div className="bg-white p-5 m-3 rounded-xl shadow-sm border border-sky-100 transition-shadow hover:shadow-md [&>p]:text-sky-600 [&>p]:font-mono [&>p]:leading-relaxed [&>p]:pb-4 [&>p]:pt-1 [&>p]:text-sm">
-        <p>useFetch</p>
-        <pre className="p-1 overflow-x-auto text-xs text-sky-800">
-          {error
-            ? `Error: ${(error as { message?: string }).message || error}`
-            : isFetching
-              ? "Loading..."
-              : JSON.stringify(data, null, 2)}
-        </pre>
+      <div className="card border-base-300 bg-base-100 border shadow-sm">
+        <div className="card-body gap-3">
+          <h3 className="card-title text-base">useFetch</h3>
+          <pre className="bg-base-200 max-h-72 overflow-x-auto rounded-xl p-3 text-xs">
+            {error
+              ? `Error: ${(error as { message?: string }).message || error}`
+              : isFetching
+                ? "Loading..."
+                : JSON.stringify(data, null, 2)}
+          </pre>
+        </div>
       </div>
     );
   },

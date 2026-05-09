@@ -85,7 +85,7 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
       return (
         <div className="text-base-content/70 mt-2 space-y-1 pl-8 text-sm">
           <p>
-            <span className="font-semibold">{t("ui.online")}:</span>
+            <span>{t("ui.online")}:</span>
             {info.online ? (
               <span className="badge badge-success badge-sm">
                 {t("ui.yes")}
@@ -95,7 +95,7 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
             )}
           </p>
           <p>
-            <span className="font-semibold">{t("ui.network_type")}:</span>
+            <span>{t("ui.network_type")}:</span>
             {info.effectiveType ? (
               <span className="badge badge-outline badge-sm">
                 {info.effectiveType}
@@ -105,17 +105,17 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
             )}
           </p>
           <p>
-            <span className="font-semibold">{t("ui.downlink")}:</span>
+            <span>{t("ui.downlink")}:</span>
             {info.downlink !== undefined
               ? `${info.downlink} Mbps`
               : t("ui.unknown")}
           </p>
           <p>
-            <span className="font-semibold">{t("ui.rtt")}:</span>
+            <span>{t("ui.rtt")}:</span>
             {info.rtt !== undefined ? `${info.rtt} ms` : t("ui.unknown")}
           </p>
           <p>
-            <span className="font-semibold">{t("ui.data_saver")}:</span>
+            <span>{t("ui.data_saver")}:</span>
             {info.saveData !== undefined ? (
               info.saveData ? (
                 <span className="badge badge-warning badge-sm">
@@ -139,14 +139,14 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
       return (
         <div className="text-base-content/70 mt-2 space-y-1 pl-8 text-sm">
           <p>
-            <span className="font-semibold">{t("ui.ip")}:</span> {info.ip}
+            <span>{t("ui.ip")}:</span> {info.ip}
           </p>
           <p>
-            <span className="font-semibold">{t("ui.location")}:</span>
+            <span>{t("ui.location")}:</span>
             {info.city}, {info.region}, {info.country}
           </p>
           <p>
-            <span className="font-semibold">{t("ui.isp")}:</span> {info.isp}
+            <span>{t("ui.isp")}:</span> {info.isp}
           </p>
         </div>
       );
@@ -157,14 +157,12 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
       return (
         <div className="text-base-content/70 mt-2 space-y-1 pl-8 text-sm">
           <p>
-            <span className="font-semibold">{t("ui.download_speed")}:</span>
-            <span className="text-primary font-bold">
-              {info.downloadSpeedMbps}
-            </span>
+            <span>{t("ui.download_speed")}:</span>
+            <span className="text-primary">{info.downloadSpeedMbps}</span>
             Mbps
           </p>
           <p>
-            <span className="font-semibold">{t("ui.latency")}:</span>
+            <span>{t("ui.latency")}:</span>
             {info.latencyMs} ms
           </p>
         </div>
@@ -261,7 +259,7 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
   return (
     <div className="bg-base-100 rounded-box border-base-200 fixed right-6 bottom-6 z-50 flex max-h-[85vh] w-100 flex-col overflow-hidden border shadow-2xl">
       <div className="bg-base-200/50 border-base-200 flex items-center justify-between border-b p-4">
-        <h3 className="text-base-content flex items-center gap-2 font-bold">
+        <h3 className="text-base-content flex items-center gap-2">
           <div className="bg-primary/10 text-primary rounded-lg p-1.5">
             <Activity className="h-5 w-5" />
           </div>
@@ -326,9 +324,7 @@ const NetworkDiagnosePanel: React.FC<NetworkDiagnosePanelProps> = ({
                   <div className="bg-warning/10 text-warning-content border-warning/20 mt-3 ml-8 flex items-start gap-2 rounded-lg border p-3 text-sm">
                     <Send className="text-warning h-5 w-5 shrink-0" />
                     <span>
-                      <span className="font-semibold">
-                        {t("ui.recommendation")}:
-                      </span>
+                      <span>{t("ui.recommendation")}:</span>
                       {result.recommendation}
                     </span>
                   </div>

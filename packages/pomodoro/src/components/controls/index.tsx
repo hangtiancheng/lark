@@ -23,7 +23,7 @@ export const Controls = ({
         bindtap={onToggle}
         className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ease-out shadow-lg ${modeColors[mode]}`}
       >
-        <text className="text-white text-2xl font-bold tracking-tighter">
+        <text className="text-white text-2xl tracking-tighter">
           {isActive ? 'Pause' : 'Play'}
         </text>
       </view>
@@ -32,7 +32,7 @@ export const Controls = ({
         bindtap={onReset}
         className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center transition-all duration-300 ease-out border border-gray-200"
       >
-        <text className="text-gray-500 text-2xl font-bold">Reset</text>
+        <text className="text-gray-500 text-2xl">Reset</text>
       </view>
     </view>
   );

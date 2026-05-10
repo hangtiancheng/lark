@@ -1,6 +1,9 @@
 {
   "name": "lark",
   "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
     "test:bloom-filter": "pnpm --filter @lark/bloom-filter test",
     "test:distributed-lock": "pnpm --filter @lark/distributed-lock test",
     "test:math": "pnpm --filter @lark/math test",
@@ -10,6 +13,7 @@
     "test": "concurrently \"pnpm test:bloom-filter\" \"pnpm test:distributed-lock\" \"pnpm test:math\" \"pnpm test:mini-zustand\" \"pnpm test:react-vue\" \"pnpm test:vue-reactivity\"'"
   },
   "devDependencies": {
+    "vitepress": "2.0.0-alpha.17",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "concurrently": "^9.2.1",

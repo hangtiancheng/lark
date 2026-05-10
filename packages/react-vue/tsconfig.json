@@ -10,7 +10,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "esnext",
-    "types": ["vitest/globals", "@testing-library/jest-dom", "node"],
+    "types": ["node", "vitest/globals"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -47,8 +47,6 @@
     "./tests",
     "./error-handling.ts",
     "./eslint.config.ts",
-    "./setup-tests.ts",
-    "./shimes.d.ts",
-    "./vitest.config.ts"
+    "./shimes.d.ts"
   ]
 }

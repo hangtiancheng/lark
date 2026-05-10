@@ -13,7 +13,7 @@ export default defineConfig({
     tailwindcss(),
     react(),
     {
-      name: "hardware-info",
+      name: "hardware",
       configureServer(server) {
         server.middlewares.use("/json", (req, res) => {
           setTimeout(() => {

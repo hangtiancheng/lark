@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router";
-import { useGlobalSearch } from "@/hooks/use-global-search";
+import { defineComponent } from "@lark/react-vue";
+import { setupGlobalSearchDom } from "@/hooks/global-search/dom";
+import { setupGlobalSearch } from "@/hooks/use-global-search";
 import type { SearchResult } from "@/types";
 import { Input } from "./input";
 import { Results } from "./results";
@@ -9,39 +9,22 @@ interface IProps {
   cacheTtlSeconds?: number;
 }
 
-export function GlobalSearch({ cacheTtlSeconds = 30 }: IProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
-
-  const handleSelect = useCallback(
-    (result: SearchResult) => {
-      navigate(result.url);
-    },
-    [navigate],
-  );
-
-  const searchOptions = useMemo(
-    () => ({
-      cacheTtlSeconds,
+export const GlobalSearch = defineComponent(
+  (props: IProps) => {
+    const { state, actions } = setupGlobalSearch({
+      cacheTtlSeconds: props.cacheTtlSeconds ?? 30,
       onSelect: handleSelect,
-    }),
-    [cacheTtlSeconds, handleSelect],
-  );
+    });
+    const dom = setupGlobalSearchDom({ isOpen: state.isOpen });
 
-  const { state, actions } = useGlobalSearch(searchOptions);
-
-  useEffect(() => {
-    if (!state.isOpen) return;
-
-    const timer = window.setTimeout(() => {
-      inputRef.current?.focus();
-    }, 80);
-
-    return () => window.clearTimeout(timer);
-  }, [state.isOpen]);
-
-  return (
-    <div className="w-full">
+    return {
+      state,
+      actions,
+      dom,
+    };
+  },
+  ({ state, actions, dom }) => (
+    <div ref={dom.setRootElement} className="w-full">
       <div
         className={`mx-auto transition-all duration-300 ease-out ${
           state.isOpen ? "max-w-2xl" : "max-w-xl"
@@ -54,10 +37,19 @@ export function GlobalSearch({ cacheTtlSeconds = 30 }: IProps) {
               : "border-base-300 hover:border-primary/30"
           }`}
         >
-          <Input inputRef={inputRef} state={state} actions={actions} />
+          <Input
+            setInputElement={dom.setInputElement}
+            state={state}
+            actions={actions}
+          />
           <Results state={state} actions={actions} />
         </div>
       </div>
     </div>
-  );
+  ),
+);
+
+function handleSelect(result: SearchResult) {
+  window.history.pushState(null, "", result.url);
+  window.dispatchEvent(new PopStateEvent("popstate"));
 }

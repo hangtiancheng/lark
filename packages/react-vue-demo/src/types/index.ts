@@ -2,6 +2,10 @@ export interface ValueRef<T> {
   value: T;
 }
 
+export type SetStateAction<T> = T | ((value: T) => T);
+
+export type Dispatch<T> = (value: SetStateAction<T>) => void;
+
 export interface SearchResult {
   id: string;
   title: string;

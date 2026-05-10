@@ -1,12 +1,20 @@
 import { ArrowDown, ArrowUp, CornerDownLeft, LoaderCircle } from "lucide-react";
+import { defineComponent, toRefs } from "@lark/react-vue";
 import type { SearchViewState } from "@/types";
 
 interface IProps {
   state: SearchViewState;
 }
 
-export function ResultsHeader({ state }: IProps) {
-  return (
+export const ResultsHeader = defineComponent(
+  (props: IProps) => {
+    const { state } = toRefs(props);
+
+    return {
+      state,
+    };
+  },
+  ({ state }) => (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-2">
       <div className="text-base-content/60 flex flex-wrap items-center gap-2 text-sm">
         <span>{state.total} results</span>
@@ -36,5 +44,5 @@ export function ResultsHeader({ state }: IProps) {
         <span>Close</span>
       </div>
     </div>
-  );
-}
+  ),
+);

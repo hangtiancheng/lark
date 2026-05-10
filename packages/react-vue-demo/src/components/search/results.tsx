@@ -1,3 +1,4 @@
+import { computed, defineComponent, toRefs } from "@lark/react-vue";
 import type { SearchActions, SearchViewState } from "@/types";
 import {
   InlineSearchError,
@@ -13,11 +14,21 @@ interface IProps {
   actions: SearchActions;
 }
 
-export function Results({ state, actions }: IProps) {
-  const showInlineError =
-    state.errorMessage.length > 0 && state.status !== "error";
+export const Results = defineComponent(
+  (props: IProps) => {
+    const { state, actions } = toRefs(props);
+    const showInlineError = computed(
+      () =>
+        state.value.errorMessage.length > 0 && state.value.status !== "error",
+    );
 
-  return (
+    return {
+      state,
+      actions,
+      showInlineError,
+    };
+  },
+  ({ state, actions, showInlineError }) => (
     <div
       id="global-search-results"
       className={`grid transition-all duration-300 ease-out ${
@@ -56,5 +67,5 @@ export function Results({ state, actions }: IProps) {
         </div>
       </div>
     </div>
-  );
-}
+  ),
+);

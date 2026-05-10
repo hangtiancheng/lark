@@ -1,10 +1,12 @@
 import { useSetup, ref, computed, watch } from "@lark/react-vue";
-import { type Dispatch, type SetStateAction } from "react";
+import type { Dispatch } from "@/types";
 
-function Counter2(Props: {
+interface IProps {
   value: number;
-  setValue: Dispatch<SetStateAction<number>>;
-}) {
+  setValue: Dispatch<number>;
+}
+
+function Counter2(Props: IProps) {
   const state = useSetup((props) => {
     const vueCount = ref(props.value);
     const { setValue } = props;
@@ -41,7 +43,7 @@ function Counter2(Props: {
             Vue +
           </button>
           <button type="button" className="btn btn-sm join-item" onClick={inc}>
-            React +
+            Parent +
           </button>
           <button
             type="button"
@@ -51,7 +53,7 @@ function Counter2(Props: {
             Vue -
           </button>
           <button type="button" className="btn btn-sm join-item" onClick={dec}>
-            React -
+            Parent -
           </button>
         </div>
         <div className="border-base-300 overflow-x-auto rounded-xl border">

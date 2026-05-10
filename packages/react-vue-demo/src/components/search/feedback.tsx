@@ -1,4 +1,5 @@
 import { AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
+import { defineComponent, toRefs } from "@lark/react-vue";
 import type { SearchActions, SearchViewState } from "@/types";
 
 interface IProps {
@@ -6,8 +7,16 @@ interface IProps {
   actions: SearchActions;
 }
 
-export function InlineSearchError({ state, actions }: IProps) {
-  return (
+export const InlineSearchError = defineComponent(
+  (props: IProps) => {
+    const { state, actions } = toRefs(props);
+
+    return {
+      state,
+      actions,
+    };
+  },
+  ({ state, actions }) => (
     <div role="alert" className="alert alert-warning alert-soft mb-3">
       <AlertTriangle className="size-5" />
       <span>{state.errorMessage}</span>
@@ -20,21 +29,30 @@ export function InlineSearchError({ state, actions }: IProps) {
         Retry
       </button>
     </div>
-  );
-}
+  ),
+);
 
-export function SearchLoadingState() {
-  return (
+export const SearchLoadingState = defineComponent(
+  () => ({}),
+  () => (
     <div className="space-y-3 p-2">
       <div className="skeleton h-16 w-full rounded-2xl" />
       <div className="skeleton h-16 w-full rounded-2xl" />
       <div className="skeleton h-16 w-full rounded-2xl" />
     </div>
-  );
-}
+  ),
+);
 
-export function SearchErrorState({ state, actions }: IProps) {
-  return (
+export const SearchErrorState = defineComponent(
+  (props: IProps) => {
+    const { state, actions } = toRefs(props);
+
+    return {
+      state,
+      actions,
+    };
+  },
+  ({ state, actions }) => (
     <div role="alert" className="alert alert-error alert-soft">
       <AlertTriangle className="size-5" />
       <div className="grow">
@@ -50,11 +68,12 @@ export function SearchErrorState({ state, actions }: IProps) {
         Retry
       </button>
     </div>
-  );
-}
+  ),
+);
 
-export function SearchEmptyState() {
-  return (
+export const SearchEmptyState = defineComponent(
+  () => ({}),
+  () => (
     <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
       <div className="bg-base-200 text-base-content/50 flex size-14 items-center justify-center rounded-3xl">
         <Sparkles className="size-6" />
@@ -66,5 +85,5 @@ export function SearchEmptyState() {
         </p>
       </div>
     </div>
-  );
-}
+  ),
+);

@@ -6,10 +6,15 @@ import {
   onUnmounted,
   onMounted,
 } from "@lark/react-vue";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch } from "@/types";
+
+interface IProps {
+  value: number;
+  setValue: Dispatch<number>;
+}
 
 const Counter = defineComponent(
-  (props: { value: number; setValue: Dispatch<SetStateAction<number>> }) => {
+  (props: IProps) => {
     const vueCount = ref(props.value);
     const { setValue } = props;
 
@@ -56,7 +61,7 @@ const Counter = defineComponent(
               className="btn btn-sm join-item"
               onClick={inc}
             >
-              React +
+              Parent +
             </button>
             <button
               type="button"
@@ -70,7 +75,7 @@ const Counter = defineComponent(
               className="btn btn-sm join-item"
               onClick={dec}
             >
-              React -
+              Parent -
             </button>
           </div>
 
@@ -79,7 +84,7 @@ const Counter = defineComponent(
               <tbody>
                 <tr>
                   <td className="font-medium">Count</td>
-                  <td className="text-primary text-right text-lg">
+                  <td className="text-right">
                     {vueCount}
                   </td>
                 </tr>

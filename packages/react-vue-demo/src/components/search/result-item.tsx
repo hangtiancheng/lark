@@ -1,4 +1,5 @@
 import { Clock3, FileSearch } from "lucide-react";
+import { computed, defineComponent, toRefs } from "@lark/react-vue";
 import type { SearchActions, SearchViewState } from "@/types";
 import type { SearchResult } from "@/types";
 import { Highlight } from "./highlight";
@@ -18,22 +19,30 @@ function formatDate(value: string) {
   });
 }
 
-function ResultIcon() {
-  return (
+const ResultIcon = defineComponent(
+  () => ({}),
+  () => (
     <div className="bg-base-200 text-base-content/60 flex size-9 shrink-0 items-center justify-center rounded-xl">
       <FileSearch className="size-5" />
     </div>
-  );
-}
+  ),
+);
 
-export function ResultItem({
-  result,
-  index,
-  isActive,
-  query,
-  actions,
-}: IProps) {
-  return (
+export const ResultItem = defineComponent(
+  (props: IProps) => {
+    const { result, index, isActive, query, actions } = toRefs(props);
+    const updatedAt = computed(() => formatDate(result.value.updatedAt));
+
+    return {
+      result,
+      index,
+      isActive,
+      query,
+      actions,
+      updatedAt,
+    };
+  },
+  ({ result, index, isActive, query, actions, updatedAt }) => (
     <li>
       <button
         type="button"
@@ -60,11 +69,11 @@ export function ResultItem({
           </span>
           <span className="text-base-content/45 mt-2 flex flex-wrap items-center gap-2 text-xs">
             <Clock3 className="size-3.5" />
-            Updated {formatDate(result.updatedAt)}
+            Updated {updatedAt}
             <span>{result.url}</span>
           </span>
         </span>
       </button>
     </li>
-  );
-}
+  ),
+);

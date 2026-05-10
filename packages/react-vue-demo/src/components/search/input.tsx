@@ -1,23 +1,37 @@
 import { Command, LoaderCircle, Search, X } from "lucide-react";
-import type { ChangeEvent, RefObject } from "react";
+import { defineComponent, toRefs } from "@lark/react-vue";
 import type { SearchActions, SearchViewState } from "@/types";
 
 interface IProps {
-  inputRef: RefObject<HTMLInputElement | null>;
+  setInputElement: (element: HTMLInputElement | null) => void;
   state: SearchViewState;
   actions: SearchActions;
 }
 
-export function Input({ inputRef, state, actions }: IProps) {
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    actions.setQuery(event.currentTarget.value);
-  };
+interface InputChangeEvent {
+  currentTarget: HTMLInputElement;
+}
 
-  return (
+export const Input = defineComponent(
+  (props: IProps) => {
+    const { setInputElement, state, actions } = toRefs(props);
+
+    const handleChange = (event: InputChangeEvent) => {
+      actions.value.setQuery(event.currentTarget.value);
+    };
+
+    return {
+      setInputElement,
+      state,
+      actions,
+      handleChange,
+    };
+  },
+  ({ setInputElement, state, actions, handleChange }) => (
     <label className="input bg-base-100 flex h-12 w-full items-center gap-3 rounded-xl border-0 px-3 shadow-none">
       <Search className="text-base-content/50 size-5 shrink-0" />
       <input
-        ref={inputRef}
+        ref={setInputElement}
         value={state.query}
         onChange={handleChange}
         onFocus={actions.openSearch}
@@ -48,5 +62,5 @@ export function Input({ inputRef, state, actions }: IProps) {
         <kbd className="kbd kbd-sm">P</kbd>
       </div>
     </label>
-  );
-}
+  ),
+);

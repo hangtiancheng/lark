@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { defineComponent, ref } from "@lark/react-vue";
 import { Link } from "react-router";
 import Counter from "@/components/demo/counter";
 import Counter2 from "@/components/demo/counter2";
@@ -8,12 +8,30 @@ import { Pinia as Pinia2 } from "@/pinia/pinia-b";
 import { Mouse } from "@/hooks/use-mouse";
 import { Battery } from "@/hooks/use-battery";
 import { Query } from "@/hooks/use-query";
+import type { SetStateAction } from "@/types";
 
-function Demo() {
-  const [count, setCount] = useState(0);
-  const [show, setShow] = useState(true);
+const Demo = defineComponent(
+  () => {
+    const count = ref(0);
+    const show = ref(true);
 
-  return (
+    const setCount = (nextValue: SetStateAction<number>) => {
+      count.value =
+        typeof nextValue === "function" ? nextValue(count.value) : nextValue;
+    };
+
+    const toggleCounter = () => {
+      show.value = !show.value;
+    };
+
+    return {
+      count,
+      show,
+      setCount,
+      toggleCounter,
+    };
+  },
+  ({ count, show, setCount, toggleCounter }) => (
     <main className="bg-base-200 min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <nav className="navbar px-0">
@@ -38,7 +56,7 @@ function Demo() {
           </div>
           <button
             type="button"
-            onClick={() => setShow(!show)}
+            onClick={toggleCounter}
             className="btn btn-primary btn-soft"
           >
             {show ? "Unmount Counter" : "Mount Counter"}
@@ -92,7 +110,7 @@ function Demo() {
         </div>
       </div>
     </main>
-  );
-}
+  ),
+);
 
 export default Demo;

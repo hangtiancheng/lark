@@ -1,8 +1,10 @@
+import { defineComponent } from "@lark/react-vue";
 import { Link } from "react-router";
 import { GlobalSearch } from "@/components/search/global-search";
 
-function Home() {
-  return (
+const Home = defineComponent(
+  () => ({}),
+  () => (
     <main className="bg-base-200 min-h-screen">
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-6 sm:px-6">
         <nav className="navbar px-0">
@@ -34,7 +36,7 @@ function Home() {
         </section>
       </div>
     </main>
-  );
-}
+  ),
+);
 
 export default Home;

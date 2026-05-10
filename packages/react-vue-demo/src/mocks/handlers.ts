@@ -12,7 +12,6 @@ const categories = [
   "VueUse",
   "Routing",
   "Performance",
-  "Design System",
   "Mock API",
 ];
 
@@ -22,11 +21,9 @@ const topics = [
   "createSetup",
   "watch",
   "computed",
-  "global search",
   "keyboard shortcut",
-  "cache strategy",
   "mock service worker",
-  "faker data",
+  "faker",
   "tailwind css",
   "daisyUI",
   "lucide icons",
@@ -35,7 +32,7 @@ const topics = [
 
 const pages = ["/", "/demo"];
 
-const searchItems: SearchResult[] = Array.from({ length: 96 }, (_, index) => {
+const searchItems: SearchResult[] = Array.from({ length: 10_000 }, (_, index) => {
   const topic = faker.helpers.arrayElement(topics);
   const category = faker.helpers.arrayElement(categories);
   const title = `${faker.hacker.verb()} ${topic} ${faker.hacker.noun()}`;

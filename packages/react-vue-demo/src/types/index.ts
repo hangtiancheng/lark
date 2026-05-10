@@ -59,3 +59,4 @@ export interface SearchActions {
   selectResult: (result: SearchResult) => void;
   retry: () => void;
 }
+

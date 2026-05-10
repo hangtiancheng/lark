@@ -1,8 +1,9 @@
+import { shallowRef } from "@lark/react-vue";
+import { useFetch as createFetch } from "@vueuse/core";
 import type { SearchResult, ValueRef, SearchStatus } from "@/types";
 import { cleanupSearchCache, getCachedSearch, setCachedSearch } from "./cache";
 import {
   getErrorMessage,
-  isAbortError,
   parseSearchResponse,
   readErrorMessage,
 } from "./response";
@@ -27,12 +28,17 @@ export function createSearchRunner({
   isRefreshing,
   setResults,
 }: SearchRunnerOptions) {
-  let controller: AbortController | null = null;
+  const requestUrl = shallowRef("");
+  const request = createFetch(requestUrl, {
+    immediate: false,
+    refetch: false,
+  }).json<unknown>();
+
   let requestVersion = 0;
 
   function cancel() {
     requestVersion += 1;
-    if (controller) controller.abort();
+    request.abort();
   }
 
   async function run(searchTerm: string, preferCache: boolean) {
@@ -54,22 +60,26 @@ export function createSearchRunner({
     }
 
     cancel();
-    controller = new AbortController();
     const currentVersion = requestVersion;
+    requestUrl.value = `/api/search?q=${encodeURIComponent(searchTerm)}`;
 
     try {
-      const response = await fetch(
-        `/api/search?q=${encodeURIComponent(searchTerm)}`,
-        {
-          signal: controller.signal,
-        },
-      );
+      await request.execute();
+      const response = request.response.value;
+
+      if (!response) {
+        throw request.error.value ?? new Error("Search request failed.");
+      }
 
       if (!response.ok) {
         throw new Error(await readErrorMessage(response));
       }
 
-      const data = parseSearchResponse(await response.json());
+      if (request.error.value) {
+        throw request.error.value;
+      }
+
+      const data = parseSearchResponse(request.data.value);
       if (currentVersion !== requestVersion) return;
 
       if (!areSameResults(results.value, data.items)) {
@@ -82,7 +92,7 @@ export function createSearchRunner({
       fromCache.value = false;
       errorMessage.value = "";
     } catch (error) {
-      if (isAbortError(error) || currentVersion !== requestVersion) return;
+      if (currentVersion !== requestVersion) return;
 
       errorMessage.value = getErrorMessage(error);
       if (!cached) {

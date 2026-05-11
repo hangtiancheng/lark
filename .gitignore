@@ -194,3 +194,7 @@ packages/fe24-client/plugins/assets/robot-list.json
 packages/fe24-client/plugins/assets/order-list.json
 packages/fe24-client-vue/plugins/assets/robot-list.json
 packages/fe24-client-vue/plugins/assets/order-list.json
+
+.vitepress/.temp
+.vitepress/cache
+.vitepress/dist/

@@ -8,12 +8,12 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "target": "ES2022",
     "types": ["node"]
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*", "./tsup.config.ts"]
 }

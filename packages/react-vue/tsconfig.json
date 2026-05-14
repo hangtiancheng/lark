@@ -40,6 +40,7 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
+    "ignoreDeprecations": "6.0",
     "skipLibCheck": true
   },
   "include": [
@@ -47,6 +48,7 @@
     "./tests",
     "./error-handling.ts",
     "./eslint.config.ts",
+    "./tsup.config.ts",
     "./shimes.d.ts"
   ]
 }

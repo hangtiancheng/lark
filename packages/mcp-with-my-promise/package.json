@@ -12,6 +12,7 @@
     "build": "concurrently \"pnpm build:server\" \"pnpm build:client\"",
     "build:server": "tsc",
     "build:client": "cd src/client && rollup -c",
+    "build:tsup": "cd src/client && tsup --config ./tsup.config.ts",
     "format": "prettier -w ./"
   },
   "keywords": [],
@@ -64,6 +65,7 @@
     "rollup": "^4.60.0",
     "rollup-plugin-postcss": "^4.0.2",
     "tailwindcss": "^4.2.2",
+    "tsup": "^8.5.0",
     "tslib": "^2.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

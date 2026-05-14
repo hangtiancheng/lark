@@ -42,5 +42,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "exclude": ["tests"]
+  "exclude": ["tests", "tsup.config.ts"]
 }

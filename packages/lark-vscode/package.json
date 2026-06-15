@@ -1,0 +1,125 @@
+{
+  "name": "lark-vscode",
+  "displayName": "Lark vscode",
+  "version": "0.0.1",
+  "description": "Lark toolchain for vscode",
+  "categories": [
+    "Other"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hangtiancheng/lark.git",
+    "directory": "lark-vscode"
+  },
+  "publisher": "hangtiancheng",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsup",
+    "code": "code --install-extension ./lark-vscode-0.0.1.vsix",
+    "code:force": "code --install-extension ./lark-vscode-0.0.1.vsix --force",
+    "lint": "tsc --noEmit",
+    "package": "pnpm build && node scripts/copy-swc.js && vsce package --no-dependencies",
+    "watch": "tsup --watch"
+  },
+  "dependencies": {
+    "@lark.js/mvc": "workspace:^",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.40",
+    "@types/node": "^24.13.1",
+    "@types/vscode": "^1.120.0",
+    "@vscode/vsce": "^3.9.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "lark.copyViewPath",
+        "title": "Lark: Copy View Path"
+      },
+      {
+        "command": "lark.openInGithub",
+        "title": "Lark: Open in GitHub"
+      }
+    ],
+    "configuration": {
+      "properties": {
+        "lark.statusBar.shortcuts": {
+          "default": [],
+          "description": "Status bar shortcut links",
+          "items": {
+            "properties": {
+              "name": {
+                "description": "Display name for the status bar item",
+                "type": "string"
+              },
+              "url": {
+                "description": "URL to open when clicked",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "url"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "title": "Lark"
+    },
+    "grammars": [
+      {
+        "injectTo": [
+          "text.html.basic"
+        ],
+        "path": "./syntaxes/lark-template.tmLanguage.json",
+        "scopeName": "text.html.lark-template"
+      }
+    ],
+    "languages": [
+      {
+        "aliases": [
+          "Lark Template"
+        ],
+        "configuration": "./language-configuration.json",
+        "extensions": [],
+        "id": "lark-template"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "lark.copyViewPath",
+          "group": "0_lark",
+          "when": "vs-lark:isLark"
+        },
+        {
+          "command": "lark.openInGithub",
+          "group": "0_lark"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "lark.copyViewPath",
+          "group": "0_lark",
+          "when": "vs-lark:isLark"
+        },
+        {
+          "command": "lark.openInGithub",
+          "group": "0_lark"
+        }
+      ]
+    }
+  },
+  "activationEvents": [
+    "workspaceContains:**/package.json"
+  ],
+  "engines": {
+    "vscode": "^1.120.0"
+  }
+}

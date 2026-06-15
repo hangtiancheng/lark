@@ -1,0 +1,125 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Lark Template",
+  "scopeName": "text.html.lark-template",
+  "injectionSelector": "L:text.html",
+  "patterns": [
+    { "include": "#lark-block-comment" },
+    { "include": "#lark-control-flow" },
+    { "include": "#lark-set-expression" },
+    { "include": "#lark-raw-output" },
+    { "include": "#lark-ref-output" },
+    { "include": "#lark-binding-output" },
+    { "include": "#lark-escaped-output" },
+    { "include": "#lark-event-attribute" },
+    { "include": "#lark-view-attribute" },
+    { "include": "#lark-optimization-attribute" }
+  ],
+  "repository": {
+    "lark-block-comment": {
+      "name": "comment.block.lark",
+      "begin": "\\{\\{!--",
+      "end": "--\\}\\}"
+    },
+    "lark-escaped-output": {
+      "name": "meta.expression.lark",
+      "begin": "\\{\\{=",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.expression.begin.lark" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.lark" }
+      },
+      "contentName": "source.js.embedded.lark"
+    },
+    "lark-raw-output": {
+      "name": "meta.expression.raw.lark",
+      "begin": "\\{\\{!",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.expression.begin.lark" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.lark" }
+      },
+      "contentName": "source.js.embedded.lark"
+    },
+    "lark-ref-output": {
+      "name": "meta.expression.ref.lark",
+      "begin": "\\{\\{@",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.expression.begin.lark" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.lark" }
+      },
+      "contentName": "source.js.embedded.lark"
+    },
+    "lark-binding-output": {
+      "name": "meta.expression.binding.lark",
+      "begin": "\\{\\{:",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.expression.begin.lark" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.lark" }
+      },
+      "contentName": "source.js.embedded.lark"
+    },
+    "lark-control-flow": {
+      "patterns": [
+        {
+          "name": "keyword.control.lark",
+          "match": "\\{\\{\\s*(if|else\\s*if|else|forOf|forIn|for)\\b[^}]*\\}\\}"
+        },
+        {
+          "name": "keyword.control.lark",
+          "match": "\\{\\{\\s*/(if|forOf|forIn|for)\\s*\\}\\}"
+        }
+      ]
+    },
+    "lark-set-expression": {
+      "name": "meta.expression.set.lark",
+      "begin": "\\{\\{\\s*set\\b",
+      "beginCaptures": {
+        "0": { "name": "keyword.operator.assignment.lark" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.expression.end.lark" }
+      },
+      "contentName": "source.js.embedded.lark"
+    },
+    "lark-event-attribute": {
+      "name": "meta.attribute.event.lark",
+      "match": "(@)(\\w+(?:\\.\\w+)?)(\\s*=\\s*)(\"[^\"]*\"|'[^']*')",
+      "captures": {
+        "1": { "name": "punctuation.definition.event.lark" },
+        "2": { "name": "entity.other.attribute-name.event.lark" },
+        "3": { "name": "punctuation.separator.key-value.html" },
+        "4": { "name": "string.quoted.double.html" }
+      }
+    },
+    "lark-view-attribute": {
+      "name": "meta.attribute.view.lark",
+      "match": "(v-lark)(\\s*=\\s*)(\"[^\"]*\"|'[^']*')",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.directive.lark" },
+        "2": { "name": "punctuation.separator.key-value.html" },
+        "3": { "name": "string.quoted.double.html" }
+      }
+    },
+    "lark-optimization-attribute": {
+      "name": "meta.attribute.optimization.lark",
+      "match": "(ldk|lak|lvk)(\\s*=\\s*)(\"[^\"]*\"|'[^']*')",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.optimization.lark" },
+        "2": { "name": "punctuation.separator.key-value.html" },
+        "3": { "name": "string.quoted.double.html" }
+      }
+    }
+  }
+}

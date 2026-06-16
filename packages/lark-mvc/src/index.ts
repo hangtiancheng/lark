@@ -70,23 +70,23 @@ export { config as frameworkConfig, use } from "./module-loader";
 // CrossSite (micro-frontend bridge View)
 export { default as CrossSite, resetProjectsMap } from "./cross-site";
 
-// VDOM diff engine
+// DOM diff engine
 export {
-  vdomUnmountFrames,
-  vdomGetNode,
-  vdomGetCompareKey,
-  vdomSpecialDiff,
-  vdomSetAttributes,
-  vdomSetChildNodes,
-  vdomSetNode,
-  createVdomRef,
-  applyVdomOps,
+  solidDomUnmountFrames,
+  solidDomGetNode,
+  solidDomGetCompareKey,
+  solidDomSpecialDiff,
+  solidDomSetAttributes,
+  solidDomSetChildNodes,
+  solidDomSetNode,
+  createSolidDomRef,
+  applySolidDomOps,
   applyIdUpdates,
   encodeHTML,
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "./vdom";
+} from "./solid-dom";
 
 // Updater (per-view data binding)
 export { Updater } from "./updater";

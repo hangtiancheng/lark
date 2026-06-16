@@ -521,7 +521,7 @@ updater.set(
 Trigger the render pipeline:
 
 1. If `data` is supplied, run `set(data, excludes)` first.
-2. If anything changed, run the template function, parse the resulting HTML into a temporary DOM, diff against the live DOM (via `vdomSetChildNodes`), apply DOM ops + ID updates, then invoke `endUpdate()` if anything actually mutated or if this is the first render.
+2. If anything changed, run the template function, parse the resulting HTML into a temporary DOM, diff against the live DOM (via `solidDomSetChildNodes`), apply DOM ops + ID updates, then invoke `endUpdate()` if anything actually mutated or if this is the first render.
 3. Supports re-entrant digest via `digestingQueue` (the `null` sentinel marks a digest boundary). Callbacks queued during the cycle run after the cycle completes.
 
 ```ts

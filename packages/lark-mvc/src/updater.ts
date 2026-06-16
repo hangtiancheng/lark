@@ -1,8 +1,8 @@
 /**
- * Updater: per-view data binding with change detection and VDOM diff.
+ * Updater: per-view data binding with change detection and DOM diff.
  *
  * Each View has an Updater instance that tracks data changes,
- * digests them, and triggers VDOM re-rendering when needed.
+ * digests them, and triggers DOM re-rendering when needed.
  *
  * - refData ($data): data object + ref counter for template rendering
  * - changedKeys ($changedKeys): keys changed since last digest
@@ -22,16 +22,16 @@ import { safeguard } from "./safeguard";
 import { SPLITTER } from "./constants";
 import { Frame } from "./frame";
 import {
-  vdomGetNode,
-  vdomSetChildNodes,
-  applyVdomOps,
+  solidDomGetNode,
+  solidDomSetChildNodes,
+  applySolidDomOps,
   applyIdUpdates,
-  createVdomRef,
+  createSolidDomRef,
   encodeHTML,
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "./vdom";
+} from "./solid-dom";
 import type { UpdaterInterface } from "./types";
 
 /** RefData stores the counter under the SPLITTER key. */
@@ -70,7 +70,7 @@ type DigestCallback = () => void;
 
 /**
  * Updater class for view data binding.
- * Manages view-local data with change detection and VDOM diff triggering.
+ * Manages view-local data with change detection and DOM diff triggering.
  *
  */
 export class Updater implements UpdaterInterface {
@@ -145,11 +145,11 @@ export class Updater implements UpdaterInterface {
   }
 
   /**
-   * Detect changes and trigger VDOM re-render.
+   * Detect changes and trigger DOM re-render.
    *
    * The core rendering pipeline:
    * 1. Set data if provided
-   * 2. If changed, run VDOM diff (template → new DOM → diff against old DOM)
+   * 2. If changed, run DOM diff (template → new DOM → diff against old DOM)
    * 3. Apply DOM operations
    * 4. Apply ID updates
    * 5. Call endUpdate on views that need re-rendering
@@ -211,19 +211,19 @@ export class Updater implements UpdaterInterface {
         );
 
         // Parse new DOM from HTML
-        const newDom = vdomGetNode(html, node);
+        const newDom = solidDomGetNode(html, node);
 
-        // Create VDOM ref for tracking operations
-        const ref = createVdomRef();
+        // Create DOM ref for tracking operations
+        const ref = createSolidDomRef();
 
-        // Run VDOM diff (in-memory real DOM diff)
-        vdomSetChildNodes(node, newDom, ref, frame, keys);
+        // Run DOM diff (in-memory real DOM diff)
+        solidDomSetChildNodes(node, newDom, ref, frame, keys);
 
         // Apply ID updates
         applyIdUpdates(ref.idUpdates);
 
         // Apply DOM operations
-        applyVdomOps(ref.domOps);
+        applySolidDomOps(ref.domOps);
 
         // Trigger endUpdate for views that need re-rendering
         for (const v of ref.views) {

@@ -50,9 +50,9 @@ declare global {
   }
 
   interface Element {
-    /** VDOM diff cached compare key flag */
+    /** DOM diff cached compare key flag */
     compareKeyCached?: number | undefined;
-    /** VDOM diff cached compare key */
+    /** DOM diff cached compare key */
     cachedCompareKey?: string | undefined;
     "v-lark"?: string | undefined;
 

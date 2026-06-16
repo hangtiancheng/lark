@@ -16,7 +16,7 @@ export const RouterEvents = {
 };
 
 export const LarkInnerKeys = {
-  /** Attribute name: ldk (static key for skipping VDOM diff) */
+  /** Attribute name: ldk (static key for skipping DOM diff) */
   DIFF_KEY: "ldk",
   /** Attribute name: lak (static attribute key) */
   ATTR_KEY: "lak",

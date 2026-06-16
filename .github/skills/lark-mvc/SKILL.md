@@ -43,14 +43,14 @@ Lark separates code along three orthogonal axes:
 
 - **Model**: `State` (simple global singleton, recommended for lightweight cross-view values), `create()` (zustand-aligned store with `getState`/`setState`/`subscribe`, `computed`, `bindStore` for View binding), `Service` (API request manager with LFU cache + deduplication + serial queue).
 - **View**: `View.extend()` and the typed `defineView()` factory both produce View subclasses. Views own templates, event handlers, the lifecycle, the per-view `Updater`, and resource bookkeeping.
-- **Controller**: `Router` (history or hash routing, two-phase change confirmation, `beforeEach` async guards), `Updater` (per-view data binding, change tracking, VDOM diff), `Frame` (the runtime tree of view containers, mount/unmount lifecycle, deferred `invoke` queue).
+- **Controller**: `Router` (history or hash routing, two-phase change confirmation, `beforeEach` async guards), `Updater` (per-view data binding, change tracking, DOM diff), `Frame` (the runtime tree of view containers, mount/unmount lifecycle, deferred `invoke` queue).
 
 ### The three data pipelines
 
 Lark exposes three ways to flow data to a view. Pick the simplest one that solves the task.
 
 1. **Updater pipeline** (view-local). Use when only the current view reads and writes the data.
-   `updater.set(data)` -> `updater.digest()` -> compiled template function -> HTML string -> `vdomGetNode` parses it into a temporary DOM tree -> `vdomSetChildNodes` diffs against the live DOM using keyed matching -> DOM ops applied -> `endUpdate()` notifies child frames.
+   `updater.set(data)` -> `updater.digest()` -> compiled template function -> HTML string -> `solidDomGetNode` parses it into a temporary DOM tree -> `solidDomSetChildNodes` diffs against the live DOM using keyed matching -> DOM ops applied -> `endUpdate()` notifies child frames.
 
 2. **State pipeline** (simple cross-view, recommended for lightweight shared values like counters, toggles, page title, session info).
    `State.set(data)` -> `State.digest()` -> `changed` event fires with `keys: ReadonlySet<string>` -> views listening read via `State.get()` in their `assign()` -> standard Updater path. State uses key reference counting; pair with `mixins: [State.clean("a,b")]` so keys are removed when the last view unmounts.
@@ -870,17 +870,17 @@ The compiler converts JS object literal params (`{a: 1}`) into URL query format 
 
 When `v-lark` carries a query string, the params are translated into the child view's `init` arguments. If the value contains a SPLITTER reference, `translateData` resolves it via the parent view's refData before the child mounts.
 
-### VDOM diff engine
+### DOM diff engine
 
-The VDOM diff (`vdom.ts`) operates on real DOM nodes, not a virtual representation. Key characteristics:
+The DOM diff (`solid-dom.ts`) operates on real DOM nodes, not a virtual representation. Key characteristics:
 
 - **Keyed matching**: Child nodes are matched by key (`id`, `ldk`, or `v-lark` path). Unkeyed nodes are diffed in order. When a keyed node moves position, it is reattached via `appendChild` without re-creating.
 - **Special element handling**: Form elements (`INPUT`, `TEXTAREA`, `OPTION`) have their `value`, `checked`, and `selected` properties synced directly (not through attributes), because these carry DOM state not reflected in `getAttribute`.
 - **Same v-lark optimization**: When old and new elements have the same `v-lark` path, children are not diffed (the child view manages its own rendering).
 - **HTML parsing**: New DOM is parsed from the template HTML string using a virtual document (`document.implementation.createHTMLDocument("")`). Special elements (table rows, SVG, MathML) are wrapped in their required parent containers before parsing.
-- **Deferred operations**: DOM mutations are collected in a `VDomRef.domOps` array and applied in a single batch after the diff completes. ID updates are also deferred and applied separately.
+- **Deferred operations**: DOM mutations are collected in a `SolidDomRef.domOps` array and applied in a single batch after the diff completes. ID updates are also deferred and applied separately.
 
-### VDOM optimization hints
+### DOM optimization hints
 
 | Attribute | Effect                                                                 |
 | --------- | ---------------------------------------------------------------------- |
@@ -1196,7 +1196,7 @@ Both produce compiled `.html` modules that import their runtime helpers from `@l
 21. **CrossSite uses `view=` not `xview=`** -- `v-lark="cross-site?view=remote-app/views/home"`.
 22. **`Framework.use()` returns a Promise** -- without the optional callback, it resolves to `unknown[]`. Without a configured `require`, it falls back to dynamic `import()`.
 23. **`Updater.parse` is path-only, no eval** -- it accepts dotted paths and numeric literals. `updater.parse("1 + 2")` returns `undefined`. CSP-safe by design.
-24. **`LarkInnerKeys` for VDOM short-circuits** -- `ldk` skips the entire diff for static elements; `lak` skips attribute diff but still diffs children; `lvk` is an assign-optimization marker.
+24. **`LarkInnerKeys` for DOM short-circuits** -- `ldk` skips the entire diff for static elements; `lak` skips attribute diff but still diffs children; `lvk` is an assign-optimization marker.
 25. **MF: `splitChunks.chunks` MUST be `"async"`** -- using `"all"` extracts `@lark.js/mvc` into a separate vendor chunk, breaking shared-scope initialization. The error surfaces as `ScriptExternalLoadError: Loading script failed (missing)`.
 26. **MF: `new Frame(containerId)` for independent contexts** -- `Frame.createRoot()` (and the deprecated `Frame.root()`) is a singleton that ignores later id arguments. Each MF mount needs its own `new Frame()`.
 27. **MF: remote must explicitly import CSS** -- Webpack bundles only CSS reachable from the exposed module's import graph. Without an `import "../index.css"` in the exposed entry, host pages won't receive utility classes used in the templates.

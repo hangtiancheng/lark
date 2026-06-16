@@ -1,18 +1,18 @@
 import { describe, it, expect } from "vitest";
 import {
-  vdomGetNode,
-  vdomGetCompareKey,
-  vdomSetChildNodes,
-  vdomSetAttributes,
-  vdomSpecialDiff,
-  createVdomRef,
-  applyVdomOps,
+  solidDomGetNode,
+  solidDomGetCompareKey,
+  solidDomSetChildNodes,
+  solidDomSetAttributes,
+  solidDomSpecialDiff as domSpecialDiff,
+  createSolidDomRef as createDomRef,
+  applySolidDomOps,
   applyIdUpdates,
   encodeHTML,
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "../src/vdom";
+} from "../src/solid-dom";
 import { Frame } from "../src/frame";
 import type { FrameInterface } from "../src/types";
 
@@ -29,17 +29,17 @@ function cleanup(id: string): void {
   (Frame.getAll() as Map<string, Frame>).delete(id);
 }
 
-describe("vdom", () => {
-  describe("vdomGetNode", () => {
+describe("solidDom", () => {
+  describe("solidDomGetNode", () => {
     it("parses a div fragment", () => {
       const ref = document.createElement("div");
-      const wrapper = vdomGetNode("<p>hi</p>", ref);
+      const wrapper = solidDomGetNode("<p>hi</p>", ref);
       expect(wrapper.firstElementChild?.tagName).toBe("P");
     });
 
     it("parses <tr> via the table wrapper so the cell is preserved", () => {
       const ref = document.createElement("div");
-      const wrapper = vdomGetNode("<tr><td>x</td></tr>", ref);
+      const wrapper = solidDomGetNode("<tr><td>x</td></tr>", ref);
       // The <tr> survives somewhere under the wrapper — exact unwrap depth
       // depends on the browser HTML parser.
       const td = wrapper.querySelector("td");
@@ -47,26 +47,26 @@ describe("vdom", () => {
     });
   });
 
-  describe("vdomGetCompareKey", () => {
+  describe("solidDomGetCompareKey", () => {
     it("uses element id as the compare key", () => {
       const el = document.createElement("div");
       el.id = "k1";
-      expect(vdomGetCompareKey(el)).toBe("k1");
+      expect(solidDomGetCompareKey(el)).toBe("k1");
     });
 
     it("falls back to v-lark path when present", () => {
       const el = document.createElement("div");
       el.setAttribute("v-lark", "views/home?x=1");
-      expect(vdomGetCompareKey(el)).toBe("views/home");
+      expect(solidDomGetCompareKey(el)).toBe("views/home");
     });
 
     it("returns undefined for text nodes", () => {
       const tx = document.createTextNode("hi");
-      expect(vdomGetCompareKey(tx)).toBeUndefined();
+      expect(solidDomGetCompareKey(tx)).toBeUndefined();
     });
   });
 
-  describe("vdomSetChildNodes - keyed diff", () => {
+  describe("solidDomSetChildNodes - keyed diff", () => {
     it("appends a missing keyed child to the end", () => {
       const frame = makeFrame("vd1");
       const oldParent = document.createElement("div");
@@ -74,9 +74,9 @@ describe("vdom", () => {
       const newParent = document.createElement("div");
       newParent.innerHTML = '<p id="a">A</p><p id="b">B</p>';
 
-      const ref = createVdomRef();
-      vdomSetChildNodes(oldParent, newParent, ref, frame);
-      applyVdomOps(ref.domOps);
+      const ref = createDomRef();
+      solidDomSetChildNodes(oldParent, newParent, ref, frame);
+      applySolidDomOps(ref.domOps);
       applyIdUpdates(ref.idUpdates);
 
       expect(oldParent.children).toHaveLength(2);
@@ -91,9 +91,9 @@ describe("vdom", () => {
       const newParent = document.createElement("div");
       newParent.innerHTML = '<p id="a">A</p>';
 
-      const ref = createVdomRef();
-      vdomSetChildNodes(oldParent, newParent, ref, frame);
-      applyVdomOps(ref.domOps);
+      const ref = createDomRef();
+      solidDomSetChildNodes(oldParent, newParent, ref, frame);
+      applySolidDomOps(ref.domOps);
 
       expect(oldParent.children).toHaveLength(1);
       expect(oldParent.children[0].id).toBe("a");
@@ -111,9 +111,9 @@ describe("vdom", () => {
       const newParent = document.createElement("div");
       newParent.innerHTML = '<p id="c">C</p><p id="b">B</p><p id="a">A</p>';
 
-      const ref = createVdomRef();
-      vdomSetChildNodes(oldParent, newParent, ref, frame);
-      applyVdomOps(ref.domOps);
+      const ref = createDomRef();
+      solidDomSetChildNodes(oldParent, newParent, ref, frame);
+      applySolidDomOps(ref.domOps);
 
       // Same node identities, reordered.
       expect(oldParent.children).toHaveLength(3);
@@ -138,9 +138,9 @@ describe("vdom", () => {
       const newParent = document.createElement("div");
       newParent.innerHTML = '<p id="vd4-x">new text</p>';
 
-      const ref = createVdomRef();
-      vdomSetChildNodes(oldParent, newParent, ref, frame);
-      applyVdomOps(ref.domOps);
+      const ref = createDomRef();
+      solidDomSetChildNodes(oldParent, newParent, ref, frame);
+      applySolidDomOps(ref.domOps);
       // Same node identity, text patched.
       expect(oldParent.children[0]).toBe(oldNode);
       expect(oldNode.textContent).toBe("new text");
@@ -148,7 +148,7 @@ describe("vdom", () => {
     });
   });
 
-  describe("vdomSetAttributes", () => {
+  describe("domSetAttributes", () => {
     it("adds, updates, and removes attributes (no id changes)", () => {
       const oldEl = document.createElement("div");
       oldEl.setAttribute("class", "old");
@@ -157,8 +157,8 @@ describe("vdom", () => {
       newEl.setAttribute("class", "new");
       newEl.setAttribute("data-y", "2");
 
-      const ref = createVdomRef();
-      vdomSetAttributes(oldEl, newEl, ref);
+      const ref = createDomRef();
+      solidDomSetAttributes(oldEl, newEl, ref);
 
       expect(oldEl.getAttribute("class")).toBe("new");
       expect(oldEl.getAttribute("data-y")).toBe("2");
@@ -171,19 +171,19 @@ describe("vdom", () => {
       oldEl.id = "old";
       const newEl = document.createElement("div");
       newEl.id = "new";
-      const ref = createVdomRef();
-      vdomSetAttributes(oldEl, newEl, ref);
+      const ref = createDomRef();
+      solidDomSetAttributes(oldEl, newEl, ref);
       expect(ref.idUpdates).toEqual([[oldEl, "new"]]);
     });
   });
 
-  describe("vdomSpecialDiff", () => {
+  describe("domSpecialDiff", () => {
     it("syncs input.value across diff", () => {
       const oldInput = document.createElement("input");
       oldInput.value = "old";
       const newInput = document.createElement("input");
       newInput.value = "new";
-      const changed = vdomSpecialDiff(oldInput, newInput);
+      const changed = domSpecialDiff(oldInput, newInput);
       expect(changed).toBe(1);
       expect(oldInput.value).toBe("new");
     });
@@ -191,7 +191,7 @@ describe("vdom", () => {
     it("returns 0 for non-special tag", () => {
       const oldDiv = document.createElement("div");
       const newDiv = document.createElement("div");
-      expect(vdomSpecialDiff(oldDiv, newDiv)).toBe(0);
+      expect(domSpecialDiff(oldDiv, newDiv)).toBe(0);
     });
   });
 

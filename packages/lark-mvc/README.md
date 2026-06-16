@@ -235,7 +235,7 @@ this.updater.set({ count: newCount });
 this.updater.digest();
 ```
 
-Full pipeline: `updater.set(data)` shallow-merges data into the internal data object and collects changed keys. `updater.digest()` calls the compiled template function to generate an HTML string. `vdomGetNode` uses `tmp.innerHTML = wrap + html` to parse it into temporary DOM. `vdomSetChildNodes` compares against the live DOM to produce a keyed diff. DOM operations are applied in batch. `endUpdate()` notifies child Frames to complete mounting.
+Full pipeline: `updater.set(data)` shallow-merges data into the internal data object and collects changed keys. `updater.digest()` calls the compiled template function to generate an HTML string. `solidDomGetNode` uses `tmp.innerHTML = wrap + html` to parse it into temporary DOM. `solidDomSetChildNodes` compares against the live DOM to produce a keyed diff. DOM operations are applied in batch. `endUpdate()` notifies child Frames to complete mounting.
 
 Supports digest re-entry: calling `updater.digest()` during an active digest does not nest; instead it queues to `digestingQueue` and executes after the current digest completes. `null` serves as a digest boundary sentinel in the queue.
 
@@ -713,7 +713,7 @@ The compiler converts JS object literal parameters (`{a:1}`) to URL query string
 
 With query strings, parameters are translated into the first argument of the child view's `init`. When containing SPLITTER reference tokens, `translateData` resolves original JS values from the parent view's refData before passing them to the child.
 
-### VDOM Optimization Hints
+### Solid DOM Optimization Hints
 
 | Attribute | Purpose                                                                    |
 | --------- | -------------------------------------------------------------------------- |

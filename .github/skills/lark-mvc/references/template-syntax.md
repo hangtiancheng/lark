@@ -334,7 +334,7 @@ The framework automatically:
 2. Mounts the registered View class into the Frame.
 3. Manages the child View lifecycle (mount, render, unmount).
 
-During VDOM diff, if both old and new elements have the same `v-lark` path, the existing child View is preserved (children are not re-rendered). Only when the view path changes is the old View unmounted and a new one mounted.
+During DOM diff, if both old and new elements have the same `v-lark` path, the existing child View is preserved (children are not re-rendered). Only when the view path changes is the old View unmounted and a new one mounted.
 
 The `v-lark` attribute value can include URL-style query parameters:
 
@@ -349,7 +349,7 @@ These parameters are parsed and passed to the child View as `initParams` during 
 | Attribute | Description                                                                                                                                       |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `v-lark`  | Declares a child view slot. Value is the registered view path, optionally with query parameters for initParams                                    |
-| `ldk`     | Provides a comparison key for VDOM diff optimization. Elements with the same `ldk` value skip diff entirely (no attribute or children comparison) |
+| `ldk`     | Provides a comparison key for DOM diff optimization. Elements with the same `ldk` value skip diff entirely (no attribute or children comparison) |
 | `lak`     | Provides a comparison key for attribute-only diff optimization. Elements with the same `lak` value skip attribute diff but still diff children    |
 | `lvk`     | Provides a view key for assign optimization. When `lvk` values match, the view's `assign()` method is called instead of full unmount/remount      |
 
@@ -363,7 +363,7 @@ Use `ldk` to mark static or expensive-to-diff elements:
 </div>
 ```
 
-When the VDOM engine encounters two elements with matching `ldk` values, it skips the entire diff for that subtree, treating it as unchanged.
+When the DOM engine encounters two elements with matching `ldk` values, it skips the entire diff for that subtree, treating it as unchanged.
 
 ### lak Usage
 
@@ -375,11 +375,11 @@ Use `lak` when element structure is stable but attributes may change:
 </button>
 ```
 
-When `lak` values match, the VDOM engine skips attribute comparison but still diffs child nodes.
+When `lak` values match, the DOM engine skips attribute comparison but still diffs child nodes.
 
-### VDOM Compare Key Resolution
+### DOM Compare Key Resolution
 
-The VDOM engine uses the following priority order to determine compare keys for keyed diff:
+The DOM engine uses the following priority order to determine compare keys for keyed diff:
 
 1. `id` attribute (if not auto-generated)
 2. `ldk` attribute

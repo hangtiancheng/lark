@@ -10,7 +10,7 @@
  *   (recommended for complex cases)
  * - Service: API request management with caching, queuing, and deduplication
  * - Frame: view frame managing view mount/unmount lifecycle
- * - Updater: view data binding and VDOM diff (in-memory real DOM diff) renderer
+ * - Updater: view data binding and DOM diff (in-memory real DOM diff) renderer
  *
  * Designed for single-page application (SPA) development.
  */
@@ -224,27 +224,27 @@ export interface RouteChangeEvent extends ChangeEvent {
 export type RouteChangedEvent = LocationDiff & ChangeEvent;
 
 // ============================================================
-// VDOM types
+// DOM types
 // ============================================================
 
-export interface VDomRef {
+export interface SolidDomRef {
   /** ID update list: [element, newId][] */
   idUpdates: [Element, string][];
   /** Views that need post-processing */
   views: ViewInterface[];
   /** DOM operation list: [opCode, parent, newChild?, oldChild?][] */
-  domOps: VDomOp[];
+  domOps: SolidDomOp[];
   /** Whether anything changed */
   hasChanged: number;
 }
 
 /**
- * Encoded VDOM mutation. The op code matches `Node.appendChild` family at the
+ * Encoded DOM mutation. The op code matches `Node.appendChild` family at the
  * DOM level — parents are always Elements (you can't appendChild onto text)
  * but the moving / replaced child can be any ChildNode (Element / Text /
  * Comment), so the child slots are typed as ChildNode.
  */
-export type VDomOp =
+export type SolidDomOp =
   | [1, Element, ChildNode] // appendChild(parent, newChild)
   | [2, Element, ChildNode] // removeChild(parent, oldChild)
   | [4, Element, ChildNode, ChildNode] // replaceChild(parent, newChild, oldChild)
@@ -464,7 +464,7 @@ export interface ViewInterface extends EventEmitterInterface<ViewInterface> {
    */
   owner: FrameInterface | number;
   /**
-   * Updater instance managing view data binding and VDOM rendering.
+   * Updater instance managing view data binding and DOM rendering.
    */
   updater: UpdaterInterface;
   /**
@@ -516,7 +516,7 @@ export interface ViewInterface extends EventEmitterInterface<ViewInterface> {
   // View lifecycle methods
   /**
    * Notify view that HTML update is about to begin for a specific region.
-   * Framework unmounts child Frames in that region to prevent VDOM diff from operating on unmounted nodes.
+   * Framework unmounts child Frames in that region to prevent DOM diff from operating on unmounted nodes.
    * @param id Region node ID to update, defaults to current view
    */
   beginUpdate: (id?: string) => void;
@@ -586,7 +586,7 @@ export interface ViewInterface extends EventEmitterInterface<ViewInterface> {
   leaveTip: (message: string, condition: () => boolean) => void;
   /**
    * Assign method for incremental DOM updates.
-   * Framework uses VDOM diff (in-memory real DOM diff) to update only changed portions,
+   * Framework uses DOM diff (in-memory real DOM diff) to update only changed portions,
    * automatically handling child view mounting and unmounting.
    * Returns true if DOM changed, undefined if no change.
    * @param options Incremental update config, used internally by framework
@@ -728,7 +728,7 @@ export interface FrameInterface extends EventEmitterInterface<FrameInterface> {
  * Minimal Updater interface needed by View.
  * View updater responsible for view data binding and data/page updates.
  * Each View instance has an Updater, triggering data/page updates via set/digest.
- * Internally executes complete pipeline: template rendering → VDOM diff (in-memory real DOM diff) → DOM operations.
+ * Internally executes complete pipeline: template rendering → DOM diff (in-memory real DOM diff) → DOM operations.
  */
 export interface UpdaterInterface {
   /**
@@ -751,7 +751,7 @@ export interface UpdaterInterface {
   /**
    * Trigger page re-render.
    * After set, must explicitly call `digest()` to commit changes to page.
-   * Internally executes complete pipeline: template rendering → VDOM diff (in-memory real DOM diff) → DOM operations.
+   * Internally executes complete pipeline: template rendering → DOM diff (in-memory real DOM diff) → DOM operations.
    * @param data Optional data object, if provided calls `set()` first to set data
    * @param excludes Set of keys to exclude from change tracking
    * @param callback Callback executed after render completes
@@ -1450,6 +1450,8 @@ export interface FrameworkConfig {
    * Also accessible via `window.crossConfigs` for build-time injection.
    */
   crossConfigs?: CrossSiteConfig[];
+  /** Default false. */
+  virtualDOM?: boolean;
   /** Dynamic config access, custom config items */
   [key: string]: unknown;
 }
@@ -1487,8 +1489,8 @@ export interface CrossSiteConfig {
 // Extended HTMLElement types
 // ============================================================
 
-/** Element with VDOM diff cached compare key */
-export interface VdomElement extends Element {
+/** Element with DOM diff cached compare key */
+export interface SolidDomElement extends Element {
   /** Whether compare key is cached */
   compareKeyCached?: number | undefined;
   /** Cached compare key */

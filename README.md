@@ -280,7 +280,7 @@ The post-await branch chooses between three outcomes:
    replaced with the error message; the function returns without mounting.
 
 The reuse path is the cheapest hot-swap available: it bypasses the MF runtime,
-the registry, and the constructor, leaving only `assign + render` (a VDOM
+the registry, and the constructor, leaving only `assign + render` (a DOM
 diff).
 
 #### 3.3 The skeleton container contract

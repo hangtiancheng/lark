@@ -1,5 +1,5 @@
 /**
- * VDOM Diff Engine.
+ * DOM Diff Engine.
  *
  * Compares old and new DOM trees, computes minimal DOM operations,
  * handles v-lark views, keyed elements, and special elements.
@@ -12,7 +12,12 @@ import {
   LarkInnerKeys,
 } from "./constants";
 import { parseUri } from "./utils";
-import type { VDomRef, VDomOp, VdomElement, FrameInterface } from "./types";
+import type {
+  SolidDomRef,
+  SolidDomOp,
+  SolidDomElement,
+  FrameInterface,
+} from "./types";
 
 // ============================================================
 // Wrap meta for special HTML elements
@@ -52,24 +57,24 @@ VDoc.head.appendChild(VBase);
 // Special element properties (direct DOM property diff)
 // ============================================================
 
-const VDomSpecials: Record<string, string[]> = {
+const SolidDomSpecials: Record<string, string[]> = {
   INPUT: ["value", "checked"],
   TEXTAREA: ["value"],
   OPTION: ["selected"],
 };
 
 // ============================================================
-// Internal keys for VDOM tracking on elements
+// Internal keys for DOM tracking on elements
 // ============================================================
 
 // ============================================================
-// Core VDOM functions
+// Core DOM functions
 // ============================================================
 
 /**
  * Unmount frames within a DOM node.
  */
-export function vdomUnmountFrames(
+export function solidDomUnmountFrames(
   frame: FrameInterface,
   node: ChildNode,
 ): void {
@@ -87,7 +92,7 @@ export function vdomUnmountFrames(
  * Parse HTML string into a DOM element.
  * Handles special elements (table, SVG, MathML) with wrapper elements.
  */
-export function vdomGetNode(html: string, refNode: Element): Element {
+export function solidDomGetNode(html: string, refNode: Element): Element {
   const tmp = VDoc.createElement("div");
   const ns = refNode.namespaceURI;
   let tag: string;
@@ -117,9 +122,9 @@ export function vdomGetNode(html: string, refNode: Element): Element {
  * Get compare key for a DOM node (for keyed diff).
  * Uses id, ldk (static key), or v-lark path.
  */
-export function vdomGetCompareKey(node: ChildNode): string | undefined {
+export function solidDomGetCompareKey(node: ChildNode): string | undefined {
   if (node.nodeType !== 1) return undefined;
-  const el = node as VdomElement;
+  const el = node as SolidDomElement;
 
   if (el.compareKeyCached) {
     return el.cachedCompareKey;
@@ -147,11 +152,11 @@ export function vdomGetCompareKey(node: ChildNode): string | undefined {
  * Form elements carry state on the DOM node (e.g. `input.value`) that isn't
  * reflected in attributes, so we have to sync those properties separately.
  */
-export function vdomSpecialDiff(
+export function solidDomSpecialDiff(
   oldNode: ChildNode,
   newNode: ChildNode,
 ): number {
-  const specials = VDomSpecials[oldNode.nodeName];
+  const specials = SolidDomSpecials[oldNode.nodeName];
   if (!specials) return 0;
 
   // We've matched by nodeName so both nodes are the same element type; the
@@ -173,14 +178,14 @@ export function vdomSpecialDiff(
 /**
  * Set attributes from new element onto old element, tracking changes in ref.
  */
-export function vdomSetAttributes(
+export function solidDomSetAttributes(
   oldNode: Element,
   newNode: Element,
-  ref: VDomRef,
+  ref: SolidDomRef,
   keepId?: boolean,
 ): void {
   // Reset compare key cache
-  const oldEl = oldNode as VdomElement;
+  const oldEl = oldNode as SolidDomElement;
   Reflect.deleteProperty(oldEl, "compareKeyCached");
 
   const oldAttrs = oldNode.attributes;
@@ -220,10 +225,10 @@ export function vdomSetAttributes(
 /**
  * Set child nodes from new parent onto old parent using keyed diff algorithm.
  */
-export function vdomSetChildNodes(
+export function solidDomSetChildNodes(
   oldParent: Element,
   newParent: Element,
-  ref: VDomRef,
+  ref: SolidDomRef,
   frame: FrameInterface,
   keys_?: ReadonlySet<string>,
 ): void {
@@ -239,7 +244,7 @@ export function vdomSetChildNodes(
 
   while (oldNode) {
     extra++;
-    const nodeKey = vdomGetCompareKey(oldNode);
+    const nodeKey = solidDomGetCompareKey(oldNode);
     if (nodeKey) {
       let bucket = keyedNodes.get(nodeKey);
       if (!bucket) {
@@ -253,7 +258,7 @@ export function vdomSetChildNodes(
 
   // Count new keyed nodes
   while (newNode) {
-    const nodeKey = vdomGetCompareKey(newNode);
+    const nodeKey = solidDomGetCompareKey(newNode);
     if (nodeKey) {
       newKeyedNodes.set(nodeKey, (newKeyedNodes.get(nodeKey) ?? 0) + 1);
     }
@@ -268,7 +273,7 @@ export function vdomSetChildNodes(
     extra--;
     const tempNew = newNode;
     newNode = newNode.nextSibling;
-    const nodeKey = vdomGetCompareKey(tempNew);
+    const nodeKey = solidDomGetCompareKey(tempNew);
     let foundNode = nodeKey ? keyedNodes.get(nodeKey) : undefined;
 
     if (foundNode && (foundNode = foundNode.slice()) && foundNode.length) {
@@ -285,17 +290,17 @@ export function vdomSetChildNodes(
         const c = newKeyedNodes.get(nodeKey);
         if (c) newKeyedNodes.set(nodeKey, c - 1);
       }
-      vdomSetNode(matched, tempNew, oldParent, ref, frame, keys_);
+      solidDomSetNode(matched, tempNew, oldParent, ref, frame, keys_);
     } else if (oldNode) {
       const tempOld = oldNode;
-      const oldKey = vdomGetCompareKey(tempOld);
+      const oldKey = solidDomGetCompareKey(tempOld);
       if (oldKey && keyedNodes.has(oldKey) && newKeyedNodes.get(oldKey)) {
         extra++;
         ref.hasChanged = 1;
         ref.domOps.push([8, oldParent, tempNew, tempOld]);
       } else {
         oldNode = oldNode.nextSibling;
-        vdomSetNode(tempOld, tempNew, oldParent, ref, frame, keys_);
+        solidDomSetNode(tempOld, tempNew, oldParent, ref, frame, keys_);
       }
     } else {
       ref.hasChanged = 1;
@@ -307,7 +312,7 @@ export function vdomSetChildNodes(
   let tempOld: ChildNode | null = oldParent.lastChild;
   while (extra-- > 0) {
     if (tempOld) {
-      vdomUnmountFrames(frame, tempOld);
+      solidDomUnmountFrames(frame, tempOld);
       ref.domOps.push([2, oldParent, tempOld]);
       tempOld = tempOld.previousSibling;
       ref.hasChanged = 1;
@@ -318,11 +323,11 @@ export function vdomSetChildNodes(
 /**
  * Diff two DOM nodes and apply changes.
  */
-export function vdomSetNode(
+export function solidDomSetNode(
   oldNode: ChildNode,
   newNode: ChildNode,
   oldParent: Element,
-  ref: VDomRef,
+  ref: SolidDomRef,
   frame: FrameInterface,
   keys_?: ReadonlySet<string>,
 ): void {
@@ -338,7 +343,7 @@ export function vdomSetNode(
     oldAsEl.isEqualNode &&
     oldAsEl.isEqualNode(newAsEl);
 
-  if (vdomSpecialDiff(oldNode, newNode) || hasViewKey || !equalAsNodes) {
+  if (solidDomSpecialDiff(oldNode, newNode) || hasViewKey || !equalAsNodes) {
     // Same type (same nodeName and nodeType) → diff in place
     if (
       oldNode.nodeType === newNode.nodeType &&
@@ -377,10 +382,10 @@ export function vdomSetNode(
         }
 
         if (updateAttribute) {
-          vdomSetAttributes(oldEl, newEl, ref, !!newLarkView);
+          solidDomSetAttributes(oldEl, newEl, ref, !!newLarkView);
         }
         if (updateChildren) {
-          vdomSetChildNodes(oldEl, newEl, ref, frame, keys_);
+          solidDomSetChildNodes(oldEl, newEl, ref, frame, keys_);
         }
       } else if (oldNode.nodeValue !== newNode.nodeValue) {
         // Text or Comment node: update nodeValue
@@ -390,7 +395,7 @@ export function vdomSetNode(
     } else {
       // Different type (e.g. DIV vs H1, element vs comment) → replace
       ref.hasChanged = 1;
-      vdomUnmountFrames(frame, oldNode);
+      solidDomUnmountFrames(frame, oldNode);
       ref.domOps.push([4, oldParent, newNode, oldNode]);
     }
   }
@@ -398,9 +403,9 @@ export function vdomSetNode(
 }
 
 /**
- * Create an empty VDomRef for tracking diff operations.
+ * Create an empty SolidDomRef for tracking diff operations.
  */
-export function createVdomRef(): VDomRef {
+export function createSolidDomRef(): SolidDomRef {
   return {
     idUpdates: [],
     views: [],
@@ -410,9 +415,9 @@ export function createVdomRef(): VDomRef {
 }
 
 /**
- * Apply VDOM diff operations to the DOM.
+ * Apply DOM diff operations to the DOM.
  */
-export function applyVdomOps(ops: VDomOp[]): void {
+export function applySolidDomOps(ops: SolidDomOp[]): void {
   for (const op of ops) {
     switch (op[0]) {
       case 1: // appendChild
@@ -432,7 +437,7 @@ export function applyVdomOps(ops: VDomOp[]): void {
 }
 
 /**
- * Apply ID updates from VDOM diff.
+ * Apply ID updates from DOM diff.
  */
 export function applyIdUpdates(updates: [Element, string][]): void {
   for (const [element, newId] of updates) {

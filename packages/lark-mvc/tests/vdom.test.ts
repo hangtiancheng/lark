@@ -1,18 +1,18 @@
 import { describe, it, expect } from "vitest";
 import {
-  solidDomGetNode,
-  solidDomGetCompareKey,
-  solidDomSetChildNodes,
-  solidDomSetAttributes,
-  solidDomSpecialDiff as domSpecialDiff,
-  createSolidDomRef as createDomRef,
-  applySolidDomOps,
+  domGetNode,
+  domGetCompareKey,
+  domSetChildNodes,
+  domSetAttributes,
+  domSpecialDiff as domSpecialDiff,
+  createDomRef as createDomRef,
+  applyDomOps,
   applyIdUpdates,
   encodeHTML,
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "../src/solid-dom";
+} from "../src/dom";
 import { Frame } from "../src/frame";
 import type { FrameInterface } from "../src/types";
 
@@ -29,17 +29,17 @@ function cleanup(id: string): void {
   (Frame.getAll() as Map<string, Frame>).delete(id);
 }
 
-describe("solidDom", () => {
-  describe("solidDomGetNode", () => {
+describe("DOM", () => {
+  describe("domGetNode", () => {
     it("parses a div fragment", () => {
       const ref = document.createElement("div");
-      const wrapper = solidDomGetNode("<p>hi</p>", ref);
+      const wrapper = domGetNode("<p>hi</p>", ref);
       expect(wrapper.firstElementChild?.tagName).toBe("P");
     });
 
     it("parses <tr> via the table wrapper so the cell is preserved", () => {
       const ref = document.createElement("div");
-      const wrapper = solidDomGetNode("<tr><td>x</td></tr>", ref);
+      const wrapper = domGetNode("<tr><td>x</td></tr>", ref);
       // The <tr> survives somewhere under the wrapper — exact unwrap depth
       // depends on the browser HTML parser.
       const td = wrapper.querySelector("td");
@@ -47,26 +47,26 @@ describe("solidDom", () => {
     });
   });
 
-  describe("solidDomGetCompareKey", () => {
+  describe("domGetCompareKey", () => {
     it("uses element id as the compare key", () => {
       const el = document.createElement("div");
       el.id = "k1";
-      expect(solidDomGetCompareKey(el)).toBe("k1");
+      expect(domGetCompareKey(el)).toBe("k1");
     });
 
     it("falls back to v-lark path when present", () => {
       const el = document.createElement("div");
       el.setAttribute("v-lark", "views/home?x=1");
-      expect(solidDomGetCompareKey(el)).toBe("views/home");
+      expect(domGetCompareKey(el)).toBe("views/home");
     });
 
     it("returns undefined for text nodes", () => {
       const tx = document.createTextNode("hi");
-      expect(solidDomGetCompareKey(tx)).toBeUndefined();
+      expect(domGetCompareKey(tx)).toBeUndefined();
     });
   });
 
-  describe("solidDomSetChildNodes - keyed diff", () => {
+  describe("domSetChildNodes - keyed diff", () => {
     it("appends a missing keyed child to the end", () => {
       const frame = makeFrame("vd1");
       const oldParent = document.createElement("div");
@@ -75,8 +75,8 @@ describe("solidDom", () => {
       newParent.innerHTML = '<p id="a">A</p><p id="b">B</p>';
 
       const ref = createDomRef();
-      solidDomSetChildNodes(oldParent, newParent, ref, frame);
-      applySolidDomOps(ref.domOps);
+      domSetChildNodes(oldParent, newParent, ref, frame);
+      applyDomOps(ref.domOps);
       applyIdUpdates(ref.idUpdates);
 
       expect(oldParent.children).toHaveLength(2);
@@ -92,8 +92,8 @@ describe("solidDom", () => {
       newParent.innerHTML = '<p id="a">A</p>';
 
       const ref = createDomRef();
-      solidDomSetChildNodes(oldParent, newParent, ref, frame);
-      applySolidDomOps(ref.domOps);
+      domSetChildNodes(oldParent, newParent, ref, frame);
+      applyDomOps(ref.domOps);
 
       expect(oldParent.children).toHaveLength(1);
       expect(oldParent.children[0].id).toBe("a");
@@ -112,8 +112,8 @@ describe("solidDom", () => {
       newParent.innerHTML = '<p id="c">C</p><p id="b">B</p><p id="a">A</p>';
 
       const ref = createDomRef();
-      solidDomSetChildNodes(oldParent, newParent, ref, frame);
-      applySolidDomOps(ref.domOps);
+      domSetChildNodes(oldParent, newParent, ref, frame);
+      applyDomOps(ref.domOps);
 
       // Same node identities, reordered.
       expect(oldParent.children).toHaveLength(3);
@@ -139,8 +139,8 @@ describe("solidDom", () => {
       newParent.innerHTML = '<p id="vd4-x">new text</p>';
 
       const ref = createDomRef();
-      solidDomSetChildNodes(oldParent, newParent, ref, frame);
-      applySolidDomOps(ref.domOps);
+      domSetChildNodes(oldParent, newParent, ref, frame);
+      applyDomOps(ref.domOps);
       // Same node identity, text patched.
       expect(oldParent.children[0]).toBe(oldNode);
       expect(oldNode.textContent).toBe("new text");
@@ -158,7 +158,7 @@ describe("solidDom", () => {
       newEl.setAttribute("data-y", "2");
 
       const ref = createDomRef();
-      solidDomSetAttributes(oldEl, newEl, ref);
+      domSetAttributes(oldEl, newEl, ref);
 
       expect(oldEl.getAttribute("class")).toBe("new");
       expect(oldEl.getAttribute("data-y")).toBe("2");
@@ -172,7 +172,7 @@ describe("solidDom", () => {
       const newEl = document.createElement("div");
       newEl.id = "new";
       const ref = createDomRef();
-      solidDomSetAttributes(oldEl, newEl, ref);
+      domSetAttributes(oldEl, newEl, ref);
       expect(ref.idUpdates).toEqual([[oldEl, "new"]]);
     });
   });

@@ -22,16 +22,16 @@ import { safeguard } from "./safeguard";
 import { SPLITTER } from "./constants";
 import { Frame } from "./frame";
 import {
-  solidDomGetNode,
-  solidDomSetChildNodes,
-  applySolidDomOps,
+  domGetNode,
+  domSetChildNodes,
+  applyDomOps,
   applyIdUpdates,
-  createSolidDomRef,
+  createDomRef,
   encodeHTML,
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "./solid-dom";
+} from "./dom";
 import type { UpdaterInterface } from "./types";
 
 /** RefData stores the counter under the SPLITTER key. */
@@ -211,19 +211,19 @@ export class Updater implements UpdaterInterface {
         );
 
         // Parse new DOM from HTML
-        const newDom = solidDomGetNode(html, node);
+        const newDom = domGetNode(html, node);
 
         // Create DOM ref for tracking operations
-        const ref = createSolidDomRef();
+        const ref = createDomRef();
 
         // Run DOM diff (in-memory real DOM diff)
-        solidDomSetChildNodes(node, newDom, ref, frame, keys);
+        domSetChildNodes(node, newDom, ref, frame, keys);
 
         // Apply ID updates
         applyIdUpdates(ref.idUpdates);
 
         // Apply DOM operations
-        applySolidDomOps(ref.domOps);
+        applyDomOps(ref.domOps);
 
         // Trigger endUpdate for views that need re-rendering
         for (const v of ref.views) {

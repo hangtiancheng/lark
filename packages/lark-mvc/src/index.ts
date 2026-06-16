@@ -72,21 +72,21 @@ export { default as CrossSite, resetProjectsMap } from "./cross-site";
 
 // DOM diff engine
 export {
-  solidDomUnmountFrames,
-  solidDomGetNode,
-  solidDomGetCompareKey,
-  solidDomSpecialDiff,
-  solidDomSetAttributes,
-  solidDomSetChildNodes,
-  solidDomSetNode,
-  createSolidDomRef,
-  applySolidDomOps,
+  domUnmountFrames,
+  domGetNode,
+  domGetCompareKey,
+  domSpecialDiff,
+  domSetAttributes,
+  domSetChildNodes,
+  domSetNode,
+  createDomRef,
+  applyDomOps,
   applyIdUpdates,
   encodeHTML,
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "./solid-dom";
+} from "./dom";
 
 // Updater (per-view data binding)
 export { Updater } from "./updater";

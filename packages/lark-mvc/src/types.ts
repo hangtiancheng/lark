@@ -227,13 +227,13 @@ export type RouteChangedEvent = LocationDiff & ChangeEvent;
 // DOM types
 // ============================================================
 
-export interface SolidDomRef {
+export interface DomRef {
   /** ID update list: [element, newId][] */
   idUpdates: [Element, string][];
   /** Views that need post-processing */
   views: ViewInterface[];
   /** DOM operation list: [opCode, parent, newChild?, oldChild?][] */
-  domOps: SolidDomOp[];
+  domOps: DomOp[];
   /** Whether anything changed */
   hasChanged: number;
 }
@@ -244,7 +244,7 @@ export interface SolidDomRef {
  * but the moving / replaced child can be any ChildNode (Element / Text /
  * Comment), so the child slots are typed as ChildNode.
  */
-export type SolidDomOp =
+export type DomOp =
   | [1, Element, ChildNode] // appendChild(parent, newChild)
   | [2, Element, ChildNode] // removeChild(parent, oldChild)
   | [4, Element, ChildNode, ChildNode] // replaceChild(parent, newChild, oldChild)
@@ -1490,7 +1490,7 @@ export interface CrossSiteConfig {
 // ============================================================
 
 /** Element with DOM diff cached compare key */
-export interface SolidDomElement extends Element {
+export interface DomElement extends Element {
   /** Whether compare key is cached */
   compareKeyCached?: number | undefined;
   /** Cached compare key */

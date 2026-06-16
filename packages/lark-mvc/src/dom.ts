@@ -12,12 +12,7 @@ import {
   LarkInnerKeys,
 } from "./constants";
 import { parseUri } from "./utils";
-import type {
-  SolidDomRef,
-  SolidDomOp,
-  SolidDomElement,
-  FrameInterface,
-} from "./types";
+import type { DomRef, DomOp, DomElement, FrameInterface } from "./types";
 
 // ============================================================
 // Wrap meta for special HTML elements
@@ -57,7 +52,7 @@ VDoc.head.appendChild(VBase);
 // Special element properties (direct DOM property diff)
 // ============================================================
 
-const SolidDomSpecials: Record<string, string[]> = {
+const DomSpecials: Record<string, string[]> = {
   INPUT: ["value", "checked"],
   TEXTAREA: ["value"],
   OPTION: ["selected"],
@@ -74,10 +69,7 @@ const SolidDomSpecials: Record<string, string[]> = {
 /**
  * Unmount frames within a DOM node.
  */
-export function solidDomUnmountFrames(
-  frame: FrameInterface,
-  node: ChildNode,
-): void {
+export function domUnmountFrames(frame: FrameInterface, node: ChildNode): void {
   if (!(node instanceof Element)) return;
   const id = node.getAttribute("id");
   if (!id) return;
@@ -92,7 +84,7 @@ export function solidDomUnmountFrames(
  * Parse HTML string into a DOM element.
  * Handles special elements (table, SVG, MathML) with wrapper elements.
  */
-export function solidDomGetNode(html: string, refNode: Element): Element {
+export function domGetNode(html: string, refNode: Element): Element {
   const tmp = VDoc.createElement("div");
   const ns = refNode.namespaceURI;
   let tag: string;
@@ -122,9 +114,9 @@ export function solidDomGetNode(html: string, refNode: Element): Element {
  * Get compare key for a DOM node (for keyed diff).
  * Uses id, ldk (static key), or v-lark path.
  */
-export function solidDomGetCompareKey(node: ChildNode): string | undefined {
+export function domGetCompareKey(node: ChildNode): string | undefined {
   if (node.nodeType !== 1) return undefined;
-  const el = node as SolidDomElement;
+  const el = node as DomElement;
 
   if (el.compareKeyCached) {
     return el.cachedCompareKey;
@@ -152,11 +144,8 @@ export function solidDomGetCompareKey(node: ChildNode): string | undefined {
  * Form elements carry state on the DOM node (e.g. `input.value`) that isn't
  * reflected in attributes, so we have to sync those properties separately.
  */
-export function solidDomSpecialDiff(
-  oldNode: ChildNode,
-  newNode: ChildNode,
-): number {
-  const specials = SolidDomSpecials[oldNode.nodeName];
+export function domSpecialDiff(oldNode: ChildNode, newNode: ChildNode): number {
+  const specials = DomSpecials[oldNode.nodeName];
   if (!specials) return 0;
 
   // We've matched by nodeName so both nodes are the same element type; the
@@ -178,14 +167,14 @@ export function solidDomSpecialDiff(
 /**
  * Set attributes from new element onto old element, tracking changes in ref.
  */
-export function solidDomSetAttributes(
+export function domSetAttributes(
   oldNode: Element,
   newNode: Element,
-  ref: SolidDomRef,
+  ref: DomRef,
   keepId?: boolean,
 ): void {
   // Reset compare key cache
-  const oldEl = oldNode as SolidDomElement;
+  const oldEl = oldNode as DomElement;
   Reflect.deleteProperty(oldEl, "compareKeyCached");
 
   const oldAttrs = oldNode.attributes;
@@ -225,10 +214,10 @@ export function solidDomSetAttributes(
 /**
  * Set child nodes from new parent onto old parent using keyed diff algorithm.
  */
-export function solidDomSetChildNodes(
+export function domSetChildNodes(
   oldParent: Element,
   newParent: Element,
-  ref: SolidDomRef,
+  ref: DomRef,
   frame: FrameInterface,
   keys_?: ReadonlySet<string>,
 ): void {
@@ -244,7 +233,7 @@ export function solidDomSetChildNodes(
 
   while (oldNode) {
     extra++;
-    const nodeKey = solidDomGetCompareKey(oldNode);
+    const nodeKey = domGetCompareKey(oldNode);
     if (nodeKey) {
       let bucket = keyedNodes.get(nodeKey);
       if (!bucket) {
@@ -258,7 +247,7 @@ export function solidDomSetChildNodes(
 
   // Count new keyed nodes
   while (newNode) {
-    const nodeKey = solidDomGetCompareKey(newNode);
+    const nodeKey = domGetCompareKey(newNode);
     if (nodeKey) {
       newKeyedNodes.set(nodeKey, (newKeyedNodes.get(nodeKey) ?? 0) + 1);
     }
@@ -273,7 +262,7 @@ export function solidDomSetChildNodes(
     extra--;
     const tempNew = newNode;
     newNode = newNode.nextSibling;
-    const nodeKey = solidDomGetCompareKey(tempNew);
+    const nodeKey = domGetCompareKey(tempNew);
     let foundNode = nodeKey ? keyedNodes.get(nodeKey) : undefined;
 
     if (foundNode && (foundNode = foundNode.slice()) && foundNode.length) {
@@ -290,17 +279,17 @@ export function solidDomSetChildNodes(
         const c = newKeyedNodes.get(nodeKey);
         if (c) newKeyedNodes.set(nodeKey, c - 1);
       }
-      solidDomSetNode(matched, tempNew, oldParent, ref, frame, keys_);
+      domSetNode(matched, tempNew, oldParent, ref, frame, keys_);
     } else if (oldNode) {
       const tempOld = oldNode;
-      const oldKey = solidDomGetCompareKey(tempOld);
+      const oldKey = domGetCompareKey(tempOld);
       if (oldKey && keyedNodes.has(oldKey) && newKeyedNodes.get(oldKey)) {
         extra++;
         ref.hasChanged = 1;
         ref.domOps.push([8, oldParent, tempNew, tempOld]);
       } else {
         oldNode = oldNode.nextSibling;
-        solidDomSetNode(tempOld, tempNew, oldParent, ref, frame, keys_);
+        domSetNode(tempOld, tempNew, oldParent, ref, frame, keys_);
       }
     } else {
       ref.hasChanged = 1;
@@ -312,7 +301,7 @@ export function solidDomSetChildNodes(
   let tempOld: ChildNode | null = oldParent.lastChild;
   while (extra-- > 0) {
     if (tempOld) {
-      solidDomUnmountFrames(frame, tempOld);
+      domUnmountFrames(frame, tempOld);
       ref.domOps.push([2, oldParent, tempOld]);
       tempOld = tempOld.previousSibling;
       ref.hasChanged = 1;
@@ -323,11 +312,11 @@ export function solidDomSetChildNodes(
 /**
  * Diff two DOM nodes and apply changes.
  */
-export function solidDomSetNode(
+export function domSetNode(
   oldNode: ChildNode,
   newNode: ChildNode,
   oldParent: Element,
-  ref: SolidDomRef,
+  ref: DomRef,
   frame: FrameInterface,
   keys_?: ReadonlySet<string>,
 ): void {
@@ -343,7 +332,7 @@ export function solidDomSetNode(
     oldAsEl.isEqualNode &&
     oldAsEl.isEqualNode(newAsEl);
 
-  if (solidDomSpecialDiff(oldNode, newNode) || hasViewKey || !equalAsNodes) {
+  if (domSpecialDiff(oldNode, newNode) || hasViewKey || !equalAsNodes) {
     // Same type (same nodeName and nodeType) → diff in place
     if (
       oldNode.nodeType === newNode.nodeType &&
@@ -382,10 +371,10 @@ export function solidDomSetNode(
         }
 
         if (updateAttribute) {
-          solidDomSetAttributes(oldEl, newEl, ref, !!newLarkView);
+          domSetAttributes(oldEl, newEl, ref, !!newLarkView);
         }
         if (updateChildren) {
-          solidDomSetChildNodes(oldEl, newEl, ref, frame, keys_);
+          domSetChildNodes(oldEl, newEl, ref, frame, keys_);
         }
       } else if (oldNode.nodeValue !== newNode.nodeValue) {
         // Text or Comment node: update nodeValue
@@ -395,7 +384,7 @@ export function solidDomSetNode(
     } else {
       // Different type (e.g. DIV vs H1, element vs comment) → replace
       ref.hasChanged = 1;
-      solidDomUnmountFrames(frame, oldNode);
+      domUnmountFrames(frame, oldNode);
       ref.domOps.push([4, oldParent, newNode, oldNode]);
     }
   }
@@ -403,9 +392,9 @@ export function solidDomSetNode(
 }
 
 /**
- * Create an empty SolidDomRef for tracking diff operations.
+ * Create an empty DomRef for tracking diff operations.
  */
-export function createSolidDomRef(): SolidDomRef {
+export function createDomRef(): DomRef {
   return {
     idUpdates: [],
     views: [],
@@ -417,7 +406,7 @@ export function createSolidDomRef(): SolidDomRef {
 /**
  * Apply DOM diff operations to the DOM.
  */
-export function applySolidDomOps(ops: SolidDomOp[]): void {
+export function applyDomOps(ops: DomOp[]): void {
   for (const op of ops) {
     switch (op[0]) {
       case 1: // appendChild

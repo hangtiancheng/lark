@@ -125,7 +125,7 @@ export type {
 } from "./frame-visual";
 
 // Template compiler
-export { compileTemplate, extractGlobalVars } from "./compiler";
+// export { compileTemplate, extractGlobalVars } from "./compiler";
 
 // Types (re-exported for consumer convenience)
 export * from "./types";

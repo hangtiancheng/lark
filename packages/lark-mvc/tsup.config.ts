@@ -32,4 +32,13 @@ export default defineConfig([
     sourcemap: false,
     tsconfig: "./tsconfig.build.json",
   },
+  {
+    entry: ["src/compiler.ts"],
+    dts: true,
+    format: ["esm", "cjs"],
+    minify: false,
+    noExternal: ["@babel/parser", "@babel/types"],
+    sourcemap: false,
+    tsconfig: "./tsconfig.build.json",
+  }
 ]);

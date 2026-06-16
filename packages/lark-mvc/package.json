@@ -1,6 +1,6 @@
 {
   "name": "@lark.js/mvc",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "@lark.js/mvc - TypeScript MVC framework",
   "keywords": [
     "framework",
@@ -57,6 +57,16 @@
       "require": {
         "types": "./dist/runtime.d.cts",
         "default": "./dist/runtime.cjs"
+      }
+    },
+    "./compiler": {
+      "import": {
+        "types": "./dist/compiler.d.ts",
+        "default": "./dist/compiler.js"
+      },
+      "require": {
+        "types": "./dist/compiler.d.cts",
+        "default": "./dist/compiler.cjs"
       }
     }
   },

@@ -129,6 +129,16 @@ function attachViewAndPath(loc: Location): void {
         ? loc.query["path"] || loc.hash["path"]
         : loc.hash["path"];
     let path = rawPath || cachedDefaultPath || "/";
+    // When root path "/" has no matching route, fall back to defaultPath
+    // (e.g. visiting "/" should show the default view like "/home", not 404)
+    if (
+      !cachedRoutes[path] &&
+      path === "/" &&
+      cachedDefaultPath &&
+      cachedDefaultPath !== "/"
+    ) {
+      path = cachedDefaultPath;
+    }
     if (cachedRewrite) {
       path = cachedRewrite(
         path,
@@ -227,6 +237,12 @@ function getChanged(
 function updateBrowserUrl(path: string, replace?: boolean): void {
   if (routeMode === "history") {
     const url = path || "/";
+    // Skip if URL is already the target to avoid duplicate history entries
+    // (e.g. when resolve() calls updateBrowserUrl after pushState already set the URL)
+    const currentUrl = window.location.pathname + window.location.search;
+    if (url === currentUrl) {
+      return;
+    }
     if (replace) {
       window.history.replaceState(null, "", url);
     } else {
@@ -259,6 +275,11 @@ function updateUrl(
   if (path !== currentSrc) {
     silent = silentFlag ? 1 : 0;
     updateBrowserUrl(path, replace);
+    // In history mode, pushState doesn't fire any event (unlike hash mode where
+    // setting location.hash triggers hashchange). Manually trigger change detection.
+    if (routeMode === "history" && Router.notify) {
+      Router.notify();
+    }
   }
 }
 

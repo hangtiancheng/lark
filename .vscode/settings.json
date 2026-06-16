@@ -7,16 +7,25 @@
   },
   "cmake.ignoreCMakeListsMissing": true,
   "cSpell.words": [
+    "dblclick",
     "gstatic",
     "gypfile",
     "hangtiancheng",
     "heapify",
     "heappop",
     "heappush",
+    "keyup",
     "libheap",
     "libpool",
     "mbps",
+    "mousedown",
+    "mouseleave",
+    "mouseout",
+    "mouseup",
     "napi",
-    "rsbuild"
+    "rsbuild",
+    "touchend",
+    "touchmove",
+    "touchstart"
   ]
 }

@@ -72,10 +72,11 @@ Event type suggestions:
 When you type `@` inside an HTML template, the extension offers all 22 supported DOM event types as completion items with snippet insertion:
 
 ```
-click, dblclick, change, input, submit, focus, blur,
-keyup, keydown, keypress, mouseenter, mouseleave,
-mouseover, mouseout, mousedown, mouseup, scroll,
-wheel, contextmenu, touchstart, touchend, touchmove
+click, dblclick, change, input, submit,
+focus, blur, keyup, keydown, keypress,
+mouseenter, mouseleave, mouseover, mouseout, mousedown,
+mouseup, scroll, wheel, contextmenu, touchstart,
+touchend, touchmove
 ```
 
 Selecting an item inserts the full attribute pattern, e.g. `@click="$1()"`.

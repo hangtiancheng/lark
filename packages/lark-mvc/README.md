@@ -386,15 +386,15 @@ useCountStore.destroy(); // Clears all listeners, removes from registry
 
 ### Comparison
 
-| Dimension | State | Store |
-|-----------|-------|-------|
-| Write | `State.set(...)` + `State.digest()` | `store.setState(partial)` or action |
-| Read | `State.get(key)` | `store.getState()` |
-| Subscribe | `observeState` or `on("changed")` | `store.subscribe(listener)` or `bindStore` |
-| View binding | `observeState("keys")` | `bindStore(view, store, selector?)` |
-| Lifecycle | `State.clean` mixin auto-reclaims keys | `store.destroy()` manual teardown |
-| Derived data | Not supported | `computed(deps, fn)` |
-| Use case | Page title, login state, theme | Business entities, forms, complex cross-view state |
+| Dimension    | State                                  | Store                                              |
+| ------------ | -------------------------------------- | -------------------------------------------------- |
+| Write        | `State.set(...)` + `State.digest()`    | `store.setState(partial)` or action                |
+| Read         | `State.get(key)`                       | `store.getState()`                                 |
+| Subscribe    | `observeState` or `on("changed")`      | `store.subscribe(listener)` or `bindStore`         |
+| View binding | `observeState("keys")`                 | `bindStore(view, store, selector?)`                |
+| Lifecycle    | `State.clean` mixin auto-reclaims keys | `store.destroy()` manual teardown                  |
+| Derived data | Not supported                          | `computed(deps, fn)`                               |
+| Use case     | Page title, login state, theme         | Business entities, forms, complex cross-view state |
 
 Selection guide: start with State; upgrade to Store when you need actions, derived data, or fine-grained subscriptions; view-private data always goes through Updater.
 
@@ -409,9 +409,15 @@ import { View } from "@lark.js/mvc";
 
 export default View.extend({
   template,
-  init() { /* ... */ },
-  assign() { /* ... */ },
-  render() { /* ... */ },
+  init() {
+    /* ... */
+  },
+  assign() {
+    /* ... */
+  },
+  render() {
+    /* ... */
+  },
 });
 ```
 
@@ -444,15 +450,15 @@ Both produce equivalent runtime artifacts; the difference is purely in TypeScrip
 
 Event methods are named `name<eventType>` or `$selector<eventType>`. `View.prepare` scans the prototype at class definition time, parsing methods into three maps (`$evtObjMap` / `$selMap` / `$globalEvtList`) written to the prototype, managed at runtime by `EventDelegator`.
 
-| Syntax | Meaning |
-|--------|---------|
-| `handler<click>` | Event on the view's root element |
-| `$selector<click>` | Delegated to child elements matching `.selector` |
-| `$<click>` | Empty selector, triggers Frame boundary event only |
-| `$window<resize>` | Delegated to `window` |
-| `$document<keydown>` | Delegated to `document` |
-| `handler<click,mousedown>` | Multi-event binding |
-| `name<click><ctrl>` | Fires only when Ctrl modifier is held |
+| Syntax                     | Meaning                                            |
+| -------------------------- | -------------------------------------------------- |
+| `handler<click>`           | Event on the view's root element                   |
+| `$selector<click>`         | Delegated to child elements matching `.selector`   |
+| `$<click>`                 | Empty selector, triggers Frame boundary event only |
+| `$window<resize>`          | Delegated to `window`                              |
+| `$document<keydown>`       | Delegated to `document`                            |
+| `handler<click,mousedown>` | Multi-event binding                                |
+| `name<click><ctrl>`        | Fires only when Ctrl modifier is held              |
 
 The event callback receives an object `e` that, beyond standard Event fields, provides `e.eventTarget` (the actual hit DOM element) and `e.params` (parsed from the `@event` parameter string). Multiple mixins defining the same event method name are merged into a handler chain called in mixin order.
 
@@ -464,7 +470,15 @@ Event delegation implementation: `EventDelegator` attaches listeners on `documen
 
 ```ts
 const timer = setInterval(tick, 1000);
-this.capture("myTimer", { destroy() { clearInterval(timer); } }, true);
+this.capture(
+  "myTimer",
+  {
+    destroy() {
+      clearInterval(timer);
+    },
+  },
+  true,
+);
 ```
 
 The third parameter `destroyOnRender` when `true` causes automatic destruction and removal on the next render call; when `false` cleanup happens only on view destruction. `release(key, destroy = true)` manually removes an entry.
@@ -499,16 +513,16 @@ All state parses into a single `Location` object; cache hits skip parsing.
 ```ts
 import { Router } from "@lark.js/mvc";
 
-Router.to("/list", { page: 2 });           // path + params
-Router.to({ page: 3 });                    // params only
-Router.to("/list", { page: 2 }, true);     // replace mode
+Router.to("/list", { page: 2 }); // path + params
+Router.to({ page: 3 }); // params only
+Router.to("/list", { page: 2 }, true); // replace mode
 Router.to("/list", { page: 2 }, false, true); // silent, no events
 ```
 
 ```ts
-const loc = Router.parse();                // current Location
+const loc = Router.parse(); // current Location
 const loc2 = Router.parse("https://x/?a=1#!/path?p=v");
-const diff = Router.diff();                // most recent LocationDiff
+const diff = Router.diff(); // most recent LocationDiff
 ```
 
 `Location` provides `path` / `params` / `hash` / `query` / `view` and a `get(key, defaultValue?)` method.
@@ -580,14 +594,19 @@ const AppService = Service.extend(
     fetch(payload.get<string>("url"), {
       method: payload.get<string>("method") || "GET",
       headers: { "Content-Type": "application/json" },
-      body: payload.get("data") ? JSON.stringify(payload.get("data")) : undefined,
+      body: payload.get("data")
+        ? JSON.stringify(payload.get("data"))
+        : undefined,
     })
       .then((r) => r.json())
-      .then((data) => { payload.set(data); callback(); })
+      .then((data) => {
+        payload.set(data);
+        callback();
+      })
       .catch(() => callback());
   },
   20, // cacheMax
-  5,  // cacheBuffer
+  5, // cacheBuffer
 );
 
 AppService.add([
@@ -597,7 +616,10 @@ AppService.add([
     url: "/api/users/:id",
     cache: 30_000,
     before(payload) {
-      payload.set("url", payload.get<string>("url").replace(":id", payload.get<string>("id")));
+      payload.set(
+        "url",
+        payload.get<string>("url").replace(":id", payload.get<string>("id")),
+      );
     },
     after(payload) {
       const data = payload.get("data");
@@ -629,18 +651,18 @@ export default View.extend({
 });
 ```
 
-| Method | Behavior |
-|--------|----------|
-| `service.all(attrs, done)` | Fetch all endpoints; callback `(errors, p1, p2, ...)` when all complete |
-| `service.one(attrs, done)` | Fetch all endpoints; callback `(error, payload, isLast, index)` on each completion |
-| `service.save(attrs, done)` | Same as `all` but skips cache, always makes a fresh request |
-| `service.enqueue(task)` | Add to serial queue |
-| `service.dequeue(...args)` | Take one item and execute |
-| `service.destroy()` | Destroy instance and cancel pending callbacks |
+| Method                      | Behavior                                                                           |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `service.all(attrs, done)`  | Fetch all endpoints; callback `(errors, p1, p2, ...)` when all complete            |
+| `service.one(attrs, done)`  | Fetch all endpoints; callback `(error, payload, isLast, index)` on each completion |
+| `service.save(attrs, done)` | Same as `all` but skips cache, always makes a fresh request                        |
+| `service.enqueue(task)`     | Add to serial queue                                                                |
+| `service.dequeue(...args)`  | Take one item and execute                                                          |
+| `service.destroy()`         | Destroy instance and cancel pending callbacks                                      |
 
 ### Caching and Deduplication
 
-`Cache` implements an LFU-style bounded cache: sorted by `(frequency, lastTimestamp)`, evicting `bufferSize` entries via single-pass partial selection (O(n*k), k typically 5) when capacity exceeds `maxSize + bufferSize`. `del` immediately removes from the `entries` array and `lookup` Map.
+`Cache` implements an LFU-style bounded cache: sorted by `(frequency, lastTimestamp)`, evicting `bufferSize` entries via single-pass partial selection (O(n\*k), k typically 5) when capacity exceeds `maxSize + bufferSize`. `del` immediately removes from the `entries` array and `lookup` Map.
 
 `_pendingCacheKeys` tracks in-flight requests per `(endpoint, params)` key. Concurrent calls to the same key are added to a callback chain; a single request completes and invokes all callbacks, avoiding redundant network round-trips.
 
@@ -652,23 +674,21 @@ Template files use the `.html` extension and are compiled at build time by `lark
 
 ### Expression Operators
 
-| Syntax | Meaning |
-|--------|---------|
-| `{{=variable}}` | HTML-escaped output (escapes `& < > " ' \``) |
-| `{{!variable}}` | Raw output, use with caution (potential XSS) |
+| Syntax          | Meaning                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `{{=variable}}` | HTML-escaped output (escapes `& < > " ' \``)                                                                      |
+| `{{!variable}}` | Raw output, use with caution (potential XSS)                                                                      |
 | `{{@variable}}` | Reference lookup: stores the JS value in refData and produces a token, used with `@event` to pass live references |
-| `{{:variable}}` | Two-way binding marker; renders equivalently to `=` |
+| `{{:variable}}` | Two-way binding marker; renders equivalently to `=`                                                               |
 
 ### Control Flow
 
 ```html
-{{if condition}}...{{else if other}}...{{else}}...{{/if}}
-{{forOf list as item}} ... {{/forOf}}
-{{forOf list as item idx}} {{=idx}}: {{=item.name}} {{/forOf}}
-{{forOf list as {name, age} idx last first}} ... {{/forOf}}
-{{forIn object as value key}} ... {{/forIn}}
-{{for (let i = 0; i < n; i++)}} ... {{/for}}
-{{set localVar = expr}}
+{{if condition}}...{{else if other}}...{{else}}...{{/if}} {{forOf list as item}}
+... {{/forOf}} {{forOf list as item idx}} {{=idx}}: {{=item.name}} {{/forOf}}
+{{forOf list as {name, age} idx last first}} ... {{/forOf}} {{forIn object as
+value key}} ... {{/forIn}} {{for (let i = 0; i < n; i++)}} ... {{/for}} {{set
+localVar = expr}}
 ```
 
 `forOf` requires the `as` keyword. `{{forOf list item}}` is a compile-time error; the correct form is `{{forOf list as item}}`.
@@ -695,11 +715,11 @@ With query strings, parameters are translated into the first argument of the chi
 
 ### VDOM Optimization Hints
 
-| Attribute | Purpose |
-|-----------|---------|
-| `ldk` | diff key: when old and new ldk match, the entire subtree's diff is skipped |
-| `lak` | attribute key: skips attribute diff but children continue to diff |
-| `lvk` | view key: assign optimization marker |
+| Attribute | Purpose                                                                    |
+| --------- | -------------------------------------------------------------------------- |
+| `ldk`     | diff key: when old and new ldk match, the entire subtree's diff is skipped |
+| `lak`     | attribute key: skips attribute diff but children continue to diff          |
+| `lvk`     | view key: assign optimization marker                                       |
 
 Marking large static subtrees with `ldk` can completely skip rendering work. This is currently the framework's only "fine-grained skip diff" mechanism; the compiler does not automatically mark fully static subtrees.
 
@@ -709,22 +729,22 @@ Marking large static subtrees with `ldk` can completely skip rendering work. Thi
 
 ### Typed API
 
-| API | Description |
-|-----|-------------|
-| `Frame.get(id)` | Look up Frame by DOM id |
-| `Frame.getAll()` | All Frames as `Map<string, Frame>` |
-| `Frame.getRoot()` | Current root Frame; returns `undefined` if not created |
-| `Frame.createRoot(id)` | Idempotent root creation (`Framework.boot` calls this) |
-| `Frame.root(id)` | `@deprecated` alias, forwards to `createRoot` |
-| `new Frame(containerId)` | Independent Frame instance for micro-frontend / embedded widget scenarios |
-| `frame.invoke(name, args?)` | Call the owning view's method; if view not mounted, pushes to `invokeList`, flushed by `View.runInvokes(frame)` after mounting |
-| `frame.children()` | Child Frame id array (order not guaranteed) |
-| `frame.parent(level?)` | Ancestor Frame, defaults to one level up |
-| `frame.mountFrame(id, viewPath, params?)` | Explicitly create a child Frame |
-| `frame.unmountFrame(id)` | Unmount a specific child Frame |
-| `frame.mountZone(id?)` / `frame.unmountZone(id?)` | Batch mount/unmount all `v-lark` child nodes in a zone |
-| `Frame.on("add" \| "remove", handler)` | Frame instance lifecycle events (static emitter) |
-| `frame.on("created" \| "alter", handler)` | All child Frames rendered / child content changed (instance emitter) |
+| API                                               | Description                                                                                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Frame.get(id)`                                   | Look up Frame by DOM id                                                                                                        |
+| `Frame.getAll()`                                  | All Frames as `Map<string, Frame>`                                                                                             |
+| `Frame.getRoot()`                                 | Current root Frame; returns `undefined` if not created                                                                         |
+| `Frame.createRoot(id)`                            | Idempotent root creation (`Framework.boot` calls this)                                                                         |
+| `Frame.root(id)`                                  | `@deprecated` alias, forwards to `createRoot`                                                                                  |
+| `new Frame(containerId)`                          | Independent Frame instance for micro-frontend / embedded widget scenarios                                                      |
+| `frame.invoke(name, args?)`                       | Call the owning view's method; if view not mounted, pushes to `invokeList`, flushed by `View.runInvokes(frame)` after mounting |
+| `frame.children()`                                | Child Frame id array (order not guaranteed)                                                                                    |
+| `frame.parent(level?)`                            | Ancestor Frame, defaults to one level up                                                                                       |
+| `frame.mountFrame(id, viewPath, params?)`         | Explicitly create a child Frame                                                                                                |
+| `frame.unmountFrame(id)`                          | Unmount a specific child Frame                                                                                                 |
+| `frame.mountZone(id?)` / `frame.unmountZone(id?)` | Batch mount/unmount all `v-lark` child nodes in a zone                                                                         |
+| `Frame.on("add" \| "remove", handler)`            | Frame instance lifecycle events (static emitter)                                                                               |
+| `frame.on("created" \| "alter", handler)`         | All child Frames rendered / child content changed (instance emitter)                                                           |
 
 Frame instances enter `frameCache` object pool upon destruction, caching up to `MAX_FRAME_POOL = 64`; beyond that threshold they are GC'd. Do not retain Frame references after unmounting as the object may be reused.
 
@@ -741,22 +761,27 @@ Framework.boot({
   rootId: "app",
   projectName: "host-app",
   crossConfigs: [
-    { projectName: "remote-app", source: "remote_app@//cdn.example.com/remote-app/remoteEntry.js" },
+    {
+      projectName: "remote-app",
+      source: "remote_app@//cdn.example.com/remote-app/remoteEntry.js",
+    },
   ],
   require: async (names: string[]) => {
     await __webpack_init_sharing__("default");
     const container = __webpack_share_scopes__["default"];
-    return Promise.all(names.map(async (name) => {
-      const slash = name.indexOf("/");
-      const remote = slash > -1 ? name.substring(0, slash) : name;
-      const mod = slash > -1 ? name.substring(slash + 1) : "./index";
-      const rc = (window as Record<string, unknown>)[remote];
-      if (!rc) return undefined;
-      await rc.init(container);
-      const factory = await rc.get(`./${mod}`);
-      const raw = factory();
-      return raw && raw.__esModule ? raw.default : raw;
-    }));
+    return Promise.all(
+      names.map(async (name) => {
+        const slash = name.indexOf("/");
+        const remote = slash > -1 ? name.substring(0, slash) : name;
+        const mod = slash > -1 ? name.substring(slash + 1) : "./index";
+        const rc = (window as Record<string, unknown>)[remote];
+        if (!rc) return undefined;
+        await rc.init(container);
+        const factory = await rc.get(`./${mod}`);
+        const raw = factory();
+        return raw && raw.__esModule ? raw.default : raw;
+      }),
+    );
   },
 });
 ```
@@ -785,7 +810,9 @@ Host:
 ```js
 new ModuleFederationPlugin({
   name: "host_app",
-  remotes: { "remote-app": "remote_app@//cdn.example.com/remote-app/remoteEntry.js" },
+  remotes: {
+    "remote-app": "remote_app@//cdn.example.com/remote-app/remoteEntry.js",
+  },
   shared: { "@lark.js/mvc": { singleton: true, requiredVersion: "^1.0.0" } },
 });
 ```
@@ -811,17 +838,17 @@ new ModuleFederationPlugin({
 
 After `Framework.boot` completes, the following are attached to `window`:
 
-| Global | Value | Purpose |
-|--------|-------|---------|
-| `window.__lark_Framework` | Framework object | Direct access |
-| `window.__lark_State` | State object | Direct access |
-| `window.__lark_Router` | Router object | Direct access |
-| `window.__lark_Frame` | Frame class | Direct access |
-| `window.__lark_View` | View class | Direct access |
-| `window.__lark_registerViewClass` | Function | HMR: re-register View class |
-| `window.__lark_invalidateViewClass` | Function | HMR: remove View from registry |
-| `window.__lark_getViewClassRegistry` | Function | HMR: read registry |
-| `window.__lark_Debug` | boolean, must be set manually | Enable Safeguard Proxy debug checks |
+| Global                               | Value                         | Purpose                             |
+| ------------------------------------ | ----------------------------- | ----------------------------------- |
+| `window.__lark_Framework`            | Framework object              | Direct access                       |
+| `window.__lark_State`                | State object                  | Direct access                       |
+| `window.__lark_Router`               | Router object                 | Direct access                       |
+| `window.__lark_Frame`                | Frame class                   | Direct access                       |
+| `window.__lark_View`                 | View class                    | Direct access                       |
+| `window.__lark_registerViewClass`    | Function                      | HMR: re-register View class         |
+| `window.__lark_invalidateViewClass`  | Function                      | HMR: remove View from registry      |
+| `window.__lark_getViewClassRegistry` | Function                      | HMR: read registry                  |
+| `window.__lark_Debug`                | boolean, must be set manually | Enable Safeguard Proxy debug checks |
 
 ### Safeguard Debug Mode
 
@@ -928,15 +955,15 @@ The `lark-visual` sub-project in this repository is the paired visual DevTools t
 
 Similarities: templates compile to functions; reactivity via Proxy; derived data with `computed`; microtask batching; component-level granular updates.
 
-| Dimension | Vue 3 | Lark |
-|-----------|-------|------|
-| Component abstraction | SFC / function components / Options | Class inheritance `View.extend` / `defineView` |
-| Render output | VNode patch | HTML string parsed to real DOM + diff |
-| Template syntax | `v-if` / `v-for` / `:bind` | `{{if}}` / `{{forOf}}` / `@event` / `v-lark` |
-| Dependency tracking | Automatic effect tracking | subscribe + bindStore + computed |
-| Compile optimizations | PatchFlag / hoistStatic / cacheHandler | Only `ldk` / `lak` / `lvk` user-manual markers |
-| Micro-frontend | Third-party (qiankun / wujie etc.) | Built-in `CrossSite` + `FrameworkConfig.require` |
-| Scheduling | Microtask batching + nextTick | Microtask batching + `Framework.task` sliceable queue |
+| Dimension             | Vue 3                                  | Lark                                                  |
+| --------------------- | -------------------------------------- | ----------------------------------------------------- |
+| Component abstraction | SFC / function components / Options    | Class inheritance `View.extend` / `defineView`        |
+| Render output         | VNode patch                            | HTML string parsed to real DOM + diff                 |
+| Template syntax       | `v-if` / `v-for` / `:bind`             | `{{if}}` / `{{forOf}}` / `@event` / `v-lark`          |
+| Dependency tracking   | Automatic effect tracking              | subscribe + bindStore + computed                      |
+| Compile optimizations | PatchFlag / hoistStatic / cacheHandler | Only `ldk` / `lak` / `lvk` user-manual markers        |
+| Micro-frontend        | Third-party (qiankun / wujie etc.)     | Built-in `CrossSite` + `FrameworkConfig.require`      |
+| Scheduling            | Microtask batching + nextTick          | Microtask batching + `Framework.task` sliceable queue |
 
 The key difference is render output: Vue uses virtual node patching; Lark generates HTML strings, parses them via innerHTML into a temporary div, then diffs the resulting real DOM. The advantage is that context-sensitive tags (`<table>` / `<select>` / `<svg>`) are handled by the native parser nearly for free; the disadvantage is the absence of PatchFlag-style compile-time annotations (only user-manual `ldk` / `lak` / `lvk`).
 
@@ -944,17 +971,17 @@ The key difference is render output: Vue uses virtual node patching; Lark genera
 
 Similarities: unidirectional data flow; immutable write-back style; async protection (`wrapAsync` is analogous to `useEffect` cleanup + AbortController); microtask batching; global error boundary (`FrameworkConfig.error` + `funcWithTry`).
 
-| Dimension | React 19 | Lark |
-|-----------|----------|------|
-| Component abstraction | Function components + Hooks | Class inheritance `View.extend` / `defineView` |
-| State encapsulation | `useState` / `useReducer` | View instance fields, `create()` store, `State` |
-| Side effects | `useEffect` / `useLayoutEffect` | `init` / `make` + `capture` / `release` |
-| Render interruption | Fiber time-slicing, Suspense, Transition | Synchronous digest, not interruptible |
-| Compile optimization | React Compiler (auto-memo) | Template compile-time only; no runtime auto-memo |
-| Server rendering | RSC, streaming SSR | Not supported (design trade-off) |
-| Cross-platform | React Native / DOM | Web DOM only |
-| Event system | Synthetic Event | `document.body` capture-phase delegation + selector matching |
-| Route guards | Third-party router libraries | Built-in `Router.beforeEach(asyncGuard)` + two-phase change |
+| Dimension             | React 19                                 | Lark                                                         |
+| --------------------- | ---------------------------------------- | ------------------------------------------------------------ |
+| Component abstraction | Function components + Hooks              | Class inheritance `View.extend` / `defineView`               |
+| State encapsulation   | `useState` / `useReducer`                | View instance fields, `create()` store, `State`              |
+| Side effects          | `useEffect` / `useLayoutEffect`          | `init` / `make` + `capture` / `release`                      |
+| Render interruption   | Fiber time-slicing, Suspense, Transition | Synchronous digest, not interruptible                        |
+| Compile optimization  | React Compiler (auto-memo)               | Template compile-time only; no runtime auto-memo             |
+| Server rendering      | RSC, streaming SSR                       | Not supported (design trade-off)                             |
+| Cross-platform        | React Native / DOM                       | Web DOM only                                                 |
+| Event system          | Synthetic Event                          | `document.body` capture-phase delegation + selector matching |
+| Route guards          | Third-party router libraries             | Built-in `Router.beforeEach(asyncGuard)` + two-phase change  |
 
 The key difference is scheduling: React 19's Concurrent mode can interrupt and restart renders by lane priority. Lark's `Updater.digest()` is synchronous (though the internal `digestingQueue` supports re-entry) and never yields the main thread. For large lists or frequent updates, Lark has no time-slicing mechanism, which may cause long tasks; the advantage is predictable behavior and simpler debugging.
 

@@ -9,12 +9,7 @@ import {
   applyDomOps,
   applyIdUpdates,
 } from "../src/dom";
-import {
-  encodeHTML,
-  encodeSafe,
-  encodeURIExtra,
-  encodeQ,
-} from "../src/common";
+import { encodeHTML, encodeSafe, encodeURIExtra, encodeQ } from "../src/common";
 import { Frame } from "../src/frame";
 import type { FrameInterface } from "../src/types";
 

@@ -223,21 +223,14 @@ export function convertArtSyntax(source: string, debug: boolean): string {
     }
 
     // Convert the art expression to <% %> syntax
-    const converted = convertArtExpression(
-      cleanCode,
-      debug,
-      lineNo,
-      blockStack,
-    );
+    const converted = convertArtExpression(cleanCode, debug, lineNo, blockStack);
     result.push(converted);
     result.push(rest);
   }
 
   // Check for unclosed blocks at end
   if (blockStack.length > 0) {
-    const unclosed = blockStack
-      .map((b) => `"${b.ctrl}" at line ${b.line}`)
-      .join(", ");
+    const unclosed = blockStack.map((b) => `"${b.ctrl}" at line ${b.line}`).join(", ");
     throw new Error(`[@lark.js/mvc error] unclosed block(s): ${unclosed}`);
   }
 
@@ -400,18 +393,14 @@ function convertArtExpression(
       // Parse as expression: "value index" or "{value} key"
       const asExpr = parseAsExpr(asValue);
       const index = asExpr.key || "_i";
-      const refObj = /[.[\]]/.test(object)
-        ? `_art_obj_${object.replace(/[^\w]/g, "_")}`
-        : object;
+      const refObj = /[.[\]]/.test(object) ? `_art_obj_${object.replace(/[^\w]/g, "_")}` : object;
       const refExpr = /[.[\]]/.test(object) ? `,${refObj}=${object}` : "";
 
       // Length cache variable
       // Using _l which is scoped to the for block, won't conflict with user vars
       const refObjCount = "_l";
 
-      const valueDecl = asExpr.vars
-        ? `let ${asExpr.vars}=${refObj}[${index}]`
-        : "";
+      const valueDecl = asExpr.vars ? `let ${asExpr.vars}=${refObj}[${index}]` : "";
 
       // Support first/last helpers
       let firstAndLast = "";
@@ -442,13 +431,9 @@ function convertArtExpression(
       const asValue2 = restTokens2.join(" ");
       const asExpr2 = parseAsExpr(asValue2);
       const key1 = asExpr2.key || "_k";
-      const refObj2 = /[.[\]]/.test(object)
-        ? `_art_obj_${object.replace(/[^\w]/g, "_")}`
-        : object;
+      const refObj2 = /[.[\]]/.test(object) ? `_art_obj_${object.replace(/[^\w]/g, "_")}` : object;
       const refExpr2 = /[.[\]]/.test(object) ? `let ${refObj2}=${object};` : "";
-      const valueDecl2 = asExpr2.vars
-        ? `let ${asExpr2.vars}=${refObj2}[${key1}]`
-        : "";
+      const valueDecl2 = asExpr2.vars ? `let ${asExpr2.vars}=${refObj2}[${key1}]` : "";
 
       return `${debugPrefix}<%${refExpr2}for(let ${key1} in ${refObj2}){${valueDecl2}%>`;
     }
@@ -470,9 +455,7 @@ function convertArtExpression(
       const expectedCtrl = keyword.substring(1); // "/if" → "if"
       const last = blockStack.pop();
       if (!last) {
-        throw new Error(
-          `[@lark.js/mvc error] unexpected {{${code}}}: no matching open block`,
-        );
+        throw new Error(`[@lark.js/mvc error] unexpected {{${code}}}: no matching open block`);
       }
       if (last.ctrl !== expectedCtrl) {
         throw new Error(

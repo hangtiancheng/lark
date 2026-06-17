@@ -128,10 +128,10 @@ Custom shortcut buttons appear in the status bar. Clicking a shortcut opens its 
 
 ## Commands
 
-| Command                  | Title                   | Context Menu | Condition         |
-| ------------------------ | ----------------------- | ------------ | ----------------- |
-| `lark.copyViewPath`      | Lark: Copy View Path    | Yes          | Lark projects only |
-| `lark.openInGithub`      | Lark: Open in GitHub    | Yes          | All projects       |
+| Command             | Title                | Context Menu | Condition          |
+| ------------------- | -------------------- | ------------ | ------------------ |
+| `lark.copyViewPath` | Lark: Copy View Path | Yes          | Lark projects only |
+| `lark.openInGithub` | Lark: Open in GitHub | Yes          | All projects       |
 
 Copy View Path:
 

@@ -4,12 +4,7 @@
  * Compares old and new DOM trees, computes minimal DOM operations,
  * handles v-lark views, keyed elements, and special elements.
  */
-import {
-  SVG_NS,
-  MATH_NS,
-  TAG_NAME_REGEXP,
-  LARK_VIEW,
-} from "./common";
+import { SVG_NS, MATH_NS, TAG_NAME_REGEXP, LARK_VIEW } from "./common";
 import { parseUri } from "./utils";
 import type { DomRef, DomOp, DomElement, FrameInterface } from "./types";
 

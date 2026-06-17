@@ -34,11 +34,7 @@ export interface CompileOptions {
  * Output is an arrow function: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)=>{...}
  * that returns the rendered HTML string.
  */
-function compileToFunction(
-  source: string,
-  debug: boolean,
-  file?: string,
-): string {
+function compileToFunction(source: string, debug: boolean, file?: string): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
   let funcSource = `$out+='`;
@@ -58,10 +54,7 @@ function compileToFunction(
 
     if (debug) {
       // Debug mode: extract expression and art info for error reporting
-      let expr = source.substring(
-        index - match.length + 2 + (operate ? 1 : 0),
-        index - 2,
-      );
+      let expr = source.substring(index - match.length + 2 + (operate ? 1 : 0), index - 2);
       // Use String.fromCharCode to safely construct regexp with \x11 control character
       const x11 = String.fromCharCode(0x11);
       const artRegExp = new RegExp(`^'(\\d+)${x11}([^${x11}]+)${x11}'$`);
@@ -74,9 +67,7 @@ function compileToFunction(
         art = artM[2];
         line = parseInt(artM[1], 10);
       } else {
-        expr = expr
-          .replace(escapeSlashRegExp, "\\$&")
-          .replace(escapeBreakReturnRegExp, "\\n");
+        expr = expr.replace(escapeSlashRegExp, "\\$&").replace(escapeBreakReturnRegExp, "\\n");
       }
 
       if (operate === "@") {
@@ -201,7 +192,7 @@ export async function compileTemplate(
   const { debug = false, file } = options;
 
   // Auto-extract globalVars via SWC when not explicitly provided
-  const globalVars = options.globalVars ?? await extractGlobalVars(source);
+  const globalVars = options.globalVars ?? (await extractGlobalVars(source));
 
   // Phase 1: Protect comments
   const { protectedSource, comments } = protectComments(source);
@@ -221,9 +212,7 @@ export async function compileTemplate(
   const funcBody = compileToFunction(finalSource, debug, file);
 
   // Build the variable declarations string from globalVars
-  const varDeclarations = globalVars
-    .map((key) => `,${key}=$data.${key}`)
-    .join("");
+  const varDeclarations = globalVars.map((key) => `,${key}=$data.${key}`).join("");
 
   // Replace {{VARS}} placeholder in the function body
   // Use function replacement to avoid $data being interpreted as $ by String.replace()

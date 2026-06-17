@@ -34,7 +34,6 @@
 import type {
   ArrowFunctionExpression,
   AssignmentExpression,
-  AssignmentPattern,
   CallExpression,
   FunctionDeclaration,
   FunctionExpression,
@@ -45,7 +44,7 @@ import type {
   Param,
   Pattern,
   Program,
-  RestElement,
+  Module,
   VariableDeclarator,
 } from "@swc/core";
 import { logError } from "../logger.js";
@@ -275,21 +274,14 @@ function convertArtSyntax(source: string, debug: boolean): string {
     }
 
     // Convert the art expression to <% %> syntax
-    const converted = convertArtExpression(
-      cleanCode,
-      debug,
-      lineNo,
-      blockStack,
-    );
+    const converted = convertArtExpression(cleanCode, debug, lineNo, blockStack);
     result.push(converted);
     result.push(rest);
   }
 
   // Check for unclosed blocks at end
   if (blockStack.length > 0) {
-    const unclosed = blockStack
-      .map((b) => `"${b.ctrl}" at line ${b.line}`)
-      .join(", ");
+    const unclosed = blockStack.map((b) => `"${b.ctrl}" at line ${b.line}`).join(", ");
     throw new Error(`[@lark.js/mvc error] unclosed block(s): ${unclosed}`);
   }
 
@@ -452,18 +444,14 @@ function convertArtExpression(
       // Parse as expression: "value index" or "{value} key"
       const asExpr = parseAsExpr(asValue);
       const index = asExpr.key || "_i";
-      const refObj = /[.[\]]/.test(object)
-        ? `_art_obj_${object.replace(/[^\w]/g, "_")}`
-        : object;
+      const refObj = /[.[\]]/.test(object) ? `_art_obj_${object.replace(/[^\w]/g, "_")}` : object;
       const refExpr = /[.[\]]/.test(object) ? `,${refObj}=${object}` : "";
 
       // Length cache variable
       // Using _l which is scoped to the for block, won't conflict with user vars
       const refObjCount = "_l";
 
-      const valueDecl = asExpr.vars
-        ? `let ${asExpr.vars}=${refObj}[${index}]`
-        : "";
+      const valueDecl = asExpr.vars ? `let ${asExpr.vars}=${refObj}[${index}]` : "";
 
       // Support first/last helpers
       let firstAndLast = "";
@@ -494,13 +482,9 @@ function convertArtExpression(
       const asValue2 = restTokens2.join(" ");
       const asExpr2 = parseAsExpr(asValue2);
       const key1 = asExpr2.key || "_k";
-      const refObj2 = /[.[\]]/.test(object)
-        ? `_art_obj_${object.replace(/[^\w]/g, "_")}`
-        : object;
+      const refObj2 = /[.[\]]/.test(object) ? `_art_obj_${object.replace(/[^\w]/g, "_")}` : object;
       const refExpr2 = /[.[\]]/.test(object) ? `let ${refObj2}=${object};` : "";
-      const valueDecl2 = asExpr2.vars
-        ? `let ${asExpr2.vars}=${refObj2}[${key1}]`
-        : "";
+      const valueDecl2 = asExpr2.vars ? `let ${asExpr2.vars}=${refObj2}[${key1}]` : "";
 
       return `${debugPrefix}<%${refExpr2}for(let ${key1} in ${refObj2}){${valueDecl2}%>`;
     }
@@ -522,9 +506,7 @@ function convertArtExpression(
       const expectedCtrl = keyword.substring(1); // "/if" → "if"
       const last = blockStack.pop();
       if (!last) {
-        throw new Error(
-          `[@lark.js/mvc error] unexpected {{${code}}}: no matching open block`,
-        );
+        throw new Error(`[@lark.js/mvc error] unexpected {{${code}}}: no matching open block`);
       }
       if (last.ctrl !== expectedCtrl) {
         throw new Error(
@@ -625,11 +607,7 @@ function parseAsExpr(expr: string): AsExpr {
  * Output is an arrow function: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)=>{...}
  * that returns the rendered HTML string.
  */
-function compileToFunction(
-  source: string,
-  debug: boolean,
-  file?: string,
-): string {
+function compileToFunction(source: string, debug: boolean, file?: string): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
   let funcSource = `$out+='`;
@@ -649,10 +627,7 @@ function compileToFunction(
 
     if (debug) {
       // Debug mode: extract expression and art info for error reporting
-      let expr = source.substring(
-        index - match.length + 2 + (operate ? 1 : 0),
-        index - 2,
-      );
+      let expr = source.substring(index - match.length + 2 + (operate ? 1 : 0), index - 2);
       // Use String.fromCharCode to safely construct regexp with \x11 control character
       const x11 = String.fromCharCode(0x11);
       const artRegExp = new RegExp(`^'(\\d+)${x11}([^${x11}]+)${x11}'$`);
@@ -665,9 +640,7 @@ function compileToFunction(
         art = artM[2];
         line = parseInt(artM[1], 10);
       } else {
-        expr = expr
-          .replace(escapeSlashRegExp, "\\$&")
-          .replace(escapeBreakReturnRegExp, "\\n");
+        expr = expr.replace(escapeSlashRegExp, "\\$&").replace(escapeBreakReturnRegExp, "\\n");
       }
 
       if (operate === "@") {
@@ -809,9 +782,7 @@ export async function compileTemplate(
   const funcBody = compileToFunction(finalSource, debug, file);
 
   // Build the variable declarations string from globalVars
-  const varDeclarations = globalVars
-    .map((key) => `,${key}=$data.${key}`)
-    .join("");
+  const varDeclarations = globalVars.map((key) => `,${key}=$data.${key}`).join("");
 
   // Replace {{VARS}} placeholder in the function body
   // Use function replacement to avoid $data being interpreted as $ by String.replace()
@@ -906,7 +877,6 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
   try {
     ast = parseSync(fn, {
       syntax: "ecmascript",
-      isModule: false,
       allowReturnOutsideFunction: true,
     });
   } catch {
@@ -920,11 +890,7 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
   const globalVars: Record<string, number> = Object.create(null);
 
   // Track function ranges for scope analysis
-  const fnRange: (
-    | FunctionDeclaration
-    | FunctionExpression
-    | ArrowFunctionExpression
-  )[] = [];
+  const fnRange: (FunctionDeclaration | FunctionExpression | ArrowFunctionExpression)[] = [];
 
   // First pass: collect variable declarations and function scopes
   walkSwcAst(ast, {
@@ -961,15 +927,9 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
     for (const pat of patterns) {
       if (pat.type === "Identifier") {
         functionParams[(pat as Identifier).value] = 1;
-      } else if (
-        pat.type === "AssignmentPattern" &&
-        pat.left.type === "Identifier"
-      ) {
+      } else if (pat.type === "AssignmentPattern" && pat.left.type === "Identifier") {
         functionParams[(pat.left as Identifier).value] = 1;
-      } else if (
-        pat.type === "RestElement" &&
-        pat.argument.type === "Identifier"
-      ) {
+      } else if (pat.type === "RestElement" && pat.argument.type === "Identifier") {
         functionParams[(pat.argument as Identifier).value] = 1;
       }
     }
@@ -1046,7 +1006,7 @@ function getParamPatterns(
  * Simple AST walker that visits all nodes recursively.
  */
 function walkSwcAst(
-  ast: Program,
+  ast: Module,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   visitors: Record<string, (node: any) => void>,
 ): void {
@@ -1091,11 +1051,7 @@ function walkSwcAst(
 
 /** Type guard: is `v` an SWC-style AST node (has a string `type` field)? */
 function isSwcNode(v: unknown): v is { type: string } {
-  return (
-    !!v &&
-    typeof v === "object" &&
-    typeof (v as { type?: unknown }).type === "string"
-  );
+  return !!v && typeof v === "object" && typeof (v as { type?: unknown }).type === "string";
 }
 
 // ─── Built-in globals exclusion list ───────────────────────────────────────

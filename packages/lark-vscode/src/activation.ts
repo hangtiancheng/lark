@@ -82,11 +82,7 @@ function scanDirectory(dir: string, out: string[], depth: number): void {
     for (const entry of entries) {
       if (entry.isFile() && entry.name === "package.json") {
         out.push(path.join(dir, entry.name));
-      } else if (
-        entry.isDirectory() &&
-        !SKIP_DIRS.has(entry.name) &&
-        !entry.name.startsWith(".")
-      ) {
+      } else if (entry.isDirectory() && !SKIP_DIRS.has(entry.name) && !entry.name.startsWith(".")) {
         scanDirectory(path.join(dir, entry.name), out, depth + 1);
       }
     }
@@ -122,20 +118,14 @@ function hasLarkDependency(pkg: unknown): boolean {
   const deps = record["dependencies"];
   const devDeps = record["devDependencies"];
 
-  if (
-    isRecordWithKey(deps, "@lark.js/mvc") ||
-    isRecordWithKey(devDeps, "@lark.js/mvc")
-  ) {
+  if (isRecordWithKey(deps, "@lark.js/mvc") || isRecordWithKey(devDeps, "@lark.js/mvc")) {
     return true;
   }
 
   return false;
 }
 
-function isRecordWithKey(
-  value: unknown,
-  key: string,
-): value is Record<string, unknown> {
+function isRecordWithKey(value: unknown, key: string): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && key in value;
 }
 
@@ -159,9 +149,5 @@ function hasBundlerConfig(dir: string): boolean {
 }
 
 export function setLarkContext(isLark: boolean): void {
-  void vscode.commands.executeCommand(
-    "setContext",
-    "vs-lark:isLark",
-    isLark || undefined,
-  );
+  void vscode.commands.executeCommand("setContext", "vs-lark:isLark", isLark || undefined);
 }

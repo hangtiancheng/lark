@@ -22,7 +22,7 @@
     "dev:lark-cdn": "CDN_WORKSPACE_ROOT=.. pnpm --filter @lark.js/cdn dev",
     "dev:lark-demo": "pnpm --filter lark-demo dev:webpack",
     "dev:lark-visual": "pnpm --filter @lark.js/visual dev",
-    "prepare": "concurrently \"husky\" \"pnpm build:lark\"",
+    "prepare": "husky",
     "preview": "vitepress preview",
     "test": "concurrently \"pnpm test:bloom-filter\" \"pnpm test:distributed-lock\" \"pnpm test:math\" \"pnpm test:mini-zustand\" \"pnpm test:react-vue\" \"pnpm test:vue-reactivity\"",
     "test:bloom-filter": "pnpm --filter @lark.js/bloom-filter test",

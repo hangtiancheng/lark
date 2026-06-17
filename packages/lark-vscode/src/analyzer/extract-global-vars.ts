@@ -22,7 +22,6 @@ import type {
   VariableDeclarator,
   KeyValueProperty,
   MethodProperty,
-  Program,
 } from "@swc/core";
 import { logError } from "../logger.js";
 import {
@@ -138,11 +137,7 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
   const globalVars: Record<string, number> = Object.create(null);
 
   // Track function nodes for scope analysis
-  const fnNodes: (
-    | FunctionDeclaration
-    | FunctionExpression
-    | ArrowFunctionExpression
-  )[] = [];
+  const fnNodes: (FunctionDeclaration | FunctionExpression | ArrowFunctionExpression)[] = [];
 
   // First pass: collect variable declarations and function scopes
   walkSwcAst(ast, {
@@ -153,7 +148,9 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
       }
     },
     FunctionDeclaration(node: FunctionDeclaration) {
-      globalExists[node.identifier.value] = 3;
+      if (node.identifier) {
+        globalExists[node.identifier.value] = 3;
+      }
       fnNodes.push(node);
     },
     FunctionExpression(node: FunctionExpression) {
@@ -176,15 +173,9 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
     for (const pat of patterns) {
       if (pat.type === "Identifier") {
         functionParams[(pat as Identifier).value] = 1;
-      } else if (
-        pat.type === "AssignmentPattern" &&
-        pat.left.type === "Identifier"
-      ) {
+      } else if (pat.type === "AssignmentPattern" && pat.left.type === "Identifier") {
         functionParams[(pat.left as Identifier).value] = 1;
-      } else if (
-        pat.type === "RestElement" &&
-        pat.argument.type === "Identifier"
-      ) {
+      } else if (pat.type === "RestElement" && pat.argument.type === "Identifier") {
         functionParams[(pat.argument as Identifier).value] = 1;
       }
     }
@@ -262,7 +253,7 @@ function fallbackExtractVariables(source: string): string[] {
  * Simple AST walker for SWC nodes.
  */
 function walkSwcAst(
-  ast: Program,
+  ast: Module,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   visitors: Record<string, (node: any) => void>,
 ): void {
@@ -308,13 +299,8 @@ function walkSwcAst(
 
 /** Type guard: is `v` an SWC-style AST node (has a string `type` field)? */
 function isSwcNode(v: unknown): v is { type: string } {
-  return (
-    !!v &&
-    typeof v === "object" &&
-    typeof (v as { type?: unknown }).type === "string"
-  );
+  return !!v && typeof v === "object" && typeof (v as { type?: unknown }).type === "string";
 }
-
 
 // ─── Built-in globals exclusion list ───────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
-import { analyzeViewFile } from "../analyzer/view-analyzer";
-import type { ViewFileInfo } from "../model/view-file-info";
+import { analyzeViewFile } from "../analyzer/view-analyzer.js";
+import type { ViewFileInfo } from "../model/view-file-info.js";
 
 const MAX_CACHE_SIZE = 500;
 

@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
-import type { ViewFileCache } from "../cache/view-file-cache";
-import type { ViewMethodCache } from "../cache/view-method-cache";
-import { log } from "../logger";
+import type { ViewFileCache } from "../cache/view-file-cache.js";
+import type { ViewMethodCache } from "../cache/view-method-cache.js";
+import { log } from "../logger.js";
 
 export function createFileWatchers(
   larkRoots: readonly string[],

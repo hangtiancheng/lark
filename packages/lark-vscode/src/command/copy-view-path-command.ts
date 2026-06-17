@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
-import type { ViewFileCache } from "../cache/view-file-cache";
+import type { ViewFileCache } from "../cache/view-file-cache.js";
 
 export function registerCopyViewPathCommand(
   context: vscode.ExtensionContext,

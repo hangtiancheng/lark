@@ -7,10 +7,10 @@ import type {
   ObjectExpression,
   Property,
 } from "@swc/core";
-import type { MethodInfo } from "../model/method-info";
-import type { ViewFileInfo } from "../model/view-file-info";
-import { parseEventMethodName } from "../model/method-info";
-import { log, logError } from "../logger";
+import type { MethodInfo } from "../model/method-info.js";
+import type { ViewFileInfo } from "../model/view-file-info.js";
+import { parseEventMethodName } from "../model/method-info.js";
+import { log, logError } from "../logger.js";
 
 type ParseFn = typeof import("@swc/core").parse;
 let parser: ParseFn | null = null;

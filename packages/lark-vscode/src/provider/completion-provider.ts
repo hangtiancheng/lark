@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import type { ViewFileCache } from "../cache/view-file-cache";
-import type { ViewMethodCache } from "../cache/view-method-cache";
-import { analyzeTemplate } from "../analyzer/template-analyzer";
-import { parseEventMethodName } from "../model/method-info";
+import type { ViewFileCache } from "../cache/view-file-cache.js";
+import type { ViewMethodCache } from "../cache/view-method-cache.js";
+import { analyzeTemplate } from "../analyzer/template-analyzer.js";
+import { parseEventMethodName } from "../model/method-info.js";
 
 const EVENT_TYPES = [
   "click",

@@ -1,16 +1,16 @@
 import * as vscode from "vscode";
-import { findLarkRoots, setLarkContext } from "./activation";
-import { ViewFileCache } from "./cache/view-file-cache";
-import { ViewMethodCache } from "./cache/view-method-cache";
-import { createFileWatchers } from "./watcher/file-watcher";
-import { registerCopyViewPathCommand } from "./command/copy-view-path-command";
-import { registerOpenInGithubCommand } from "./command/open-in-github-command";
-import { LarkDefinitionProvider } from "./provider/definition-provider";
-import { LarkCompletionProvider } from "./provider/completion-provider";
-import { LarkFoldingRangeProvider } from "./provider/folding-range-provider";
-import { LarkImageHoverProvider } from "./provider/hover-provider";
-import { StatusBarManager } from "./status-bar/status-bar-manager";
-import { initLogger, log } from "./logger";
+import { findLarkRoots, setLarkContext } from "./activation.js";
+import { ViewFileCache } from "./cache/view-file-cache.js";
+import { ViewMethodCache } from "./cache/view-method-cache.js";
+import { createFileWatchers } from "./watcher/file-watcher.js";
+import { registerCopyViewPathCommand } from "./command/copy-view-path-command.js";
+import { registerOpenInGithubCommand } from "./command/open-in-github-command.js";
+import { LarkDefinitionProvider } from "./provider/definition-provider.js";
+import { LarkCompletionProvider } from "./provider/completion-provider.js";
+import { LarkFoldingRangeProvider } from "./provider/folding-range-provider.js";
+import { LarkImageHoverProvider } from "./provider/hover-provider.js";
+import { StatusBarManager } from "./status-bar/status-bar-manager.js";
+import { initLogger, log } from "./logger.js";
 
 const HTML_SELECTOR: vscode.DocumentSelector = [{ language: "html", scheme: "file" }];
 const TS_JS_SELECTOR: vscode.DocumentSelector = [

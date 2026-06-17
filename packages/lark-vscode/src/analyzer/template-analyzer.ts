@@ -1,5 +1,5 @@
-import { extractGlobalVars } from "@lark.js/mvc";
-import { logError } from "../logger";
+import { extractGlobalVars } from "./compiler.js";
+import { logError } from "../logger.js";
 
 export interface TemplateEventBinding {
   readonly eventType: string;

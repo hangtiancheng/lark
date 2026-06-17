@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import type { ViewFileCache } from "../cache/view-file-cache";
-import type { ViewMethodCache } from "../cache/view-method-cache";
-import { analyzeTemplate } from "../analyzer/template-analyzer";
-import { log } from "../logger";
+import type { ViewFileCache } from "../cache/view-file-cache.js";
+import type { ViewMethodCache } from "../cache/view-method-cache.js";
+import { analyzeTemplate } from "../analyzer/template-analyzer.js";
+import { log } from "../logger.js";
 
 const TEMPLATE_IMPORT_REGEX = /import\s+\w+\s+from\s+['"]([^'"]+\.html)['"]/;
 

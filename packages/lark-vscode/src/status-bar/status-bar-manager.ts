@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const ShortcutSchema = z.object({
   name: z.string().min(1),
-  url: z.string().url(),
+  url: z.url(),
 });
 
 const ShortcutListSchema = z.array(ShortcutSchema);

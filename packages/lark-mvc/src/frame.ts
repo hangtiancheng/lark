@@ -4,7 +4,7 @@
  * Manages a tree of frames, each owning a view instance.
  * Handles mount/unmount, invoke, created/alter notifications.
  */
-import { SPLITTER, LARK_VIEW } from "./constants";
+import { SPLITTER, LARK_VIEW } from "./common";
 import {
   hasOwnProperty,
   parseUri,
@@ -621,7 +621,6 @@ export class Frame extends EventEmitter implements FrameInterface {
 function htmlElIsBound(element: HTMLElement): boolean {
   return !!element.frameBound;
 }
-
 
 /** Remove frame from registry */
 function removeFrame(id: string, wasCreated: boolean): void {

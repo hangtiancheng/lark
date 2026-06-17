@@ -6,7 +6,7 @@
  * once the outermost `fire()` completes — so handlers can detach themselves
  * (or each other) without skipping siblings or breaking iteration.
  */
-import { SPLITTER } from "./constants";
+import { SPLITTER } from "./common";
 import { noop, funcWithTry } from "./utils";
 import type {
   AnyFunc,

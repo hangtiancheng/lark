@@ -10,7 +10,7 @@
  * - waitZoneViewsRendered
  * - beforeunload support
  */
-import { CALL_BREAK_TIME, RouterEvents } from "./constants";
+import { CALL_BREAK_TIME, RouterEvents } from "./common";
 import {
   assign,
   hasOwnProperty,

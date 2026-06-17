@@ -16,7 +16,7 @@ import {
   URL_TRIM_HASH_REGEXP,
   URL_TRIM_QUERY_REGEXP,
   RouterEvents,
-} from "./constants";
+} from "./common";
 import { hasOwnProperty, assign, parseUri, toUri } from "./utils";
 import { Cache } from "./cache";
 import { EventEmitter } from "./event-emitter";

@@ -6,7 +6,7 @@
  * For COMPLEX reactive state — handlers, derived data, multi-instance
  * isolation, or store-internal reactions — prefer `create` from `./store`.
  */
-import { RouterEvents } from "./constants";
+import { RouterEvents } from "./common";
 import { hasOwnProperty, setData, EMPTY_STRING_SET } from "./utils";
 import { EventEmitter } from "./event-emitter";
 import { safeguard } from "./safeguard";

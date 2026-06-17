@@ -9,7 +9,7 @@
  * - Resource management (capture/release)
  * - Location/State observation
  */
-import { SPLITTER, VIEW_EVENT_METHOD_REGEXP, RouterEvents } from "./constants";
+import { SPLITTER, VIEW_EVENT_METHOD_REGEXP, RouterEvents } from "./common";
 import { hasOwnProperty, funcWithTry, noop } from "./utils";
 import { EventEmitter } from "./event-emitter";
 import { EventDelegator } from "./event-delegator";

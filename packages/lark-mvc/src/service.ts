@@ -10,7 +10,7 @@
  * - destroy: cancel pending requests
  * - Payload: response wrapper with get/set
  */
-import { SPLITTER } from "./constants";
+import { SPLITTER } from "./common";
 import { assign, funcWithTry, noop, generateId, now } from "./utils";
 import { Cache } from "./cache";
 import { EventEmitter } from "./event-emitter";

@@ -1,8 +1,8 @@
 /**
  * LRU-like cache with frequency-based eviction.
  */
-import { SPLITTER } from "./constants";
-import { nextCounter } from "./constants";
+import { SPLITTER } from "./common";
+import { nextCounter } from "./common";
 import type { CacheEntry, CacheInterface, CacheOptions } from "./types";
 
 /** Sort comparator: higher frequency first, more recent access first */

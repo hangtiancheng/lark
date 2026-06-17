@@ -13,7 +13,7 @@ import {
   encodeSafe,
   encodeURIExtra,
   encodeQ,
-} from "./constants";
+} from "./common";
 import { parseUri } from "./utils";
 import type { DomRef, DomOp, DomElement, FrameInterface } from "./types";
 

@@ -13,7 +13,7 @@ export {
   VIEW_EVENT_METHOD_REGEXP,
   RouterEvents as ROUTER_EVENTS,
   nextCounter,
-} from "./constants";
+} from "./common";
 
 // Apply-style helper
 export { applyStyle } from "./apply-style";

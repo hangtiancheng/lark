@@ -7,7 +7,7 @@ import {
   URL_PARAM_REGEXP,
   IS_URL_PARAMS,
   isRefToken,
-} from "./constants";
+} from "./common";
 import type { AnyFunc, ParsedUri } from "./types";
 
 // ============================================================

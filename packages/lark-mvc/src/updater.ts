@@ -19,7 +19,7 @@ import {
   EMPTY_STRING_SET,
 } from "./utils";
 import { safeguard } from "./safeguard";
-import { SPLITTER, isRefToken, refFn } from "./constants";
+import { SPLITTER, isRefToken, refFn } from "./common";
 import { Frame } from "./frame";
 import {
   domGetNode,

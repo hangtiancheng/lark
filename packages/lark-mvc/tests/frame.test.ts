@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { Frame, registerViewClass } from "../src/frame";
 import { View } from "../src/view";
-import { LARK_VIEW } from "../src/constants";
+import { LARK_VIEW } from "../src/common";
 
 /**
  * Creates a Frame with associated DOM element for testing

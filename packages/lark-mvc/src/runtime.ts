@@ -18,7 +18,7 @@ import {
   encodeURIExtra,
   encodeQ,
   refFn,
-} from "./constants";
+} from "./common";
 
 /** Null-safe `String(value)` — `null`/`undefined` become `""`. */
 export const strSafe = encodeSafe;

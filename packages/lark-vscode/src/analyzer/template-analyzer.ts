@@ -1,4 +1,4 @@
-import { extractGlobalVars } from "./compiler.js";
+import { extractGlobalVars } from "./extract-global-vars.js";
 import { logError } from "../logger.js";
 
 export interface TemplateEventBinding {

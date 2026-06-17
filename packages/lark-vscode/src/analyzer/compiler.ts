@@ -30,9 +30,9 @@
  *   {{set a = b}}              → variable declaration
  */
 
-// ─── Compilation options ──────────────────────────────────────────────────
 import { parse as babelParse } from "@babel/parser";
 import type * as t from "@babel/types";
+// ─── Compilation options ──────────────────────────────────────────────────
 /** Options for compileTemplate() */
 export interface CompileOptions {
   /** Enable debug mode with line tracking (default: false) */
@@ -42,6 +42,7 @@ export interface CompileOptions {
   /** File path for debug error messages (default: undefined) */
   file?: string;
 }
+
 
 /**
  * SPLITTER character (U+001E). Kept local rather than importing from common.ts

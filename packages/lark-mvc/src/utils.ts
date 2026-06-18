@@ -11,6 +11,163 @@ import {
 import type { AnyFunc, ParsedUri } from "./types";
 
 // ============================================================
+// Task Scheduler (time-sliced execution)
+// ============================================================
+
+/**
+ * Lightweight task scheduler with cooperative time-slicing.
+ *
+ * Tasks are queued and processed in batches. Each batch runs for up to
+ * 9ms, then yields to the browser to let it process user input, paint,
+ * and handle other events before resuming.
+ *
+ * Uses `scheduler.yield()` when available (modern replacement for the
+ * deprecated `isInputPending()` API). Falls back to `setTimeout(0)`.
+ *
+ * Architecture:
+ * - Tasks are stored in a FIFO array
+ * - StartCall processes tasks in a tight loop
+ * - When time budget is exceeded, yields to the browser
+ * - Each task is wrapped in try-catch to prevent cascading failures
+ */
+
+/** Time budget per batch in milliseconds */
+const CALL_BREAK_TIME = 9;
+
+/** Pending task queue */
+const callQueue: Array<() => void> = [];
+
+/** Whether a batch is currently scheduled or running */
+let callScheduled = false;
+
+/** Detect scheduler.yield() — modern replacement for isInputPending() */
+
+// Why globalThis.scheduler.yield, not globalThis.scheduler.postTask?
+//
+// 1. Semantic fit — yield() pauses the current task and resumes it after the
+//    browser processes higher-priority work. Our scheduler runs a single
+//    long-running batch loop that needs to pause-and-resume, not schedule
+//    independent tasks. postTask() creates a new task; that would fragment
+//    our batch into multiple scheduler-managed tasks instead of one.
+//
+// 2. Queue semantics — we already manage our own FIFO queue (callQueue) with
+//    a 9ms time budget. postTask() adds a redundant priority queue layer
+//    (user-blocking / user-visible / background) that doesn't help — all
+//    queued tasks are equal priority, processed in insertion order.
+//
+// 3. Overhead — postTask() validates priority, creates internal task objects,
+//    and goes through the browser's task scheduling pipeline. yield() is a
+//    lightweight "let the browser breathe, then give me back control".
+//
+// 4. Continuity — after yield() resolves, execution continues in the same
+//    async function, keeping the deadline/loop local variables intact.
+//    With postTask(), we would need to re-enter the processing function
+//    and reconstruct the loop state on each continuation.
+//
+// In short: yield() = cooperative pause within a task (what we need);
+//           postTask() = schedule a new task (wrong abstraction for us).
+const schedulerYield: (() => Promise<void>) | undefined = (() => {
+  try {
+    // @ts-ignore
+    if (typeof globalThis?.scheduler?.yield === "function") {
+      // @ts-ignore
+      return globalThis.scheduler.yield.bind(globalThis.scheduler);
+    }
+  } catch {
+    // scheduler API not available
+  }
+  return undefined;
+})();
+
+/** Process queued tasks in time-sliced batches.
+ *
+ * Yield strategy for mid-batch pausing:
+ * 1. scheduler.yield() — modern Scheduler Priorities API (Chrome 115+)
+ *    Pauses the current batch and resumes after the browser handles
+ *    higher-priority work. Keeps loop state intact across the pause.
+ * 2. setTimeout(0) — universal fallback. Returns from startCall and
+ *    re-enters via scheduleNextChunk, processing the rest of the queue
+ *    in a new batch with a fresh CALL_BREAK_TIME budget.
+ *
+ * Inter-batch scheduling always uses setTimeout (see scheduleNextChunk).
+ */
+async function startCall(): Promise<void> {
+  callScheduled = false;
+  const startTime = performance.now();
+
+  while (callQueue.length > 0) {
+    const task = callQueue.shift()!;
+    try {
+      task();
+    } catch (e) {
+      // Task failed — log and continue with next task
+      // to prevent one bad task from blocking the queue.
+      console.error("scheduler task error:", e);
+    }
+
+    // Check if we should yield to the browser
+    if (callQueue.length > 0 && performance.now() - startTime > CALL_BREAK_TIME) {
+      if (schedulerYield) {
+        // Modern path: pause and resume in same async function
+        await schedulerYield();
+      } else {
+        // Fallback: schedule new batch and return
+        scheduleNextChunk();
+        return;
+      }
+    }
+  }
+}
+
+/**
+ * Schedule the next chunk for deferred execution.
+ *
+ * Uses setTimeout(0) rather than requestIdleCallback because scheduler
+ * tasks (DOM rendering, endUpdate, mountZone) are mandatory — they must
+ * run to complete the view lifecycle. requestIdleCallback is designed for
+ * opportunistic low-priority work; even with a timeout guard, the callback
+ * fires with timeRemaining()≈0 when the browser is busy, causing immediate
+ * yield and starvation (one task per callback, or zero tasks in degenerate
+ * cases).
+ *
+ * setTimeout(0) reliably yields to the browser and fires within ~4ms,
+ * giving a full CALL_BREAK_TIME budget for processing. Mid-batch yielding
+ * is still handled by scheduler.yield() in startCall() (tier 1 of the
+ * 3-tier strategy).
+ */
+function scheduleNextChunk(): void {
+  setTimeout(() => startCall(), 0);
+  callScheduled = true;
+}
+
+/**
+ * Schedule a task for deferred execution.
+ *
+ * Tasks are processed in FIFO order within time-sliced batches (9ms budget).
+ * When the budget is exceeded, the scheduler yields to the browser:
+ * 1. scheduler.yield() — pause-resume within the same batch (Chrome 115+)
+ * 2. setTimeout(0) — end batch, start a new one in the next event loop tick
+ *
+ * Use this to defer DOM operations and callbacks so that:
+ * 1. Multiple view updates within the same digest cycle are batched
+ * 2. The browser can process user input and paint between batches
+ * 3. Very large updates are split across frames to maintain responsiveness
+ *
+ * @param fn - The function to execute
+ * @param args - Arguments to pass to the function
+ */
+export function callFunction<T extends unknown[]>(
+  fn: (...args: T) => void,
+  args: T,
+): void {
+  callQueue.push(() => fn(...args));
+  if (!callScheduled) {
+    scheduleNextChunk();
+  }
+}
+
+
+// ============================================================
 // Type guards
 // ============================================================
 

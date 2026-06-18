@@ -72,13 +72,13 @@ describe("VDOM Engine", () => {
       });
       expect(node.compareKey).toBe("icon-a");
       expect(node.attrsMap?.[TAG_STATIC_KEY]).toBeUndefined();
-      expect(node.attrsMap?.class).toBe("glyphicon");
+      expect(node.attrsMap?.["class"]).toBe("glyphicon");
     });
 
     it("uses id as compareKey (keeps id in attrsMap)", () => {
       const node = vdomCreate("div", { id: "main" });
       expect(node.compareKey).toBe("main");
-      expect(node.attrsMap?.id).toBe("main");
+      expect(node.attrsMap?.["id"]).toBe("main");
     });
 
     it("serializes nested children into innerHTML", () => {
@@ -113,14 +113,14 @@ describe("VDOM Engine", () => {
         readonly: null,
         type: "text",
       });
-      expect(node.attrsMap?.disabled).toBeUndefined();
-      expect(node.attrsMap?.readonly).toBeUndefined();
-      expect(node.attrsMap?.type).toBe("text");
+      expect(node.attrsMap?.["disabled"]).toBeUndefined();
+      expect(node.attrsMap?.["readonly"]).toBeUndefined();
+      expect(node.attrsMap?.["type"]).toBe("text");
     });
 
     it("sets true boolean props to empty string", () => {
       const node = vdomCreate("input", { checked: true });
-      expect(node.attrsMap?.checked).toBe("");
+      expect(node.attrsMap?.["checked"]).toBe("");
     });
   });
 

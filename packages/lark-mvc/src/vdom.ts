@@ -22,7 +22,7 @@ import {
   LARK_VIEW,
   encodeHTML,
 } from "./common";
-import { parseUri, hasOwnProperty } from "./utils";
+import { parseUri, hasOwnProperty, callFunction } from "./utils";
 import { domUnmountFrames } from "./dom";
 import type { VDomNode, VDomRef, FrameInterface, ViewInterface } from "./types";
 
@@ -30,20 +30,9 @@ import type { VDomNode, VDomRef, FrameInterface, ViewInterface } from "./types";
 // Constants
 // ============================================================
 
-/** Attribute key for v-lark sub-views */
-const LARK_VIEW_ATTR = LARK_VIEW;
 
 /** Attribute key for view parameter trigger keys */
 const VIEW_PARAMS_KEY = "$";
-
-/** Attribute key for hash-based compare key */
-const HASH_KEY = "#";
-
-/** Empty object shared by all VNodes with no props */
-const EMPTY_OBJ: Record<string, unknown> = {};
-
-/** Empty string-keyed object for specials */
-const EMPTY_STR_OBJ: Record<string, string> = {};
 
 /** Special element properties synced as DOM properties (not attributes) */
 const DOM_SPECIALS: Record<string, string[]> = {
@@ -67,8 +56,8 @@ const DOM_SPECIALS: Record<string, string[]> = {
  */
 export function vdomCreate(
   tag: string | number,
-  props?: Record<string, unknown> | number | null,
-  children?: VDomNode[] | number | null,
+  props?: Record<string, unknown> | string | number | null,
+  children?: VDomNode[] | string | number | null,
   specials?: Record<string, string>,
 ): VDomNode {
   // ── Text / raw-HTML node ──
@@ -80,8 +69,8 @@ export function vdomCreate(
   }
 
   // ── Element node ──
-  const propsObj = (props || EMPTY_OBJ) as Record<string, unknown>;
-  const specialsObj = specials || EMPTY_STR_OBJ;
+  const propsObj = (props || {}) as Record<string, unknown>;
+  const specialsObj = specials || {};
   const unary = children === 1;
 
   let compareKey: string | undefined;
@@ -156,7 +145,7 @@ export function vdomCreate(
 
     // Compare key candidates: _, id, #
     if (
-      (prop === HASH_KEY || prop === "id" || prop === TAG_STATIC_KEY) &&
+      (prop === "#" || prop === "id" || prop === TAG_STATIC_KEY) &&
       !compareKey
     ) {
       compareKey = value as string;
@@ -167,7 +156,7 @@ export function vdomCreate(
     }
 
     // v-lark sub-view detection
-    if (prop === LARK_VIEW_ATTR && value) {
+    if (prop === LARK_VIEW && value) {
       const parsed = parseUri(value as string);
       isLarkView = parsed.path;
       if (!viewList) viewList = [];
@@ -313,12 +302,12 @@ export function vdomSetAttributes(
   lastVDom?: VDomNode,
 ): number {
   let changed = 0;
-  const nMap = newVDom.attrsMap || EMPTY_OBJ;
-  const nsMap = newVDom.attrsSpecials || EMPTY_STR_OBJ;
+  const nMap = newVDom.attrsMap || {};
+  const nsMap = newVDom.attrsSpecials || {};
 
   if (lastVDom) {
-    const oMap = lastVDom.attrsMap || EMPTY_OBJ;
-    const osMap = lastVDom.attrsSpecials || EMPTY_STR_OBJ;
+    const oMap = lastVDom.attrsMap || {};
+    const osMap = lastVDom.attrsSpecials || {};
 
     // Remove old attributes not in new
     for (const key in oMap) {
@@ -387,7 +376,7 @@ function vdomSyncFormState(realNode: ChildNode, newVDom: VDomNode): number {
   const specials = DOM_SPECIALS[realNode.nodeName];
   if (!specials) return 0;
 
-  const nMap = newVDom.attrsMap || EMPTY_OBJ;
+  const nMap = newVDom.attrsMap || {};
   let result = 0;
 
   for (const prop of specials) {
@@ -443,8 +432,8 @@ function vdomSetNode(
 
   // Element nodes
   if (lastTag === newTag) {
-    const lastAMap = lastVDom.attrsMap || EMPTY_OBJ;
-    const newAMap = newVDom.attrsMap || EMPTY_OBJ;
+    const lastAMap = lastVDom.attrsMap || {};
+    const newAMap = newVDom.attrsMap || {};
 
     // Static key short-circuit: if both have matching compareKey from _ (not id),
     // skip the entire subtree. The _ attribute is extracted as compareKey and
@@ -485,7 +474,7 @@ function vdomSetNode(
         if (mxvKeys) {
           const keyList = mxvKeys.split(",");
           for (const k of keyList) {
-            if (k === HASH_KEY || hasOwnProperty(keys, k)) {
+            if (k === "#" || hasOwnProperty(keys, k)) {
               updateChildren = true;
               break;
             }
@@ -545,6 +534,12 @@ export function vdomSetChildNodes(
   if (!lastVDom) {
     ref.changed = 1;
     realNode.innerHTML = newVDom.html;
+    return;
+  }
+
+  // Short-circuit when HTML is identical and no sub-views need assign.
+  // Avoids the full diff loop for no-op re-renders (data set but unchanged).
+  if (!newVDom.larkViewKeys && lastVDom.html === newVDom.html) {
     return;
   }
 
@@ -801,10 +796,8 @@ export function vdomSetChildNodes(
         realNode.innerHTML = nc.html;
         return;
       }
-      ref.asyncCount++;
       const newNode = vdomCreateNode(nc, realNode, ref);
       realNode.insertBefore(newNode, refNode);
-      ref.asyncCount--;
     }
   }
 
@@ -818,6 +811,16 @@ export function vdomSetChildNodes(
         realNode.removeChild(node);
       }
     }
+  }
+
+  // P2 #7: Defer the ready callback to the scheduler queue.
+  // DOM operations above are synchronous (fast), but the ready callback
+  // (which triggers endUpdate, nodeProps, and sub-view re-renders) is
+  // deferred so the browser can process events and paint between the
+  // DOM mutations and post-processing. This prevents long tasks from
+  // blocking user interaction during large updates.
+  if (ref.asyncCount === 0) {
+    callFunction(ready, []);
   }
 }
 

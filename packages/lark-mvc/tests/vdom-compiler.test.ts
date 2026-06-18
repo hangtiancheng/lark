@@ -190,10 +190,10 @@ describe("VDOM Compiler", () => {
       expect(root["tag"]).toBe("test-view");
     });
 
-    it("compiles element with static attributes", () => {
-      const root = compileAndRun(
+    it("compiles element with static attributes", async () => {
+      const root = (await compileAndRun(
         '<div class="container" id="main">content</div>',
-      ) as Record<string, unknown>;
+      )) as Record<string, unknown>;
       expect(root).toBeDefined();
     });
 
@@ -319,12 +319,12 @@ describe("VDOM Compiler", () => {
       expect(children.length).toBeGreaterThan(0);
     });
 
-    it("renders dynamic text from data", () => {
-      const root = compileAndRun(
+    it("renders dynamic text from data", async () => {
+      const root = await compileAndRun(
         "<p>{{=message}}</p>",
         { message: "Hello World" },
         ["message"],
-      ) as Record<string, unknown>;
+      );
       expect(root).toBeDefined();
     });
 

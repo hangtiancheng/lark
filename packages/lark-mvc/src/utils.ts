@@ -106,7 +106,10 @@ async function startCall(): Promise<void> {
     }
 
     // Check if we should yield to the browser
-    if (callQueue.length > 0 && performance.now() - startTime > CALL_BREAK_TIME) {
+    if (
+      callQueue.length > 0 &&
+      performance.now() - startTime > CALL_BREAK_TIME
+    ) {
       if (schedulerYield) {
         // Modern path: pause and resume in same async function
         await schedulerYield();
@@ -165,7 +168,6 @@ export function callFunction<T extends unknown[]>(
     scheduleNextChunk();
   }
 }
-
 
 // ============================================================
 // Type guards

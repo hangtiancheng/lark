@@ -292,8 +292,6 @@ export interface VDomNode {
   selfClose?: boolean;
   /** Sub-view path if this node hosts a v-lark view, otherwise falsy */
   isLarkView?: string | undefined;
-  /** Comma-separated param keys that trigger sub-view re-render */
-  larkViewKeys?: string | undefined;
 }
 
 /**

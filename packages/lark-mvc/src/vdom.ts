@@ -30,10 +30,6 @@ import type { VDomNode, VDomRef, FrameInterface, ViewInterface } from "./types";
 // Constants
 // ============================================================
 
-
-/** Attribute key for view parameter trigger keys */
-const VIEW_PARAMS_KEY = "$";
-
 /** Special element properties synced as DOM properties (not attributes) */
 const DOM_SPECIALS: Record<string, string[]> = {
   INPUT: ["value", "checked"],
@@ -79,7 +75,6 @@ export function vdomCreate(
   let reused: Record<string, number> | undefined;
   let reusedTotal = 0;
   let viewList: VDomNode["views"];
-  let larkViewKeys: string | undefined;
   let isLarkView: string | undefined;
   let attrs = `<${tag}`;
   let hasSpecials: Record<string, string> | undefined;
@@ -121,9 +116,6 @@ export function vdomCreate(
         if (!viewList) viewList = [];
         viewList.push(...c.views);
       }
-
-      // Propagate lark-view keys
-      larkViewKeys = larkViewKeys || c.larkViewKeys;
     }
   }
 
@@ -172,12 +164,6 @@ export function vdomCreate(
     }
 
     // View params key
-    if (prop === VIEW_PARAMS_KEY) {
-      larkViewKeys = value as string;
-      delete propsObj[prop];
-      continue;
-    }
-
     // textarea value: write as innerHTML, not as attribute
     if (prop === "value" && tag === "textarea") {
       innerHTML = String(value);
@@ -203,7 +189,6 @@ export function vdomCreate(
     views: viewList,
     selfClose: unary,
     isLarkView,
-    larkViewKeys,
   };
 }
 
@@ -467,19 +452,8 @@ function vdomSetNode(
       const oldViewPath = lastVDom.isLarkView || "";
 
       if (oldFrameId && newViewPath === oldViewPath) {
-        // Same view: check if params changed
+        // Same view: preserve existing sub-view
         updateChildren = false;
-        // Check if view needs re-render based on changed keys
-        const mxvKeys = newVDom.larkViewKeys;
-        if (mxvKeys) {
-          const keyList = mxvKeys.split(",");
-          for (const k of keyList) {
-            if (k === "#" || hasOwnProperty(keys, k)) {
-              updateChildren = true;
-              break;
-            }
-          }
-        }
       }
     }
 
@@ -537,9 +511,9 @@ export function vdomSetChildNodes(
     return;
   }
 
-  // Short-circuit when HTML is identical and no sub-views need assign.
+  // Short-circuit when HTML is identical.
   // Avoids the full diff loop for no-op re-renders (data set but unchanged).
-  if (!newVDom.larkViewKeys && lastVDom.html === newVDom.html) {
+  if (lastVDom.html === newVDom.html) {
     return;
   }
 

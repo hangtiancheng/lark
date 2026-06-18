@@ -57,6 +57,23 @@ export const TAG_NAME_REGEXP = /<([a-z][^/\0>\x20\t\r\n\f]+)/i;
 /** Async task break time (ms) */
 export const CALL_BREAK_TIME = 48;
 
+// ============================== VDOM ==============================
+
+/** VDOM text node tag value (number 0, falsy, distinct from string tags) */
+export const V_TEXT_NODE = 0;
+
+/** VDOM static-node identity key. When present in props, its value becomes
+ *  the compareKey and is deleted from the attrs map. */
+export const TAG_STATIC_KEY = "_";
+
+/** Namespace map for SVG/MathML element creation in VDOM mode */
+export const VDOM_NS_MAP: Record<string, string> = {
+  svg: SVG_NS,
+  math: MATH_NS,
+};
+
+// ============================== VDOM ==============================
+
 /** Increment global counter and return new value */
 export function nextCounter(): number {
   return ++globalCounter;

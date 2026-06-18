@@ -48,6 +48,13 @@ export { default as CrossSite, resetProjectsMap } from "./cross-site";
 // Updater (per-view data binding)
 export { Updater } from "./updater";
 
+// ============================== VDOM ==============================
+
+// VDOM engine
+export { vdomCreate, createVDomRef } from "./vdom";
+
+// ============================== VDOM ==============================
+
 // View (base view class with extend/merge) + typed factory
 export { View, defineView } from "./view";
 

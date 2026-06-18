@@ -250,6 +250,100 @@ export type DomOp =
   | [4, Element, ChildNode, ChildNode] // replaceChild(parent, newChild, oldChild)
   | [8, Element, ChildNode, ChildNode]; // insertBefore(parent, newChild, refChild)
 
+// ============================== VDOM ==============================
+
+// ============================================================
+// VDOM types
+// ============================================================
+
+/**
+ * Virtual DOM node. Produced by `vdomCreate`, consumed by the VDOM diff engine.
+ *
+ * Property semantics:
+ * - Text nodes: tag = 0 (V_TEXT_NODE), html = text content
+ * - Element nodes: tag = string, attrs = serialized opening tag, children = child VDomNodes
+ * - Raw HTML nodes: tag = SPLITTER (\x1e), html = raw HTML string
+ * - Self-closing: selfClose = true (children param was 1)
+ */
+export interface VDomNode {
+  /** Tag name for elements, 0 (V_TEXT_NODE) for text, SPLITTER for raw HTML */
+  tag: string | number;
+  /** Inner HTML (serialized children for elements, text content for text nodes) */
+  html: string;
+  /** Serialized opening tag with attributes, e.g. '<div class="row"' */
+  attrs?: string;
+  /** Attribute key-value map */
+  attrsMap?: Record<string, unknown>;
+  /** Attribute names that are set as DOM properties (not attributes) */
+  attrsSpecials?: Record<string, string>;
+  /** Original specials argument before defaulting (for change detection) */
+  hasSpecials?: Record<string, string> | undefined;
+  /** Child VDomNode array (undefined for text/raw/self-closing) */
+  children?: VDomNode[] | undefined;
+  /** Diff key: from id, _, #, or v-lark path */
+  compareKey?: string | undefined;
+  /** Keyed children count map (compareKey -> count) */
+  reused?: Record<string, number> | undefined;
+  /** Total count of keyed children */
+  reusedTotal?: number;
+  /** Sub-view references: [viewPath, owner, uri, params] tuples */
+  views?: [string, string, string, Record<string, string>][] | undefined;
+  /** Whether self-closing (children param was literal 1) */
+  selfClose?: boolean;
+  /** Sub-view path if this node hosts a v-lark view, otherwise falsy */
+  isLarkView?: string | undefined;
+  /** Comma-separated param keys that trigger sub-view re-render */
+  larkViewKeys?: string | undefined;
+}
+
+/**
+ * VDOM diff operation tracker. Parallel to DomRef but for the VDOM pipeline.
+ */
+export interface VDomRef {
+  /** View ID (for placeholder replacement) */
+  viewId: string;
+  /** Sub-views that need re-rendering after diff */
+  viewRenders: ViewInterface[];
+  /** Deferred DOM property assignments: [element, propName, value][] */
+  nodeProps: [Element, string, unknown][];
+  /** Pending async operation count */
+  asyncCount: number;
+  /** Whether the DOM actually changed */
+  changed: number;
+  /** DOM mutation operations (same format as DomOp) */
+  domOps: DomOp[];
+}
+
+/** VDOM node creation function signature (vdomCreate) */
+export type VDomCreateFn = (
+  tag: string | number,
+  props?: Record<string, unknown> | number | null,
+  children?: VDomNode[] | number | null,
+  specials?: Record<string, string>,
+) => VDomNode;
+
+/**
+ * VDOM template function signature.
+ * The compiled template calls vdomCreate to build a VNode tree.
+ * Deferred to next milestone — defined here for type completeness.
+ */
+export type VDomTemplate = (
+  data: unknown,
+  create: VDomCreateFn,
+  viewId: string,
+  encUri: (v: unknown) => string,
+  refData: unknown,
+  refFn: (
+    ref: Record<string, unknown>,
+    value: unknown,
+    key: string,
+  ) => string,
+  encQuote: (v: unknown) => string,
+  isArray: (v: unknown) => v is unknown[],
+) => VDomNode;
+
+// ============================== VDOM ==============================
+
 // ============================================================
 // Frame internal types (replaces as-unknown-as-Record cheats)
 // ============================================================
@@ -497,6 +591,8 @@ export interface ViewInterface extends EventEmitterInterface<ViewInterface> {
   globalEventList: ViewGlobalEventEntry[];
   /** Whether endUpdate has been called (1 = pending) */
   endUpdatePending?: number;
+  /** Last rendered VDOM tree (only used when virtualDom is enabled) */
+  vdom?: VDomNode;
   /** Render method (wrapped) */
   render(): void;
   /**
@@ -1307,7 +1403,7 @@ export interface FrameworkConfig {
    */
   crossConfigs?: CrossSiteConfig[];
   /** Default false. */
-  virtualDOM?: boolean;
+  virtualDom?: boolean;
   /** Dynamic config access, custom config items */
   [key: string]: unknown;
 }
@@ -1377,4 +1473,6 @@ export interface CompileOptions {
   globalVars?: string[];
   /** File path for debug error messages (default: undefined) */
   file?: string;
+  /** Generate VDOM output instead of HTML string (default: false) */
+  virtualDom?: boolean;
 }

@@ -44,7 +44,7 @@ async function getParser(): Promise<ParseSyncFn | null> {
       parseSyncFn = swc.parseSync;
     } catch (err) {
       // SWC native binding not available — extractGlobalVars will fall back to regex
-      console.error("Failed to load @swc/core", err);
+      console.error("failed to load @swc/core", err);
     }
   }
   return parseSyncFn;

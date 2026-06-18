@@ -241,7 +241,7 @@ export function convertArtSyntax(source: string, debug: boolean): string {
     const unclosed = blockStack
       .map((b) => `"${b.ctrl}" at line ${b.line}`)
       .join(", ");
-    throw new Error(`[@lark.js/mvc error] unclosed block(s): ${unclosed}`);
+    throw new Error(`Unclosed block(s): ${unclosed}`);
   }
 
   return result.join("");
@@ -391,7 +391,7 @@ function convertArtExpression(
       // {{forOf list as item}} is valid; {{forOf list item}} is NOT
       if (tokens.length > 1 && tokens[1] !== "as") {
         throw new Error(
-          `[@lark.js/mvc error] bad forOf syntax: {{${code}}}. ` +
+          `Bad forOf syntax: {{${code}}}. ` +
             `Expected "as" keyword, got "${tokens[1]}". ` +
             `Usage: {{forOf list as item [index]}}`,
         );
@@ -435,7 +435,7 @@ function convertArtExpression(
       // Validate "as" keyword
       if (tokens.length > 1 && tokens[1] !== "as") {
         throw new Error(
-          `[@lark.js/mvc error] bad forIn syntax: {{${code}}}. ` +
+          `Bad forIn syntax: {{${code}}}. ` +
             `Expected "as" keyword, got "${tokens[1]}". ` +
             `Usage: {{forIn obj as val [key]}}`,
         );
@@ -472,13 +472,11 @@ function convertArtExpression(
       const expectedCtrl = keyword.substring(1); // "/if" → "if"
       const last = blockStack.pop();
       if (!last) {
-        throw new Error(
-          `[@lark.js/mvc error] unexpected {{${code}}}: no matching open block`,
-        );
+        throw new Error(`Unexpected {{${code}}}: no matching open block`);
       }
       if (last.ctrl !== expectedCtrl) {
         throw new Error(
-          `[@lark.js/mvc error] unexpected {{${code}}}: expected {{/${last.ctrl}}} to close block opened at line ${last.line}`,
+          `Unexpected {{${code}}}: expected {{/${last.ctrl}}} to close block opened at line ${last.line}`,
         );
       }
       return `${debugPrefix}<%}%>`;

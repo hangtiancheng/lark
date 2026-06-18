@@ -24,9 +24,9 @@ import {
   isRefToken,
   refFn,
   encodeHTML,
-  encodeSafe,
+  strSafe,
   encodeURIExtra,
-  encodeQ,
+  encodeQuote,
 } from "./common";
 import { config } from "./module-loader";
 import { Frame } from "./frame";
@@ -37,11 +37,7 @@ import {
   applyIdUpdates,
   createDomRef,
 } from "./dom";
-import {
-  vdomCreate,
-  vdomSetChildNodes,
-  createVDomRef,
-} from "./vdom";
+import { vdomCreate, vdomSetChildNodes, createVDomRef } from "./vdom";
 import type { UpdaterInterface, VDomNode, VDomTemplate } from "./types";
 
 // ============================================================
@@ -194,7 +190,7 @@ export class Updater implements UpdaterInterface {
             encodeURIExtra,
             this.refData,
             refFn,
-            encodeQ,
+            encodeQuote,
             Array.isArray,
           );
 
@@ -240,10 +236,10 @@ export class Updater implements UpdaterInterface {
             this.viewId,
             this.refData,
             encodeHTML,
-            encodeSafe,
+            strSafe,
             encodeURIExtra,
             refFn,
-            encodeQ,
+            encodeQuote,
           );
 
           // Parse new DOM from HTML

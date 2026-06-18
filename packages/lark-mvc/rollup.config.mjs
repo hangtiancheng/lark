@@ -17,30 +17,33 @@ const peerDeps = Object.keys(
 
 // Entries where @babel/parser and @babel/types are bundled (not external),
 // matching tsup's `noExternal: ["@babel/parser", "@babel/types"]`.
-const /** @type{({ name: string, babelNoExternal: boolean }[])} */ entries = [
-  { name: "index", babelNoExternal: false },
-  { name: "vite", babelNoExternal: true },
-  { name: "webpack", babelNoExternal: true },
-  { name: "runtime", babelNoExternal: false },
-  { name: "compiler", babelNoExternal: true },
-  { name: "devtool", babelNoExternal: false },
+const /** @type{({ name: string, external: boolean }[])} */ entries = [
+  { name: "index", external: true },
+  { name: "compiler", external: false },
+  { name: "webpack", external: false },
+  { name: "rspack", external: false },
+  { name: "vite", external: false },
+  { name: "runtime", external: true },
+  { name: "devtool", external: true },
 ];
 
 /** Externalize deps/peerDeps except @babel packages when the entry bundles them. */
 
 /**
  *
- * @param {boolean} bundleBabel
+ * @param {boolean} external
  * @returns
  */
-const makeExternal = (bundleBabel) => (/** @type {string} */ id) => {
+const makeExternal = (external) => (/** @type {string} */ id) => {
   if (id.startsWith("node:") || id.startsWith(".")) return false;
   if (
-    bundleBabel &&
+    !external &&
     (id === "@babel/parser" ||
       id === "@babel/types" ||
+      id === "@swc/core" ||
       id.startsWith("@babel/parser/") ||
-      id.startsWith("@babel/types/"))
+      id.startsWith("@babel/types/")) ||
+    id.startsWith("@swc/core")
   ) {
     return false;
   }
@@ -57,13 +60,13 @@ const outputConfigs = [
 
 // --- JS bundles (ESM + CJS, no sourcemap, matching tsup) ---
 const /** @type {import("rollup").OutputOptions[]} */ jsConfigs = entries.map(
-  ({ name, babelNoExternal }) => ({
+  ({ name, external }) => ({
     input: `src/${name}.ts`,
     output: outputConfigs.map((o) => ({
       ...o,
       file: o.file.replace("[name]", name),
     })),
-    external: makeExternal(babelNoExternal),
+    external: makeExternal(external),
     plugins: [
       resolve(),
       commonjs(),

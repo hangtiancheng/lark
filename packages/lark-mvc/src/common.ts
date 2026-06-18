@@ -95,7 +95,7 @@ const HTML_ENT_MAP: Record<string, string> = {
 const HTML_ENT_REGEXP = /[&<>"'`]/g;
 
 /** Null-safe String conversion */
-export function encodeSafe(v: unknown): string {
+export function strSafe(v: unknown): string {
   return String(v == null ? "" : v);
 }
 
@@ -119,7 +119,7 @@ const URI_ENT_REGEXP = /[!')(*]/g;
 
 /** URI-encode with extra character encoding */
 export function encodeURIExtra(v: unknown): string {
-  return encodeURIComponent(encodeSafe(v)).replace(
+  return encodeURIComponent(strSafe(v)).replace(
     URI_ENT_REGEXP,
     (m: string) => URI_ENT_MAP[m],
   );
@@ -128,8 +128,8 @@ export function encodeURIExtra(v: unknown): string {
 const QUOTE_ENT_REGEXP = /['"\\]/g;
 
 /** Quote-encode for attribute values */
-export function encodeQ(v: unknown): string {
-  return encodeSafe(v).replace(QUOTE_ENT_REGEXP, "\\$&");
+export function encodeQuote(v: unknown): string {
+  return strSafe(v).replace(QUOTE_ENT_REGEXP, "\\$&");
 }
 
 /**

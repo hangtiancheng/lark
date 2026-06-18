@@ -1,26 +1,49 @@
 /**
- * @lark.js/mvc Webpack Loader for Template Compilation
+ * @lark.js/mvc Webpack Integration for Template Compilation
  *
- * Compiles .html template files using @lark.js/mvc template syntax
- * into JS function modules at build time.
+ * Provides two integration modes:
  *
- * 0 configuration — just add the loader rule for .html files.
+ * 1. **Loader** (larkMvcLoader) — Direct file transformation
+ *    - Transforms .html files into JS function modules
+ *    - Requires manual webpack.config.mjs setup
+ *
+ * 2. **Plugin** (LarkMvcPlugin) — Auto-registers the loader
+ *    - Automatically configures the loader rule for .html files
+ *    - Zero-config: just add the plugin to your webpack config
+ *    - Recommended approach for most use cases
+ *
+ * Features:
  * - All template operators: = (escape), ! (raw), @ (ref lookup), : (binding)
  * - @event attribute processing with $g prefix
- * - $eu (URI encoding), $eq (quote encoding), $i (reference lookup)
+ * - $encUri (URI encoding), $encQuote (quote encoding), $refFn (reference lookup)
  * - Debug mode with line tracking
  * - View ID injection
- * - Auto variable extraction via AST analysis
+ * - Auto variable extraction via AST analysis (Babel or SWC)
+ * - Virtual DOM support (optional)
  *
- * Usage in webpack.config.mjs:
+ * Usage with Plugin (recommended):
  * ```js
- * import { resolve } from 'path';
+ * import { LarkMvcPlugin } from '@lark.js/mvc/webpack';
  *
+ * export default {
+ *   plugins: [
+ *     new LarkMvcPlugin({
+ *       debug: process.env.NODE_ENV !== 'production',
+ *       virtualDom: false,
+ *       useSwc: false,
+ *     }),
+ *   ],
+ * };
+ * ```
+ *
+ * Usage with Loader (manual):
+ * ```js
  * export default {
  *   module: {
  *     rules: [{
  *       test: /\.html$/,
- *       loader: resolve(__dirname, 'node_modules/@lark.js/mvc/webpack'),
+ *       loader: '@lark.js/mvc/webpack',
+ *       options: { debug: false, virtualDom: false, useSwc: false },
  *     }],
  *   },
  * };
@@ -38,18 +61,30 @@ interface LoaderContext {
   getOptions: () => { debug?: boolean; virtualDom?: boolean; useSwc?: boolean };
 }
 
+/** Plugin options */
+interface LarkMvcPluginOptions {
+  /** Enable debug mode with line tracking (default: false) */
+  debug?: boolean;
+  /** Enable virtual DOM output (default: false) */
+  virtualDom?: boolean;
+  /** Use SWC instead of Babel for AST analysis (default: false) */
+  useSwc?: boolean;
+  /** File extension to match (default: /\.html$/) */
+  test?: RegExp;
+  /** Exclude pattern (default: /node_modules/) */
+  exclude?: RegExp;
+}
+
 /**
  * Webpack loader entry point.
  * Compiles .html template files into JS function modules.
  */
-export async function larkMvcLoader(
+async function larkMvcLoader(
   this: LoaderContext,
   source: string,
 ): Promise<void> {
   const options = this.getOptions();
-  const debug = options.debug ?? false;
-  const virtualDom = options.virtualDom ?? false;
-  const useSwc = options.useSwc ?? false;
+  const { debug = false, virtualDom = false, useSwc = false } = options;
 
   try {
     // Auto-extract variables from template for 0-config experience
@@ -66,4 +101,73 @@ export async function larkMvcLoader(
   }
 }
 
-export default larkMvcLoader;
+/**
+ * Webpack plugin that auto-registers the lark-mvc loader.
+ *
+ * This is the recommended integration approach. The plugin:
+ * 1. Automatically adds a loader rule for .html files
+ * 2. Passes through all configuration options
+ * 3. Handles edge cases (e.g., excluding node_modules)
+ *
+ * Usage:
+ * ```js
+ * import { LarkMvcPlugin } from '@lark.js/mvc/webpack';
+ *
+ * export default {
+ *   plugins: [
+ *     new LarkMvcPlugin({
+ *       debug: true,
+ *       virtualDom: false,
+ *       useSwc: false,
+ *     }),
+ *   ],
+ * };
+ * ```
+ */
+class LarkMvcPlugin {
+  private options: LarkMvcPluginOptions;
+
+  constructor(options: LarkMvcPluginOptions = {}) {
+    this.options = {
+      debug: false,
+      virtualDom: false,
+      useSwc: false,
+      test: /\.html$/,
+      exclude: /node_modules/,
+      ...options,
+    };
+  }
+
+  /**
+   * Webpack plugin entry point.
+   * Called by webpack when the plugin is applied.
+   */
+  apply(compiler: any): void {
+    const { debug, virtualDom, useSwc, test, exclude } = this.options;
+
+    // Resolve the loader path (this file)
+    // In production builds, this will be the compiled webpack.js
+    const loaderPath = __filename;
+
+    // Push the loader rule into webpack's module.rules
+    compiler.options.module = compiler.options.module || {};
+    compiler.options.module.rules = compiler.options.module.rules || [];
+
+    compiler.options.module.rules.push({
+      test,
+      exclude,
+      use: [
+        {
+          loader: loaderPath,
+          options: {
+            debug,
+            virtualDom,
+            useSwc,
+          },
+        },
+      ],
+    });
+  }
+}
+
+export { larkMvcLoader, LarkMvcPlugin };

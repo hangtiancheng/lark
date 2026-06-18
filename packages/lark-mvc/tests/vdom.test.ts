@@ -9,7 +9,12 @@ import {
   applyDomOps,
   applyIdUpdates,
 } from "../src/dom";
-import { encodeHTML, encodeSafe, encodeURIExtra, encodeQ } from "../src/common";
+import {
+  encodeHTML,
+  strSafe,
+  encodeURIExtra,
+  encodeQuote,
+} from "../src/common";
 import { Frame } from "../src/frame";
 import type { FrameInterface } from "../src/types";
 
@@ -200,9 +205,9 @@ describe("DOM", () => {
     });
 
     it("encodeSafe stringifies null / undefined to ''", () => {
-      expect(encodeSafe(null)).toBe("");
-      expect(encodeSafe(undefined)).toBe("");
-      expect(encodeSafe(42)).toBe("42");
+      expect(strSafe(null)).toBe("");
+      expect(strSafe(undefined)).toBe("");
+      expect(strSafe(42)).toBe("42");
     });
 
     it("encodeURIExtra percent-encodes !', ()*", () => {
@@ -210,7 +215,7 @@ describe("DOM", () => {
     });
 
     it("encodeQ escapes quotes and backslashes", () => {
-      expect(encodeQ(`a"b'c\\d`)).toBe(`a\\"b\\'c\\\\d`);
+      expect(encodeQuote(`a"b'c\\d`)).toBe(`a\\"b\\'c\\\\d`);
     });
   });
 });

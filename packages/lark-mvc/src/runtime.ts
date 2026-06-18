@@ -13,15 +13,15 @@
  */
 
 import {
-  encodeSafe,
+  strSafe as commonStrSafe,
   encodeHTML,
   encodeURIExtra,
-  encodeQ,
+  encodeQuote,
   refFn,
 } from "./common";
 
 /** Null-safe `String(value)` — `null`/`undefined` become `""`. */
-export const strSafe = encodeSafe;
+export const strSafe = commonStrSafe;
 
 /** HTML-escape a value for safe embedding in markup. */
 export const encHtml = encodeHTML;
@@ -30,7 +30,7 @@ export const encHtml = encodeHTML;
 export const encUri = encodeURIExtra;
 
 /** Backslash-escape quotes and backslashes for attribute string contents. */
-export const encQuote = encodeQ;
+export const encQuote = encodeQuote;
 
 /**
  * Look up (or assign) a stable refData token for an object value.

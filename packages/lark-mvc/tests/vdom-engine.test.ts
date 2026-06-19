@@ -6,7 +6,7 @@ import {
   vdomSetAttributes,
   createVDomRef,
 } from "../src/vdom";
-import { V_TEXT_NODE, TAG_STATIC_KEY, SPLITTER } from "../src/common";
+import { V_TEXT_NODE, SPLITTER } from "../src/common";
 import { Frame } from "../src/frame";
 import type { VDomNode, FrameInterface } from "../src/types";
 
@@ -63,16 +63,6 @@ describe("VDOM Engine", () => {
       expect(node.tag).toBe("br");
       expect(node.selfClose).toBe(true);
       expect(node.children).toBeUndefined();
-    });
-
-    it("extracts static key (_) as compareKey and removes from props", () => {
-      const node = vdomCreate("span", {
-        [TAG_STATIC_KEY]: "icon-a",
-        class: "glyphicon",
-      });
-      expect(node.compareKey).toBe("icon-a");
-      expect(node.attrsMap?.[TAG_STATIC_KEY]).toBeUndefined();
-      expect(node.attrsMap?.["class"]).toBe("glyphicon");
     });
 
     it("uses id as compareKey (keeps id in attrsMap)", () => {
@@ -391,45 +381,6 @@ describe("VDOM Engine", () => {
       expect(ref.changed).toBe(1);
       expect(el.querySelector("span")?.textContent).toBe("new");
       cleanup("vdom-test-6");
-    });
-
-    it("static key short-circuit: skips subtree with matching _ key", () => {
-      const ref = createVDomRef("test");
-      const el = document.createElement("div");
-      el.innerHTML = '<span class="icon">x</span>';
-      const spanNode = el.children[0];
-      const frame = makeFrame("vdom-test-7");
-      const view = { rendered: true, endUpdate: () => {} } as any;
-
-      const oldVDom = vdomCreate("div", null, [
-        vdomCreate("span", {
-          [TAG_STATIC_KEY]: "icon",
-          class: "icon",
-        }),
-      ]);
-      const newVDom = vdomCreate("div", null, [
-        vdomCreate("span", {
-          [TAG_STATIC_KEY]: "icon",
-          class: "icon-updated",
-        }),
-      ]);
-
-      vdomSetChildNodes(
-        el,
-        oldVDom,
-        newVDom,
-        ref,
-        frame,
-        new Set(),
-        view,
-        () => {},
-      );
-
-      // Node should be preserved without attribute update
-      expect(el.children[0]).toBe(spanNode);
-      // class should NOT have been updated (static key short-circuits)
-      expect(el.children[0].getAttribute("class")).toBe("icon");
-      cleanup("vdom-test-7");
     });
 
     it("replaces node on tag mismatch", () => {

@@ -17,7 +17,6 @@
 import {
   SPLITTER,
   V_TEXT_NODE,
-  TAG_STATIC_KEY,
   VDOM_NS_MAP,
   LARK_VIEW,
   encodeHTML,
@@ -135,9 +134,9 @@ export function vdomCreate(
       propsObj[prop] = value = specialsObj[prop] ? value : "";
     }
 
-    // Compare key candidates: _, id, #
+    // Compare key candidates: #, id
     if (
-      (prop === "#" || prop === "id" || prop === TAG_STATIC_KEY) &&
+      (prop === "#" || prop === "id") &&
       !compareKey
     ) {
       compareKey = value as string;
@@ -390,21 +389,6 @@ function vdomSetNode(
 
   // Element nodes
   if (lastTag === newTag) {
-    const lastAMap = lastVDom.attrsMap || {};
-    const newAMap = newVDom.attrsMap || {};
-
-    // Static key short-circuit: if both have matching compareKey from _ (not id),
-    // skip the entire subtree. The _ attribute is extracted as compareKey and
-    // deleted from attrsMap during vdomCreate, so we check compareKey directly.
-    if (
-      lastVDom.compareKey &&
-      lastVDom.compareKey === newVDom.compareKey &&
-      !lastAMap["id"] &&
-      !newAMap["id"]
-    ) {
-      return;
-    }
-
     // Attribute diff
     let attrChanged = 0;
     if (lastVDom.attrs !== newVDom.attrs || newVDom.hasSpecials) {
@@ -454,6 +438,60 @@ function vdomSetNode(
     domUnmountFrames(frame, realNode);
     oldParent.replaceChild(vdomCreateNode(newVDom, oldParent, ref), realNode);
   }
+}
+
+// ============================================================
+// computeLIS — Longest Increasing Subsequence
+// ============================================================
+
+/**
+ * Compute the Longest Increasing Subsequence (LIS) of non-negative values.
+ *
+ * Uses patience sorting with binary search for O(n log n) performance.
+ * Returns indices (into the input array) that form the LIS.
+ * Entries with value < 0 (sentinel for "unmatched") are skipped.
+ *
+ * Example: sequence = [2, -1, 0, 3] → LIS values = [2, 3], returns [0, 3]
+ *
+ * Used in Phase 3 of the diff to minimize DOM move operations:
+ * nodes at LIS positions stay in place; all others are moved via insertBefore.
+ */
+function computeLIS(sequence: number[]): number[] {
+  const len = sequence.length;
+  if (len === 0) return [];
+
+  const result: number[] = [];
+  const tails: number[] = []; // tails[i] = index in sequence with smallest tail value for LIS of length i+1
+  const predecessors: number[] = new Array(len);
+  let lisLength = 0;
+
+  for (let i = 0; i < len; i++) {
+    const value = sequence[i];
+    if (value < 0) continue; // skip unmatched entries
+
+    // Binary search: find leftmost tail with value >= current value
+    let lo = 0;
+    let hi = lisLength;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (sequence[tails[mid]] < value) lo = mid + 1;
+      else hi = mid;
+    }
+
+    tails[lo] = i;
+    predecessors[i] = lo > 0 ? tails[lo - 1] : -1;
+
+    if (lo === lisLength) lisLength++;
+  }
+
+  // Backtrack to reconstruct the LIS indices
+  let cursor = tails[lisLength - 1];
+  for (let i = lisLength - 1; i >= 0; i--) {
+    result[i] = cursor;
+    cursor = predecessors[cursor];
+  }
+
+  return result;
 }
 
 // ============================================================
@@ -576,8 +614,9 @@ export function vdomSetChildNodes(
     return;
   }
 
-  // ── Build keyMap from remaining old children ──
-  // Maps compareKey → { domNode, vdomNode } for keyed lookup.
+  // ── Phase 3: Build keyMap from remaining old children ──
+  // Maps compareKey → [{ domNode, vdomNode }] for keyed lookup.
+  // Duplicate keys are stored as arrays to support repeated keys.
   const keyMap: Record<
     string,
     Array<{ domNode: ChildNode; vdomNode: VDomNode }>
@@ -590,32 +629,91 @@ export function vdomSetChildNodes(
     }
   }
 
-  // Insertion point: where the next node should be placed.
-  // After Phase 1, oldDomNodes[headIdx] is the first unmatched old DOM node.
-  let insertRef: ChildNode | null =
-    headIdx <= tailIdx ? oldDomNodes[headIdx] : null;
+  // ── Build sequence[]: for each remaining new child, the old index (or -1) ──
+  // sequence[j - newHead] = index in oldChildren of the matching old node.
+  // -1 means no matching old node (must create new).
+  const newRemaining = newTail - newHead + 1;
+  const sequence: number[] = new Array(newRemaining);
 
-  // ── Phase 3: Process remaining children via keyMap ──
-  for (let i = newHead; i <= newTail; i++) {
-    const nc = newChildren![i];
+  for (let i = 0; i < newRemaining; i++) {
+    const nc = newChildren![newHead + i];
     const cKey = nc.compareKey;
-
-    if (cKey && keyMap[cKey]?.length) {
-      // Keyed: reuse old DOM node, move to correct position
-      const entry = keyMap[cKey].shift()!;
-      if (keyMap[cKey].length === 0) delete keyMap[cKey];
-
+    const entries = cKey ? keyMap[cKey] : undefined;
+    if (entries && entries.length > 0) {
+      const entry = entries.shift()!;
+      if (entries.length === 0) delete keyMap[cKey!];
+      // Map the old child's index within the remaining range [headIdx, tailIdx]
+      const oldIdx = oldChildren!.indexOf(entry.vdomNode, headIdx);
+      sequence[i] = oldIdx >= 0 ? oldIdx : -1;
       usedOldDomNodes.add(entry.domNode);
+    } else {
+      sequence[i] = -1;
+    }
+  }
 
-      if (entry.domNode !== insertRef) {
+  // ── Short-circuit: all new children matched, only old nodes remain ──
+  // Unmount remaining old DOM nodes and return.
+  if (newHead > newTail) {
+    for (let i = 0; i < oldLen; i++) {
+      const domNode = oldDomNodes[i];
+      if (
+        domNode &&
+        !usedOldDomNodes.has(domNode) &&
+        domNode.parentNode === realNode
+      ) {
+        domUnmountFrames(frame, domNode);
         ref.changed = 1;
-        realNode.insertBefore(entry.domNode, insertRef);
+        realNode.removeChild(domNode);
       }
+    }
+    if (ref.asyncCount === 0) callFunction(ready, []);
+    return;
+  }
 
+  // ── Short-circuit: all old children consumed, only new nodes remain ──
+  // Insert all remaining new nodes before the tail anchor.
+  if (headIdx > tailIdx) {
+    const insertRef: ChildNode | null =
+      tailIdx < oldLen ? oldDomNodes[tailIdx + 1] ?? null : null;
+    for (let i = newHead; i <= newTail; i++) {
+      ref.changed = 1;
+      const newNode = vdomCreateNode(newChildren![i], realNode, ref);
+      realNode.insertBefore(newNode, insertRef);
+    }
+    if (ref.asyncCount === 0) callFunction(ready, []);
+    return;
+  }
+
+  // ── LIS-based reconciliation ──
+  // Compute LIS of old indices in sequence[]. Nodes at LIS positions stay
+  // in place (their relative order in the DOM already matches the new order).
+  // All other matched nodes are moved; unmatched nodes (sequence[i] === -1)
+  // are created fresh.
+  //
+  // This minimizes DOM move operations: if LIS length is L and there are N
+  // remaining new children, at most N - L moves are needed.
+  const lis = computeLIS(sequence);
+  let lisCursor = lis.length - 1;
+
+  // Iterate backward through remaining new children.
+  // `nextNode` is always the correct insertion anchor: the DOM node that
+  // should come immediately after the current position. By iterating
+  // right-to-left, each processed node becomes the anchor for the next.
+  let nextNode: ChildNode | null =
+    tailIdx + 1 < oldLen ? oldDomNodes[tailIdx + 1] : null;
+
+  for (let j = newRemaining - 1; j >= 0; j--) {
+    const newIdx = newHead + j;
+    const nc = newChildren![newIdx];
+
+    if (lisCursor >= 0 && lis[lisCursor] === j) {
+      // Node at this position is in the LIS — already in correct relative
+      // order. Update in place without DOM move.
+      const oldIdx = sequence[j];
       vdomSetNode(
-        entry.domNode,
+        oldDomNodes[oldIdx],
         realNode,
-        entry.vdomNode,
+        oldChildren![oldIdx],
         nc,
         ref,
         frame,
@@ -623,42 +721,31 @@ export function vdomSetChildNodes(
         view,
         ready,
       );
-
-      // Advance insertRef past the just-placed node
-      insertRef = entry.domNode.nextSibling as ChildNode | null;
-    } else if (!cKey) {
-      // Non-keyed: try in-place update or create new
-      if (
-        insertRef &&
-        (insertRef as Element).nodeType === 1 &&
-        (insertRef as Element).tagName ===
-          (typeof nc.tag === "string" ? nc.tag.toUpperCase() : "")
-      ) {
-        // Same tag: update in place
-        vdomSetNode(
-          insertRef,
-          realNode,
-          oldChildren![headIdx] || nc,
-          nc,
-          ref,
-          frame,
-          keys,
-          view,
-          ready,
-        );
-        usedOldDomNodes.add(insertRef);
-        insertRef = insertRef.nextSibling as ChildNode | null;
-      } else {
-        // Tag mismatch or no old node: create new
-        ref.changed = 1;
-        const newNode = vdomCreateNode(nc, realNode, ref);
-        realNode.insertBefore(newNode, insertRef);
-      }
+      nextNode = oldDomNodes[oldIdx];
+      lisCursor--;
+    } else if (sequence[j] >= 0) {
+      // Matched old node not in LIS — move to correct position.
+      const oldIdx = sequence[j];
+      ref.changed = 1;
+      realNode.insertBefore(oldDomNodes[oldIdx], nextNode);
+      vdomSetNode(
+        oldDomNodes[oldIdx],
+        realNode,
+        oldChildren![oldIdx],
+        nc,
+        ref,
+        frame,
+        keys,
+        view,
+        ready,
+      );
+      nextNode = oldDomNodes[oldIdx];
     } else {
-      // New keyed node not in old children: create new
+      // New node with no matching old node — create and insert.
       ref.changed = 1;
       const newNode = vdomCreateNode(nc, realNode, ref);
-      realNode.insertBefore(newNode, insertRef);
+      realNode.insertBefore(newNode, nextNode);
+      nextNode = newNode;
     }
   }
 

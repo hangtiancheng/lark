@@ -280,7 +280,7 @@ export interface VDomNode {
   hasSpecials?: Record<string, string> | undefined;
   /** Child VDomNode array (undefined for text/raw/self-closing) */
   children?: VDomNode[] | undefined;
-  /** Diff key: from id, _, #, or v-lark path */
+  /** Diff key: from id, #, or v-lark path */
   compareKey?: string | undefined;
   /** Keyed children count map (compareKey -> count) */
   reused?: Record<string, number> | undefined;

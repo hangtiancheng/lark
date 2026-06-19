@@ -15,6 +15,8 @@ import { EventEmitter } from "./event-emitter";
 import { EventDelegator } from "./event-delegator";
 import { Updater } from "./updater";
 import { Router } from "./router";
+import { acceptView, disposeView } from "./hmr";
+import type { HotContext } from "./hmr";
 import type {
   AnyFunc,
   ViewInterface,
@@ -838,6 +840,49 @@ export class View implements ViewInterface {
     const existingCtors = this.makes || [];
     View.mergeMixins(mixins, this, existingCtors);
     return this;
+  }
+
+  // ============================================================
+  // HMR support (static accept / dispose)
+  // ============================================================
+
+  /**
+   * Set up HMR accept handler for this view module.
+   *
+   * When the module is hot-replaced, the new View class is extracted from
+   * the new module, registered in the view registry, and all currently
+   * mounted frames using this viewPath are re-mounted.
+   *
+   * No-op when `hot` is undefined (production / non-HMR environment).
+   *
+   * ```ts
+   * if (import.meta.hot) {
+   *   HomeView.accept(import.meta.hot, 'home');
+   * }
+   * ```
+   */
+  static accept(hot: HotContext | undefined, viewPath: string): void {
+    if (!hot) return;
+    acceptView(hot, viewPath);
+  }
+
+  /**
+   * Set up HMR dispose handler for this view module.
+   *
+   * When the module is about to be replaced, the old View class is removed
+   * from the registry so subsequent lookups don't return the stale class.
+   *
+   * No-op when `hot` is undefined (production / non-HMR environment).
+   *
+   * ```ts
+   * if (import.meta.hot) {
+   *   HomeView.dispose(import.meta.hot, 'home');
+   * }
+   * ```
+   */
+  static dispose(hot: HotContext | undefined, viewPath: string): void {
+    if (!hot) return;
+    disposeView(hot, viewPath);
   }
 }
 

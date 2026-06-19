@@ -1,9 +1,17 @@
-// @ts-check
-
 import path from "path";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 import HtmlWebpackPlugin from "html-webpack-plugin";
-import ModuleFederationPlugin from "webpack/lib/container/ModuleFederationPlugin.js";
+
+// Resolve webpack from webpack-cli's location to ensure both use the same
+// webpack instance. In pnpm's strict node_modules, `import "webpack"` here
+// and webpack-cli's internal `require("webpack")` can resolve to different
+// virtual store entries (different peer dependency hashes), causing
+// "The 'compilation' argument must be an instance of Compilation".
+const require = createRequire(import.meta.resolve("webpack-cli"));
+const webpack = require("webpack");
+
+const { ModuleFederationPlugin } = webpack.container;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

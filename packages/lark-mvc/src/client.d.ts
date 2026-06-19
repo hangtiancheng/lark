@@ -34,6 +34,14 @@ declare global {
     crossConfigs?: CrossSiteConfig[];
     scheduler?: Scheduler;
   }
+  interface ImportMeta {
+    /** HMR context provided by Vite / webpack dev server. Undefined in production. */
+    hot?: {
+      accept(cb?: (mod: { default?: unknown } | undefined) => void): void;
+      dispose(cb: (data: unknown) => void): void;
+      invalidate(): void;
+    };
+  }
   interface HTMLElement {
     /** Bound frame instance */
     frame?: FrameInterface | undefined;

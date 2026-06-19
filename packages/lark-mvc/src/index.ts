@@ -74,5 +74,9 @@ export { useUrlState } from "./url-state";
 export { create, computed, bindStore } from "./store";
 export type { StoreApi } from "./store";
 
+// HMR (import.meta.hot support)
+export { reloadViews } from "./hmr";
+export type { HotContext } from "./hmr";
+
 // Types (re-exported for consumer convenience)
 export * from "./types";

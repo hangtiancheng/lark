@@ -30,6 +30,7 @@
     "poptate",
     "rsbuild",
     "rspack",
+    "tapable",
     "touchend",
     "touchmove",
     "touchstart",

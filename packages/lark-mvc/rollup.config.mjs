@@ -80,8 +80,8 @@ const outputConfigs = [
   { file: "dist/[name].cjs", format: "cjs", exports: "named" },
 ];
 
-// Entries that use __filename (webpack/rspack plugin loaders) need the shim.
-const cjsShimsEntries = new Set(["webpack", "rspack"]);
+// Entries that use __filename (vite/webpack/rspack plugin loaders) need the shim.
+const cjsShimsEntries = new Set(["vite", "webpack", "rspack"]);
 
 // --- JS bundles (ESM + CJS, no sourcemap, matching tsup) ---
 const /** @type {import("rollup").OutputOptions[]} */ jsConfigs = entries.map(

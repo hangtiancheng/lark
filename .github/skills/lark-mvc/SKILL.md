@@ -12,9 +12,7 @@ description: >
   registering Views with registerViewClass, integrating Module Federation
   with CrossSite, calling Service for API requests with caching/dedup/queue,
   or anything mentioning Frame trees, history/hash routing, real-DOM diff,
-  capture-phase event delegation, or the v-lark attribute. Also trigger on
-  Lark-related debugging (window.__lark_Debug, Frame Devtool Bridge,
-  ldk/lak/lvk attributes) and on questions about Lark's three data pipelines
+  capture-phase event delegation, or the v-lark attribute. Also trigger on questions about Lark's three data pipelines
   (Updater / State / Store) or migration patterns between them.
 ---
 
@@ -35,7 +33,7 @@ Any task that names -- or clearly implies -- Lark:
 - Configuring the Vite plugin (`larkMvcPlugin`) or Webpack loader (`larkMvcLoader`).
 - Embedding remote views via Module Federation (`CrossSite`, `FrameworkConfig.require`).
 - API request layers using `Service.extend`, `Service.add`, `service.all/one/save`, `cleanKeys`.
-- Debugging Frame trees, working with `window.__lark_Debug`, or the Frame Devtool Bridge.
+- Debugging Frame trees, working with the Frame Devtool Bridge.
 
 ## Architecture
 
@@ -94,9 +92,6 @@ After boot, the framework attaches these to `window` for debugging and HMR:
 | `window.__lark_registerViewClass`    | function         | HMR helper: re-register a View class  |
 | `window.__lark_invalidateViewClass`  | function         | HMR helper: drop a View from registry |
 | `window.__lark_getViewClassRegistry` | function         | HMR helper: read the View registry    |
-| `window.__lark_Debug`                | boolean (opt-in) | Enables Safeguard Proxy debug checks  |
-
-Set `window.__lark_Debug = true` before boot to enable Safeguard Proxy wrapping on `State.get()` reads, `Router.diff()` results, Location params, and `Updater.get()` -- it warns when data set on one page is read from a different page, and when something tries to mutate `State.get()` data directly instead of going through `State.set()` + `State.digest()`.
 
 ## Project structure
 
@@ -1173,7 +1168,7 @@ Both produce compiled `.html` modules that import their runtime helpers from `@l
 1. **`boot.ts` must live inside `src/`** -- the entry HTML references `/src/boot.ts`, not `/boot.ts`.
 2. **`registerViewClass` before `Framework.boot()`** -- all view classes (and their sub-components) must be registered before boot, OR you must provide a `FrameworkConfig.require` so unknown paths can be loaded on demand.
 3. **`.html` imports require the bundler integration** -- they only work because the Vite plugin or Webpack loader compiles them at build time.
-4. **Use `State.set` + `State.digest`, not direct mutation** -- direct mutation bypasses change detection. Debug mode (`window.__lark_Debug = true`) warns synchronously and dedupes the warning per key.
+4. **Use `State.set` + `State.digest`, not direct mutation** -- direct mutation bypasses change detection.
 5. **`bindStore` auto-cleans on view destroy** -- `bindStore(this, store)` unsubscribes when the view is destroyed. Manual `store.subscribe(listener)` calls need explicit unsubscribe (e.g. `this.on("destroy", off)`).
 6. **Event method names use `<>`, not `()`** -- the pattern is `name<click>`, not `name(click)`.
 7. **`assign()` must call `snapshot()` and return `altered()`** -- otherwise the framework can't tell if data actually changed.

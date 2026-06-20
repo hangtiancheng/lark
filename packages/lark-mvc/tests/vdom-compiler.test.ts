@@ -20,7 +20,10 @@ async function compileAndRun(
   data: Record<string, unknown> = {},
   globalVars: string[] = [],
 ): Promise<VDomNode> {
-  const moduleSource = await compileTemplate(template, { virtualDom: true, globalVars });
+  const moduleSource = await compileTemplate(template, {
+    virtualDom: true,
+    globalVars,
+  });
 
   const transformed = moduleSource
     .replace(
@@ -222,7 +225,11 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders dynamic text from data", async () => {
-      const root = await compileAndRun("<p>{{=message}}</p>", { message: "Hello World" }, ["message"]);
+      const root = await compileAndRun(
+        "<p>{{=message}}</p>",
+        { message: "Hello World" },
+        ["message"],
+      );
       expect(root.tag).toBe("test-view");
       expect(root.html).toContain("Hello World");
       const pChild = root.children![0] as VDomNode;
@@ -233,7 +240,11 @@ describe("VDOM Compiler", () => {
     });
 
     it("escapes HTML entities in {{=}} text output", async () => {
-      const root = await compileAndRun("<div>{{=content}}</div>", { content: "<script>alert(1)</script>" }, ["content"]);
+      const root = await compileAndRun(
+        "<div>{{=content}}</div>",
+        { content: "<script>alert(1)</script>" },
+        ["content"],
+      );
       // The text node stores the raw string value; encoding happens when
       // the parent element serializes its innerHTML (via encodeHTML).
       const textNode = root.children![0]!.children![0] as VDomNode;
@@ -300,7 +311,9 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders null/undefined as empty string in {{=}}", async () => {
-      const root = await compileAndRun("<p>{{=val}}</p>", { val: null }, ["val"]);
+      const root = await compileAndRun("<p>{{=val}}</p>", { val: null }, [
+        "val",
+      ]);
       const p = root.children![0] as VDomNode;
       const textNode = p.children![0] as VDomNode;
       expect(textNode.html).toBe("");
@@ -309,7 +322,12 @@ describe("VDOM Compiler", () => {
     it("renders nested loops correctly", async () => {
       const root = await compileAndRun(
         "<div>{{forOf rows as row}}{{forOf row as cell}}<span>{{=cell}}</span>{{/forOf}}{{/forOf}}</div>",
-        { rows: [[1, 2], [3, 4]] },
+        {
+          rows: [
+            [1, 2],
+            [3, 4],
+          ],
+        },
         ["rows"],
       );
       expect(root.html).toContain("1");

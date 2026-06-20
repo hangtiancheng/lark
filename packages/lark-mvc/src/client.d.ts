@@ -9,8 +9,6 @@ import type { Frame } from "./frame";
 import type { View } from "./view";
 declare global {
   interface Window {
-    /** Whether lark debug mode is enabled */
-    __lark_Debug: boolean;
     /** Lark Framework object */
     __lark_Framework?: FrameworkInterface;
     /** Lark State object */

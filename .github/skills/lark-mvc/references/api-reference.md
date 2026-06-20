@@ -1121,7 +1121,6 @@ Exported from the main entry.
 | ----------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `applyStyle`      | `(idOrPairs, css?) => () => void`                           | Inject CSS into `<style>` tags; returns cleanup fn                       |
 | `mark` / `unmark` | `mark(host, key) => () => boolean` / `unmark(host) => void` | Async callback validity tracking (module-level WeakMap)                  |
-| `safeguard`       | `<T>(o: T) => T`                                            | Debug Proxy that warns on mutation (no-op outside `window.__lark_Debug`) |
 | `useUrlState`     | `(view, config?) => void`                                   | Sync view state with URL search params                                   |
 
 Internal utilities (`noop`, `hasOwnProperty`, `assign`, `keys`, `generateId`, `funcWithTry`, `setData`, `translateData`, `getById`, `ensureElementId`, `nodeInside`, `parseUri`, `toUri`, `toMap`, `now`, `isPlainObject`, `getAttribute`, `EMPTY_STRING_SET`, etc.) are NOT exported from the public entry. They live in `utils.ts` and `constants.ts` for framework-internal use.

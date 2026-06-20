@@ -93,7 +93,6 @@ describe("Framework", () => {
         (a: number, b: number) => a + b,
         [1, 2],
         null,
-        () => {},
       );
       expect(result).toBe(3);
     });
@@ -105,21 +104,12 @@ describe("Framework", () => {
         },
         [],
         null,
-        () => {},
       );
       expect(result).toBeUndefined();
     });
 
     it("toTry with array of functions returns last result", () => {
-      const result = Framework.toTry(
-        [
-          () => "first",
-          () => "second",
-        ],
-        [],
-        null,
-        () => {},
-      );
+      const result = Framework.toTry([() => "first", () => "second"], [], null);
       expect(result).toBe("second");
     });
 
@@ -131,9 +121,6 @@ describe("Framework", () => {
         },
         [],
         null,
-        (e: unknown) => {
-          captured = e;
-        },
       );
       expect(captured).toBeInstanceOf(Error);
     });
@@ -162,8 +149,8 @@ describe("Framework", () => {
     it("parseUrl extracts path and params", () => {
       const result = Framework.parseUrl("path/to/page?key=value&num=42");
       expect(result.path).toBe("path/to/page");
-      expect(result.params.key).toBe("value");
-      expect(result.params.num).toBe("42");
+      expect(result.params["key"]).toBe("value");
+      expect(result.params["num"]).toBe("42");
     });
 
     it("parseUrl handles URL with no params", () => {
@@ -530,7 +517,10 @@ describe("Framework", () => {
       el.id = "boot-config-merge-test";
       document.body.appendChild(el);
       try {
-        Framework.boot({ rootId: "boot-config-merge-test", defaultPath: "/booted" });
+        Framework.boot({
+          rootId: "boot-config-merge-test",
+          defaultPath: "/booted",
+        });
         expect(Framework.getConfig("defaultPath")).toBe("/booted");
       } finally {
         el.remove();
@@ -598,12 +588,6 @@ describe("Framework", () => {
       Framework.dispatch(child, "bubble-test");
       expect(bubbled).toBe(true);
       parent.remove();
-    });
-  });
-
-  describe("guard", () => {
-    it("is a function", () => {
-      expect(typeof Framework.guard).toBe("function");
     });
   });
 

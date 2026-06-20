@@ -41,7 +41,7 @@ Third, zero runtime dependencies. `@babel/parser` / `@babel/types` are used only
 
 Fourth, real DOM diff. Templates compile to functions that produce HTML strings, which are parsed into temporary DOM via `document.implementation.createHTMLDocument` and then diffed against the live DOM using keyed comparison. The advantage is that context-sensitive tags like `<table>` / `<select>` / `<svg>` are handled by the native parser. The trade-off is that large templates incur parse overhead, and SSR is not supported.
 
-Fifth, debug-friendly. `window.__lark_Debug = true` enables Safeguard Proxy protection against cross-page pollution and accidental writes. `installFrameDevtoolBridge` exposes the Frame tree to Devtool via `postMessage`. A set of `window.__lark_*` global shortcuts cover Framework / State / Router / Frame / View and HMR helpers.
+Fifth, debug-friendly. `installFrameDevtoolBridge` exposes the Frame tree to Devtool via `postMessage`. A set of `window.__lark_*` global shortcuts cover Framework / State / Router / Frame / View and HMR helpers.
 
 Not suitable for: projects requiring SSR/streaming rendering, cross-platform needs like React Native, or projects needing off-the-shelf Chrome extension panels. For those, consider the React or Vue ecosystems.
 
@@ -838,24 +838,16 @@ new ModuleFederationPlugin({
 
 After `Framework.boot` completes, the following are attached to `window`:
 
-| Global                               | Value                         | Purpose                             |
-| ------------------------------------ | ----------------------------- | ----------------------------------- |
-| `window.__lark_Framework`            | Framework object              | Direct access                       |
-| `window.__lark_State`                | State object                  | Direct access                       |
-| `window.__lark_Router`               | Router object                 | Direct access                       |
-| `window.__lark_Frame`                | Frame class                   | Direct access                       |
-| `window.__lark_View`                 | View class                    | Direct access                       |
-| `window.__lark_registerViewClass`    | Function                      | HMR: re-register View class         |
-| `window.__lark_invalidateViewClass`  | Function                      | HMR: remove View from registry      |
-| `window.__lark_getViewClassRegistry` | Function                      | HMR: read registry                  |
-| `window.__lark_Debug`                | boolean, must be set manually | Enable Safeguard Proxy debug checks |
-
-### Safeguard Debug Mode
-
-Set `window.__lark_Debug = true` before boot, and the framework wraps `State.get()` / `Router.diff()` results and `Updater.get()` return values with Safeguard Proxy:
-
-- Warns when reading data written by another page (potential cross-page pollution).
-- Warns immediately when assigning directly to objects returned by `State.get()` (deduplicated by key); the correct approach is `State.set(patch)` + `State.digest()`.
+| Global                               | Value            | Purpose                        |
+| ------------------------------------ | ---------------- | ------------------------------ |
+| `window.__lark_Framework`            | Framework object | Direct access                  |
+| `window.__lark_State`                | State object     | Direct access                  |
+| `window.__lark_Router`               | Router object    | Direct access                  |
+| `window.__lark_Frame`                | Frame class      | Direct access                  |
+| `window.__lark_View`                 | View class       | Direct access                  |
+| `window.__lark_registerViewClass`    | Function         | HMR: re-register View class    |
+| `window.__lark_invalidateViewClass`  | Function         | HMR: remove View from registry |
+| `window.__lark_getViewClassRegistry` | Function         | HMR: read registry             |
 
 ### Frame Devtool Bridge
 

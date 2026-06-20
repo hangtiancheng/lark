@@ -32,7 +32,9 @@ describe("common", () => {
       expect(encodeHTML("a`b")).toBe("a&#96;b");
     });
     it("escapes multiple entities", () => {
-      expect(encodeHTML('<a href="x">&y</a>')).toBe("&lt;a href=&#34;x&#34;&gt;&amp;y&lt;/a&gt;");
+      expect(encodeHTML('<a href="x">&y</a>')).toBe(
+        "&lt;a href=&#34;x&#34;&gt;&amp;y&lt;/a&gt;",
+      );
     });
     it("returns empty string for null", () => {
       expect(encodeHTML(null)).toBe("");
@@ -49,29 +51,57 @@ describe("common", () => {
   });
 
   describe("strSafe", () => {
-    it("returns '' for null", () => { expect(strSafe(null)).toBe(""); });
-    it("returns '' for undefined", () => { expect(strSafe(undefined)).toBe(""); });
-    it("converts number to string", () => { expect(strSafe(42)).toBe("42"); });
-    it("converts boolean true to 'true'", () => { expect(strSafe(true)).toBe("true"); });
-    it("converts boolean false to 'false'", () => { expect(strSafe(false)).toBe("false"); });
-    it("returns string as-is", () => { expect(strSafe("hello")).toBe("hello"); });
-    it("converts 0 to '0'", () => { expect(strSafe(0)).toBe("0"); });
-    it("converts empty string to empty string", () => { expect(strSafe("")).toBe(""); });
+    it("returns '' for null", () => {
+      expect(strSafe(null)).toBe("");
+    });
+    it("returns '' for undefined", () => {
+      expect(strSafe(undefined)).toBe("");
+    });
+    it("converts number to string", () => {
+      expect(strSafe(42)).toBe("42");
+    });
+    it("converts boolean true to 'true'", () => {
+      expect(strSafe(true)).toBe("true");
+    });
+    it("converts boolean false to 'false'", () => {
+      expect(strSafe(false)).toBe("false");
+    });
+    it("returns string as-is", () => {
+      expect(strSafe("hello")).toBe("hello");
+    });
+    it("converts 0 to '0'", () => {
+      expect(strSafe(0)).toBe("0");
+    });
+    it("converts empty string to empty string", () => {
+      expect(strSafe("")).toBe("");
+    });
     it("converts object to string via toString", () => {
       expect(strSafe({ toString: () => "custom" })).toBe("custom");
     });
   });
 
   describe("encodeURIExtra", () => {
-    it("encodes ! to %21", () => { expect(encodeURIExtra("!")).toBe("%21"); });
-    it("encodes ' to %27", () => { expect(encodeURIExtra("'")).toBe("%27"); });
-    it("encodes ( to %28", () => { expect(encodeURIExtra("(")).toBe("%28"); });
-    it("encodes ) to %29", () => { expect(encodeURIExtra(")")).toBe("%29"); });
-    it("encodes * to %2A", () => { expect(encodeURIExtra("*")).toBe("%2A"); });
+    it("encodes ! to %21", () => {
+      expect(encodeURIExtra("!")).toBe("%21");
+    });
+    it("encodes ' to %27", () => {
+      expect(encodeURIExtra("'")).toBe("%27");
+    });
+    it("encodes ( to %28", () => {
+      expect(encodeURIExtra("(")).toBe("%28");
+    });
+    it("encodes ) to %29", () => {
+      expect(encodeURIExtra(")")).toBe("%29");
+    });
+    it("encodes * to %2A", () => {
+      expect(encodeURIExtra("*")).toBe("%2A");
+    });
     it("encodes all special chars together", () => {
       expect(encodeURIExtra("a!b'c(d)e*f")).toBe("a%21b%27c%28d%29e%2Af");
     });
-    it("handles null", () => { expect(encodeURIExtra(null)).toBe(""); });
+    it("handles null", () => {
+      expect(encodeURIExtra(null)).toBe("");
+    });
     it("leaves normal text unchanged", () => {
       expect(encodeURIExtra("hello")).toBe("hello");
     });

@@ -15,9 +15,7 @@ import { View } from "@lark.js/mvc";
 export default View.extend({
   make() {
     this.on("destroy", () => {
-      if ((window as unknown as Record<string, unknown>)["__lark_Debug"]) {
-        console.log(`[@lark.js/index] view destroyed: ${this.id}`);
-      }
+      console.log(`[@lark.js/index] view destroyed: ${this.id}`);
     });
   },
 

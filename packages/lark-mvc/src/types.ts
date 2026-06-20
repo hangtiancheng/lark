@@ -1151,7 +1151,7 @@ export interface FrameworkInterface {
    * @param target Target object
    * @param sources One or more source objects
    */
-  mix<T extends object>(target: T, ...sources: Partial<T>[]): T;
+  mix<T extends object>(target: T, ...sources: Record<string, unknown>[]): T;
   /**
    * Check if object has specified own property (safe hasOwnProperty).
    * @param owner Object to check, supports undefined/null

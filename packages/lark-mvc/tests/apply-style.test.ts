@@ -11,7 +11,9 @@ describe("applyStyle", () => {
     }
     cleanups.length = 0;
     // Also clean up any style elements with from="lark"
-    document.querySelectorAll('style[from="lark"]').forEach((el) => el.remove());
+    document
+      .querySelectorAll('style[from="lark"]')
+      .forEach((el) => el.remove());
   });
 
   describe("single style injection", () => {
@@ -63,8 +65,10 @@ describe("applyStyle", () => {
   describe("batch style injection", () => {
     it("injects multiple styles from flat array", () => {
       const cleanup = applyStyle([
-        "batch-1", ".batch1{}",
-        "batch-2", ".batch2{}",
+        "batch-1",
+        ".batch1{}",
+        "batch-2",
+        ".batch2{}",
       ]);
       cleanups.push(cleanup);
       expect(document.getElementById("batch-1")).not.toBeNull();
@@ -72,10 +76,7 @@ describe("applyStyle", () => {
     });
 
     it("cleanup removes all batch styles", () => {
-      const cleanup = applyStyle([
-        "batch-c1", ".c1{}",
-        "batch-c2", ".c2{}",
-      ]);
+      const cleanup = applyStyle(["batch-c1", ".c1{}", "batch-c2", ".c2{}"]);
       cleanup();
       expect(document.getElementById("batch-c1")).toBeNull();
       expect(document.getElementById("batch-c2")).toBeNull();

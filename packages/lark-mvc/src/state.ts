@@ -61,9 +61,6 @@ function teardownKeysRef(keyList: string[]): void {
       if (count <= 0) {
         Reflect.deleteProperty(keyRefCounts, key);
         Reflect.deleteProperty(appData, key);
-        if (typeof window.__lark_Debug !== "undefined" && window.__lark_Debug) {
-          Reflect.deleteProperty(dataWhereSet, key);
-        }
       }
     }
   }
@@ -114,16 +111,6 @@ export const State: StateInterface = {
     dataIsChanged =
       setData(data, appData, changedKeys, excludes || EMPTY_STRING_SET) ||
       dataIsChanged;
-
-    if (
-      typeof window.__lark_Debug !== "undefined" &&
-      window.__lark_Debug &&
-      booted
-    ) {
-      for (const p in data) {
-        dataWhereSet[p] = window.location.pathname;
-      }
-    }
     return State;
   },
 
@@ -135,11 +122,6 @@ export const State: StateInterface = {
       State.set(data, excludes);
     }
     if (dataIsChanged) {
-      if (typeof window.__lark_Debug !== "undefined" && window.__lark_Debug) {
-        for (const p of changedKeys) {
-          clearNotify(p);
-        }
-      }
       dataIsChanged = false;
       // Snapshot changed keys and stash for diff()
       const keys = changedKeys;

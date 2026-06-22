@@ -24,7 +24,6 @@ export { generateSidebar } from "./sidebar-generator";
 export { buildSearchIndex } from "./search-index";
 export type { DocsConfig, SidebarConfig } from "./types";
 
-
 export interface LarkDocsRspackOptions {
   /** Full docs config. */
   config: DocsConfig;

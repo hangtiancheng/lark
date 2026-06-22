@@ -1,15 +1,15 @@
-<div>
+<div class="px-3">
   <p
-    class="text-base-content/70 mb-2 text-sm font-semibold tracking-wider uppercase"
+    class="text-base-content/50 mb-3 px-3 text-xs font-semibold tracking-wider uppercase"
   >
     On this page
   </p>
   {{if headings.length > 0}}
-  <ul class="menu menu-sm p-0">
+  <ul class="menu menu-xs gap-0.5 p-0">
     {{forOf headings as heading}}
-    <li class="{{if heading.level === 3}}ml-4{{/if}}">
+    <li class="{{if heading.level === 3}}pl-3{{/if}}">
       <a
-        class="{{if heading.isActive}}menu-active text-primary font-medium{{/if}}"
+        class="{{if heading.isActive}}menu-active text-primary font-medium{{/if}} rounded-field text-base-content/70"
         href="#{{=heading.slug}}"
         data-slug="{{=heading.slug}}"
         @click="scrollToHeading()"
@@ -20,6 +20,6 @@
     {{/forOf}}
   </ul>
   {{else}}
-  <p class="text-base-content/40 text-sm">No headings</p>
+  <p class="text-base-content/30 px-3 text-sm">No headings</p>
   {{/if}}
 </div>

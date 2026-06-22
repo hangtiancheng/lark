@@ -1,18 +1,18 @@
-<nav>
+<nav class="px-3">
   {{forOf sidebarGroups as group}}
-  <div class="mb-4">
+  <div class="mb-6 last:mb-2">
     {{if group.text}}
     <p
-      class="text-base-content/70 mb-2 text-sm font-semibold tracking-wider uppercase"
+      class="text-base-content/50 mb-2 px-3 text-xs font-semibold tracking-wider uppercase"
     >
       {{=group.text}}
     </p>
     {{/if}}
-    <ul class="menu menu-sm p-0">
+    <ul class="menu menu-sm gap-0.5 p-0">
       {{forOf group.items as item}}
       <li>
         <a
-          class="{{if item.isActive}}menu-active font-medium{{/if}}"
+          class="{{if item.isActive}}menu-active bg-primary/10 text-primary font-medium{{/if}} rounded-field"
           data-href="{{=item.link}}"
           @click="navigateTo()"
         >

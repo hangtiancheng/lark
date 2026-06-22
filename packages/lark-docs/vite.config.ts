@@ -230,8 +230,8 @@ function generateRoutesFile(config: DocsConfig): void {
     .map((r, i) => `registerViewClass(${JSON.stringify(r.viewId)}, view${i});`)
     .join("\n");
 
-  // Compose docsConfig
-  const docsConfig: DocsConfig = {
+  // Compose docsConfig (includes build-time searchIndex, not the user-facing DocsConfig type)
+  const docsConfig = {
     title: config.title,
     description: config.description || "",
     lang: config.lang || "en-US",

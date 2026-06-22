@@ -1,3 +1,26 @@
 @import "tailwindcss";
 
+/* Scan theme templates for Tailwind class names */
+@source "../../src/theme/*.html";
+@source "../../src/theme/*.ts";
+
 @plugin "daisyui";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans:
+    Iosevka, Maple Mono, Menlo, Cascadia Code, Sarasa Gothic SC, PingFang SC,
+    Microsoft YaHei;
+
+  --font-mono:
+    Iosevka, Maple Mono, Menlo, Cascadia Code, Sarasa Gothic SC, PingFang SC,
+    Microsoft YaHei;
+}
+
+/* Override daisyUI input/textarea focus styles to use 1px orange border */
+.input:focus,
+.input:focus-within,
+.textarea:focus,
+.textarea:focus-within {
+  @apply border-blue-400 shadow-none outline-none;
+}

@@ -1,31 +1,55 @@
 {{if isOpen}}
 <div class="modal modal-open" @click="closeSearch()">
-  <div class="modal-box max-w-2xl" @click.stop="noop()">
-    <input
-      type="text"
-      class="input input-bordered mb-4 w-full"
-      placeholder="Search documentation..."
-      @input="onSearchInput()"
-      id="docs-search-input"
-    />
-    <div class="max-h-96 overflow-y-auto">
-      {{if results.length > 0}} {{forOf results as result}}
-      <a
-        class="hover:bg-base-200 border-base-200 block cursor-pointer rounded-lg border-b p-3 last:border-0"
-        data-href="{{=result.link}}"
-        @click="goToResult()"
-      >
-        <p class="text-sm font-medium">{{=result.title}}</p>
-        {{if result.excerpt}}
-        <p class="text-base-content/60 mt-1 text-xs">{{=result.excerpt}}</p>
-        {{/if}}
-      </a>
-      {{/forOf}} {{else}} {{if hasSearched}}
-      <p class="text-base-content/50 py-8 text-center">No results found</p>
-      {{/if}} {{/if}}
+  <div class="modal-box max-w-2xl p-0" @click.stop="noop()">
+    <!-- Search input -->
+    <div class="border-base-300 border-b px-6 py-4">
+      <label class="input input-lg w-full">
+        <span
+          class="h-4 w-4 text-current opacity-50 [&>svg]:h-full [&>svg]:w-full"
+        >
+          {{!icons.search}}
+        </span>
+        <input
+          type="text"
+          class="grow text-base"
+          placeholder="Search documentation..."
+          @input="onSearchInput()"
+          id="docs-search-input"
+        />
+        <kbd class="kbd kbd-sm">esc</kbd>
+      </label>
     </div>
-    <div class="modal-action">
-      <button class="btn btn-sm" @click="closeSearch()">Close</button>
+
+    <!-- Results -->
+    <div class="max-h-96 overflow-y-auto">
+      {{if results.length > 0}}
+      <ul class="menu p-2">
+        {{forOf results as result}}
+        <li>
+          <a
+            class="rounded-field flex-col items-start gap-1 p-3"
+            data-href="{{=result.link}}"
+            @click="goToResult()"
+          >
+            <p class="text-sm font-medium">{{=result.title}}</p>
+            {{if result.excerpt}}
+            <p class="text-base-content/60 line-clamp-2 text-xs">
+              {{=result.excerpt}}
+            </p>
+            {{/if}}
+          </a>
+        </li>
+        {{/forOf}}
+      </ul>
+      {{else}} {{if hasSearched}}
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <p class="text-base-content/40 text-sm">No results found</p>
+      </div>
+      {{else}}
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <p class="text-base-content/30 text-sm">Type to search...</p>
+      </div>
+      {{/if}} {{/if}}
     </div>
   </div>
 </div>

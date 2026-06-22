@@ -94,7 +94,7 @@ export default {
 
 ```ts
 import { LarkDocsPlugin } from "@lark.js/docs/rspack";
-import docsConfig from "./lark-docs.config";
+import docsConfig from "./lark-docs.config;
 
 export default {
   plugins: [new LarkDocsPlugin({ config: docsConfig })],

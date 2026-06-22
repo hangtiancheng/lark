@@ -1,52 +1,63 @@
 <div class="bg-base-100 min-h-screen">
   <!-- Top navigation bar -->
-  <nav class="navbar bg-base-200 border-base-300 sticky top-0 z-50 border-b">
-    <div class="flex-1">
-      <a class="btn btn-ghost text-xl font-bold" @click="navigateHome()"
-        >{{=siteTitle}}</a
-      >
+  <div class="navbar bg-base-100/80 sticky top-0 z-50 shadow-sm backdrop-blur">
+    <div class="navbar-start">
+      <a class="btn btn-ghost gap-2 text-lg font-bold" @click="navigateHome()">
+        {{=siteTitle}}
+      </a>
     </div>
-    <div class="flex-none">
-      <ul class="menu menu-horizontal px-1">
+    <div class="navbar-center hidden lg:flex">
+      <ul class="menu menu-horizontal gap-1 px-1">
         {{forOf navItems as item idx}}
         <li>
-          <a data-href="{{=item.link}}" @click="navigateTo()">{{=item.text}}</a>
+          <a
+            class="rounded-field text-sm font-medium"
+            data-href="{{=item.link}}"
+            @click="navigateTo()"
+            >{{=item.text}}</a
+          >
         </li>
         {{/forOf}}
       </ul>
-      <!-- Search -->
+    </div>
+    <div class="navbar-end gap-2">
       {{if searchProvider === "local"}}
-      <label class="btn btn-ghost btn-circle" @click="openSearch()">
-        <span class="h-5 w-5 [&>svg]:h-full [&>svg]:w-full">
+      <button class="btn btn-ghost btn-circle btn-sm" @click="openSearch()">
+        <span class="h-4 w-4 [&>svg]:h-full [&>svg]:w-full">
           {{!icons.search}}
         </span>
-      </label>
+      </button>
       {{else if searchProvider === "docsearch"}}
-      <div id="docsearch-container"></div>
+      <div
+        id="docsearch-container"
+        class="flex items-center [&_.DocSearch-Button]:!m-0"
+      ></div>
       {{/if}}
     </div>
-  </nav>
+  </div>
 
   <div class="mx-auto flex max-w-7xl">
     <!-- Sidebar -->
     <aside
-      class="border-base-200 sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r p-4 lg:block"
+      class="border-base-200 sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r py-6 lg:block"
     >
       <div v-lark="theme/sidebar"></div>
     </aside>
 
     <!-- Main content -->
-    <main class="min-w-0 flex-1 px-8 py-6">
+    <main class="min-w-0 flex-1 px-8 py-10">
       <article class="prose prose-lg max-w-none">
         <div v-lark="theme/content"></div>
       </article>
 
       <!-- Prev / Next navigation -->
       {{if prevPage || nextPage}}
-      <div class="border-base-300 mt-12 flex justify-between border-t pt-6">
+      <div
+        class="border-base-300 mt-16 flex items-center justify-between gap-4 border-t pt-8"
+      >
         {{if prevPage}}
         <a
-          class="btn btn-outline btn-sm"
+          class="btn btn-outline btn-sm gap-2"
           data-href="{{=prevPage.link}}"
           @click="navigateTo()"
         >
@@ -56,7 +67,7 @@
         <span></span>
         {{/if}} {{if nextPage}}
         <a
-          class="btn btn-outline btn-sm"
+          class="btn btn-outline btn-sm gap-2"
           data-href="{{=nextPage.link}}"
           @click="navigateTo()"
         >
@@ -69,7 +80,7 @@
 
     <!-- Table of contents (right) -->
     <aside
-      class="sticky top-16 hidden h-[calc(100vh-4rem)] w-56 shrink-0 overflow-y-auto p-4 xl:block"
+      class="sticky top-16 hidden h-[calc(100vh-4rem)] w-56 shrink-0 overflow-y-auto py-6 xl:block"
     >
       <div v-lark="theme/toc"></div>
     </aside>

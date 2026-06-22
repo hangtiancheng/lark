@@ -29,7 +29,7 @@ import contentTemplate from "@lark.js/docs/theme/content.html";
 import tocTemplate from "@lark.js/docs/theme/toc.html";
 import searchTemplate from "@lark.js/docs/theme/search.html";
 
-// CSS (Tailwind + DaisyUI)
+// CSS (TailwindCSS + DaisyUI)
 import "./main.css";
 
 // === Register theme views ===

@@ -2,8 +2,8 @@
  * Type-safe configuration helper with automatic route generation.
  *
  * Scans the docs directory, generates sidebar/search index, and writes
- * a routes module to `node_modules/@lark.js/docs/generated/` so that
- * `boot.ts` can import routes and site data with a bare module name.
+ * a routes module to `.lark-docs/generated/` so that `boot.ts` can
+ * import routes and site data via the `@lark-docs/generated` alias.
  *
  * Usage:
  * ```ts
@@ -26,8 +26,8 @@ import { scanDocsDir } from "./scanner";
 import { generateRouteMap } from "./route-map";
 import { generateSidebar } from "./sidebar-generator";
 import { buildSearchIndex } from "./search-index";
-import path from "node:path";
-import fs from "node:fs";
+import { isAbsolute, resolve } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
 
 export function defineConfig(
   config: DocsConfig,
@@ -38,21 +38,20 @@ export function defineConfig(
 }
 
 /**
- * Generate a physical routes module into `{projectRoot}/node_modules/@lark.js/docs/generated/`.
+ * Generate a physical routes module into `{projectRoot}/.lark-docs/generated/`.
  *
  * This file is regenerated each time the config is loaded (dev or build).
  * It imports all .md files (compiled by the bundler plugin), registers each
  * as a View class, and exports the route map + site data for boot.ts.
  *
- * Written to `node_modules` so it can be imported with the bare module name
- * `@lark.js/docs/generated`, which TypeScript resolves via the nested
- * `package.json` — relative module names are not valid in ambient
- * `declare module` declarations.
+ * Written to `.lark-docs/` (a dot directory at project root, similar to
+ * `.vitepress/` or `.docusaurus/`) so it can be gitignored and inspected
+ * directly. Consumers import it via a Vite resolve alias `@lark-docs/generated`.
  */
 function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
-  const docsDir = path.isAbsolute(config.docs)
+  const docsDir = isAbsolute(config.docs)
     ? config.docs
-    : path.resolve(projectRoot, config.docs);
+    : resolve(projectRoot, config.docs);
 
   const routes = scanDocsDir(docsDir, config.baseUrl);
   const routeMap = generateRouteMap(routes);
@@ -74,11 +73,8 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
     config.search?.provider === "none" ? [] : buildSearchIndex(routes);
 
   // Generate import statements for each .md file.
-  // Use absolute paths to avoid resolution issues from the node_modules location.
-  const generatedDir = path.resolve(
-    projectRoot,
-    "node_modules/@lark.js/docs/generated",
-  );
+  // Use absolute paths so the generated module works from .lark-docs/.
+  const generatedDir = resolve(projectRoot, ".lark-docs/generated");
   const imports = routes
     .map(
       (r, i) =>
@@ -117,22 +113,11 @@ export const routes: Record<string, string> = ${JSON.stringify(routeMap, null, 2
 export const docsConfig = ${JSON.stringify(runtimeConfig, null, 2)};
 `;
 
-  // Write generated module to node_modules/@lark.js/docs/generated/
-  fs.mkdirSync(generatedDir, { recursive: true });
-  fs.writeFileSync(
-    path.resolve(generatedDir, "index.ts"),
+  // Write generated module to .lark-docs/generated/
+  mkdirSync(generatedDir, { recursive: true });
+  writeFileSync(
+    resolve(generatedDir, "index.ts"),
     fileContent,
     "utf-8",
   );
-
-  // // Write package.json so Node/Vite can resolve the bare module name
-  // fs.writeFileSync(
-  //   path.resolve(generatedDir, "package.json"),
-  //   JSON.stringify(
-  //     { name: "@lark.js/docs/generated", type: "module", main: "index.ts" },
-  //     null,
-  //     2,
-  //   ),
-  //   "utf-8",
-  // );
 }

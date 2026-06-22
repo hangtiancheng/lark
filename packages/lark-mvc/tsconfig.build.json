@@ -8,7 +8,11 @@
     "exactOptionalPropertyTypes": false,
     // "jsx": "react-jsx",
     "isolatedModules": true,
-    "lib": ["esnext", "DOM", "DOM.Iterable"],
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "esnext",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
@@ -22,7 +26,9 @@
     "noUnusedParameters": false,
     "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
     "rootDir": "./src",
     "skipLibCheck": true,
@@ -30,8 +36,13 @@
     // Recommended Options
     "strict": true,
     "target": "esnext",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "verbatimModuleSyntax": false
   },
-  "include": ["./src/**/*.ts", "./src/**/*.d.ts"]
+  "include": [
+    "./src/**/*.ts",
+    "./src/**/*.d.ts"
+  ]
 }

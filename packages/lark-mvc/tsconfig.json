@@ -1,48 +1,51 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // "allowJs": true,
-    // File Layout
-    "rootDir": "./",
-
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "target": "esnext",
-    // For nodejs:
-    "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "types": ["node", "vitest/globals"],
-
-    // Other Outputs
-    "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-
     // Stricter Typechecking Options
     // "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false,
-
+    "isolatedModules": true,
+    // For nodejs:
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "esnext",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
     // Style Options
     "noImplicitReturns": true,
-    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true,
-
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    // "allowJs": true,
+    // File Layout
+    "rootDir": "./",
+    "skipLibCheck": true,
+    // Other Outputs
+    "sourceMap": true,
     // Recommended Options
     "strict": true,
+    "target": "esnext",
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
     // "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "verbatimModuleSyntax": true
   },
   "include": [
     "./src/**/*.ts",

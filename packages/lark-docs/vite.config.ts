@@ -71,23 +71,23 @@ const docsConfig = defineDocsConfig({
     { text: "API", link: "/docs/api/" },
   ],
   sidebar: {
-    "/docs/api/": "auto",
     "/docs/get-started/": "auto",
     "/docs/markdown/": "auto",
+    "/docs/theme/": "auto",
+    "/docs/style/": "auto",
     "/docs/router/": "auto",
     "/docs/search/": "auto",
-    "/docs/style/": "auto",
-    "/docs/theme/": "auto",
+    "/docs/api/": "auto",
   },
   highlight: {
-    theme: "github-dark",
+    theme: "github-light",
     languages: [
-      "typescript",
       "javascript",
+      "typescript",
       "html",
       "css",
-      "json",
       "bash",
+      "json",
       "yaml",
       "markdown",
     ],
@@ -166,6 +166,7 @@ function docsUserConfig(): UserConfig {
     resolve: {
       alias: {
         "@lark.js/docs": resolve(PKG_DIR, "src"),
+        "@lark-docs/generated": resolve(PKG_DIR, ".lark-docs/generated"),
       },
     },
     build: {

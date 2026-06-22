@@ -3,9 +3,9 @@ name: Deploy https://hangtiancheng.github.io/lark homepage
 on:
   push:
     branches: [main]
-    paths:
-      - packages/lark-homepage/**
-      - .github/workflows/deploy.yml
+    # paths:
+    #   - packages/lark-homepage/**
+    #   - .github/workflows/deploy.yml
 
   workflow_dispatch:
 

@@ -119,6 +119,7 @@
   },
   "devDependencies": {
     "@lark.js/mvc": "workspace:^",
+    "@tailwindcss/vite": "^4.3.1",
     "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-container": "^4.0.0",
@@ -126,6 +127,7 @@
     "@vitest/coverage-v8": "4.1.9",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "tailwindcss": "^4.3.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.5",
     "vite-plugin-dts": "^5.0.2",

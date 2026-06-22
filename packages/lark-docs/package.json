@@ -99,7 +99,7 @@
     "prepublish": "pnpm build",
     "build": "vite build --mode lib && node scripts/copy-dts.mjs",
     "build:docs": "vite build --mode docs",
-    "dev:docs": "vite --mode docs",
+    "dev": "vite --mode docs",
     "preview:docs": "vite preview --mode docs --outDir dist-docs",
     "format": "prettier -w ./ --experimental-cli",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",

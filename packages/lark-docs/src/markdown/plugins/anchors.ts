@@ -5,7 +5,7 @@
  * anchor link for h1-h3 headings.
  */
 import type MarkdownIt from "markdown-it";
-import { slugify } from "@/utils/slugify";
+import { slugify } from "../../utils/slugify";
 import type { StateCore } from "markdown-it/index.js";
 
 export interface AnchorOptions {

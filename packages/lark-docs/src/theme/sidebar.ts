@@ -6,7 +6,7 @@
  */
 
 import { State, Router, View as ViewClass } from "@lark.js/mvc";
-import type { DocsConfig, SidebarItem } from "@/types";
+import type { DocsConfig, SidebarItem } from "../types";
 
 export function createSidebarView(View: typeof ViewClass, template: unknown) {
   return View.extend({

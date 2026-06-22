@@ -361,9 +361,12 @@ import {
   createTocView,
   createSearchView,
 } from "@lark.js/docs/theme";
-import { View as ViewClass } from "@lark.js/mvc"
+import { View as ViewClass } from "@lark.js/mvc";
 
-function createDocsLayoutView(View: typeof ViewClass, template: unknown): unknown;
+function createDocsLayoutView(
+  View: typeof ViewClass,
+  template: unknown,
+): unknown;
 function createSidebarView(View: typeof ViewClass, template: unknown): unknown;
 function createContentView(View: typeof ViewClass, template: unknown): unknown;
 function createTocView(View: typeof ViewClass, template: unknown): unknown;

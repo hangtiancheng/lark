@@ -16,7 +16,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@/*": ["./src/*"],
       "@lark-docs/generated": ["./.lark-docs/generated/index.ts"],
       "@lark.js/docs/*": ["./src/*"]
     },

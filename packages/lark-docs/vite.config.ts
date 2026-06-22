@@ -64,11 +64,7 @@ const docsConfig = defineDocsConfig({
   nav: [
     { text: "Get Started", link: "/docs/get-started/" },
     { text: "Markdown", link: "/docs/markdown/" },
-    { text: "Theme", link: "/docs/theme/" },
-    { text: "Styling", link: "/docs/style/" },
-    { text: "Router", link: "/docs/router/" },
     { text: "Search", link: "/docs/search/" },
-    { text: "API", link: "/docs/api/" },
   ],
   sidebar: {
     "/docs/get-started/": "auto",

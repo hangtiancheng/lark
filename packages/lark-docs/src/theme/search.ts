@@ -17,7 +17,7 @@ import {
   type ViewInterface,
 } from "@lark.js/mvc";
 import { icons as defaultIcons } from "./icons";
-import type { DocsConfig, SearchEntry } from "@/types";
+import type { DocsConfig, SearchEntry } from "../types";
 
 /**
  * Shape of `this` inside SearchView methods. Custom state (_mini) and helper

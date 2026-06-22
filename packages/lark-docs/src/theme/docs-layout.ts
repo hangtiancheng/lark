@@ -6,7 +6,7 @@ import {
 } from "@lark.js/mvc";
 import { icons as defaultIcons } from "./icons";
 import { createLocalSearchClient } from "./docsearch-local";
-import type { DocsConfig, PageData, SearchEntry } from "@/types";
+import type { DocsConfig, PageData, SearchEntry } from "../types";
 
 /**
  * Shape of `this` inside DocsLayoutView methods. The custom helper
@@ -54,6 +54,7 @@ export function createDocsLayoutView(
 
       // Initialize DocSearch widget if configured.
       const docsConfig = (State.get("docsConfig") || {}) as DocsConfig;
+      console.log("[@lark.js/docs] Docs config:", docsConfig);
       if (docsConfig.search?.provider === "docsearch") {
         this._initDocSearch(docsConfig);
       }

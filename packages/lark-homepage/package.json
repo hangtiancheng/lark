@@ -15,6 +15,7 @@
     "@lark.js/docs": "workspace:^",
     "@lark.js/mvc": "workspace:^",
     "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.1",
     "daisyui": "^5.5.23",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",

@@ -1,4 +1,4 @@
-import { extractGlobalVars } from "./extract-global-vars.js";
+import { extractGlobalVars } from "@lark.js/mvc/compiler";
 import { logError } from "../logger.js";
 
 export interface TemplateEventBinding {

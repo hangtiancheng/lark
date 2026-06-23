@@ -27,10 +27,10 @@
   "dependencies": {
     "@babel/parser": "^7.29.7",
     "@babel/types": "^7.29.7",
+    "@lark.js/mvc": "workspace:^",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@swc/core": "^1.15.43",
     "@types/node": "^24.13.2",
     "@types/vscode": "^1.125.0",
     "@vscode/vsce": "^3.9.2",

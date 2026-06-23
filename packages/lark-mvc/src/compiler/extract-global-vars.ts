@@ -181,8 +181,8 @@ function fallbackExtractVariables(source: string): string[] {
     vars.add(m[1]);
   }
 
-  const eachRegExp = /\{\{forOf\s+([a-zA-Z_$][\w$]*)\s+as/g;
-  while ((m = eachRegExp.exec(source)) !== null) {
+  const forOfRegExp = /\{\{forOf\s+([a-zA-Z_$][\w$]*)\s+as/g;
+  while ((m = forOfRegExp.exec(source)) !== null) {
     vars.add(m[1]);
   }
 

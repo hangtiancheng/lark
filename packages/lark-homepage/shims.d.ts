@@ -1,2 +1,2 @@
-/// <reference path="../node_modules/@lark.js/docs/dist/client.d.ts" />
+/// <reference types="@lark.js/docs/client" />
 /// <reference types="vite/client" />

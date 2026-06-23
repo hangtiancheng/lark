@@ -26,7 +26,7 @@
         "default": "./dist/index.js"
       },
       "require": {
-        "types": "./dist/index.d.cts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/index.cjs"
       }
     },
@@ -36,7 +36,7 @@
         "default": "./dist/compiler.js"
       },
       "require": {
-        "types": "./dist/compiler.d.cts",
+        "types": "./dist/compiler.d.ts",
         "default": "./dist/compiler.cjs"
       }
     },
@@ -46,7 +46,7 @@
         "default": "./dist/vite.js"
       },
       "require": {
-        "types": "./dist/vite.d.cts",
+        "types": "./dist/vite.d.ts",
         "default": "./dist/vite.cjs"
       }
     },
@@ -56,7 +56,7 @@
         "default": "./dist/webpack.js"
       },
       "require": {
-        "types": "./dist/webpack.d.cts",
+        "types": "./dist/webpack.d.ts",
         "default": "./dist/webpack.cjs"
       }
     },
@@ -66,7 +66,7 @@
         "default": "./dist/rspack.js"
       },
       "require": {
-        "types": "./dist/rspack.d.cts",
+        "types": "./dist/rspack.d.ts",
         "default": "./dist/rspack.cjs"
       }
     },
@@ -76,7 +76,7 @@
         "default": "./dist/runtime.js"
       },
       "require": {
-        "types": "./dist/runtime.d.cts",
+        "types": "./dist/runtime.d.ts",
         "default": "./dist/runtime.cjs"
       }
     },
@@ -86,8 +86,16 @@
         "default": "./dist/theme.js"
       },
       "require": {
-        "types": "./dist/theme/index.d.cts",
+        "types": "./dist/theme/index.d.ts",
         "default": "./dist/theme.cjs"
+      }
+    },
+    "./client": {
+      "import": {
+        "types": "./dist/client.d.ts"
+      },
+      "require": {
+        "types": "./dist/client.d.ts"
       }
     }
   },

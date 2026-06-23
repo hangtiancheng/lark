@@ -8,11 +8,7 @@
     "exactOptionalPropertyTypes": false,
     "isolatedModules": true,
     // For nodejs:
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["esnext", "DOM", "DOM.Iterable"],
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "esnext",
@@ -27,9 +23,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     // "allowJs": true,
     // File Layout
@@ -40,10 +34,7 @@
     // Recommended Options
     "strict": true,
     "target": "esnext",
-    "types": [
-      "node",
-      "vitest/globals"
-    ],
+    "types": ["node", "vitest/globals"],
     // "jsx": "react-jsx",
     "verbatimModuleSyntax": true
   },

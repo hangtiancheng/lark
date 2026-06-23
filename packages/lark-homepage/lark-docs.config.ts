@@ -18,19 +18,6 @@ export default defineConfig({
   },
   highlight: {
     theme: "github-light",
-    languages: [
-      "javascript",
-      "typescript",
-      "html",
-      "css",
-      "markdown",
-      "json",
-      "yaml",
-      "bash",
-      "sql",
-      "python",
-      "go",
-    ],
   },
   search: { provider: "local" },
 });

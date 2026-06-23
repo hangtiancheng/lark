@@ -5,7 +5,12 @@ import type { DocsRoute } from "../src/types";
 function makeRoute(
   path: string,
   title: string,
-  opts?: { sidebarPosition?: number; sidebarLabel?: string },
+  opts?: {
+    sidebarPosition?: number;
+    sidebarLabel?: string;
+    relativePath?: string;
+    isDirectoryIndex?: boolean;
+  },
 ): DocsRoute {
   return {
     path,
@@ -14,10 +19,11 @@ function makeRoute(
     pageData: {
       title,
       headings: [],
-      relativePath: "",
+      relativePath: opts?.relativePath || "",
       sidebarPosition: opts?.sidebarPosition,
       sidebarLabel: opts?.sidebarLabel,
     },
+    isDirectoryIndex: opts?.isDirectoryIndex,
   };
 }
 
@@ -40,20 +46,99 @@ describe("generateSidebar", () => {
     expect(allTexts).toContain("Plugins");
   });
 
-  it("sorts by sidebarPosition", () => {
+  it("sorts by sidebarPosition (0-based)", () => {
     const routes: DocsRoute[] = [
-      makeRoute("/docs/guide/plugins", "Plugins", { sidebarPosition: 3 }),
-      makeRoute("/docs/guide/config", "Configuration", { sidebarPosition: 1 }),
-      makeRoute("/docs/guide/intro", "Introduction", { sidebarPosition: 2 }),
+      makeRoute("/docs/guide/plugins", "Plugins", {
+        sidebarPosition: 2,
+        relativePath: "guide/plugins.md",
+      }),
+      makeRoute("/docs/guide/config", "Configuration", {
+        sidebarPosition: 0,
+        relativePath: "guide/config.md",
+      }),
+      makeRoute("/docs/guide/intro", "Introduction", {
+        sidebarPosition: 1,
+        relativePath: "guide/intro.md",
+      }),
     ];
 
     const items = generateSidebar(routes, "/docs/guide/", "/docs/");
 
-    // All items should be under a group or at root level
     const flatItems = items.flatMap((item) => item.items || [item]);
     expect(flatItems[0].text).toBe("Configuration");
     expect(flatItems[1].text).toBe("Introduction");
     expect(flatItems[2].text).toBe("Plugins");
+  });
+
+  it("sorts by filename when some sidebar_position missing", () => {
+    // config has position 0, but intro and plugins are missing position.
+    // Rule: if any missing, ignore all positions and sort by filename.
+    const routes: DocsRoute[] = [
+      makeRoute("/docs/guide/plugins", "Plugins", {
+        sidebarPosition: undefined,
+        relativePath: "guide/plugins.md",
+      }),
+      makeRoute("/docs/guide/config", "Configuration", {
+        sidebarPosition: 0,
+        relativePath: "guide/config.md",
+      }),
+      makeRoute("/docs/guide/intro", "Introduction", {
+        sidebarPosition: undefined,
+        relativePath: "guide/intro.md",
+      }),
+    ];
+
+    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const flatItems = items.flatMap((item) => item.items || [item]);
+
+    // Filename order: config, intro, plugins
+    expect(flatItems[0].text).toBe("Configuration");
+    expect(flatItems[1].text).toBe("Introduction");
+    expect(flatItems[2].text).toBe("Plugins");
+  });
+
+  it("sorts by filename when all sidebar_position missing", () => {
+    const routes: DocsRoute[] = [
+      makeRoute("/docs/guide/zebra", "Zebra", {
+        relativePath: "guide/zebra.md",
+      }),
+      makeRoute("/docs/guide/apple", "Apple", {
+        relativePath: "guide/apple.md",
+      }),
+      makeRoute("/docs/guide/mango", "Mango", {
+        relativePath: "guide/mango.md",
+      }),
+    ];
+
+    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const flatItems = items.flatMap((item) => item.items || [item]);
+
+    // Filename order: apple, mango, zebra
+    expect(flatItems[0].text).toBe("Apple");
+    expect(flatItems[1].text).toBe("Mango");
+    expect(flatItems[2].text).toBe("Zebra");
+  });
+
+  it("excludes virtual index routes from sidebar", () => {
+    const routes: DocsRoute[] = [
+      makeRoute("/docs/markdown/", "Code Highlighting", {
+        relativePath: "markdown/code-highlighting.md",
+        isDirectoryIndex: true,
+      }),
+      makeRoute("/docs/markdown/code-highlighting", "Code Highlighting", {
+        relativePath: "markdown/code-highlighting.md",
+      }),
+      makeRoute("/docs/markdown/containers", "Containers", {
+        relativePath: "markdown/containers.md",
+      }),
+    ];
+
+    const items = generateSidebar(routes, "/docs/markdown/", "/docs/");
+    const flatItems = items.flatMap((item) => item.items || [item]);
+
+    // Virtual index should not appear; only 2 real routes
+    expect(flatItems.length).toBe(2);
+    expect(flatItems.some((i) => i.link === "/docs/markdown/")).toBe(false);
   });
 
   it("uses sidebarLabel when available", () => {

@@ -84,13 +84,24 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
   // Each .md is compiled by the bundler plugin (larkDocsPlugin) into a module
   // exporting { pageData, contentHtml }. The layout view calls loadContent()
   // on navigation to fetch the matching page.
+  //
+  // Both the canonical path and its trailing/non-trailing slash aliases are
+  // added so that "/docs/guide/config" and "/docs/guide/config/" both work.
   const loaderEntries = routes
-    .map(
-      (r) =>
-        `// @ts-ignore
-      ${JSON.stringify(r.path)}: () => import(${JSON.stringify(r.filePath)}),`,
-    )
+    .flatMap((r) => {
+      const paths = [r.path, ...(r.aliases || [])];
+      return paths.map(
+        (p) =>
+          `${JSON.stringify(p)}: () => import(${JSON.stringify(r.filePath)}),`,
+      );
+    })
     .join("\n");
+
+  // Canonical paths of real content routes (excluding virtual index routes
+  // and aliases). Used by getSearchIndex() to avoid duplicate search entries.
+  const searchablePaths = routes
+    .filter((r) => !r.isDirectoryIndex)
+    .map((r) => r.path);
 
   // Compose runtime docsConfig. searchIndex is NOT included here — it is
   // lazily built at runtime by getSearchIndex() (loading all .md modules on
@@ -107,6 +118,7 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
   const fileContent = ejs.render(fileContentTemplate, {
     generatedAt: new Date().toISOString(),
     loaderEntries,
+    searchablePathsJson: JSON.stringify(searchablePaths),
     docsConfigJson: JSON.stringify(runtimeConfig, null, 2),
   });
 

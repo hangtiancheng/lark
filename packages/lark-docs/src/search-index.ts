@@ -15,7 +15,7 @@ import type { DocsRoute, SearchEntry } from "./types";
  */
 export function buildSearchIndex(routes: DocsRoute[]): SearchEntry[] {
   return routes
-    .filter((r) => !r.pageData.draft)
+    .filter((r) => !r.pageData.draft && !r.isDirectoryIndex)
     .map((route) => ({
       title: route.pageData.title,
       link: route.path,

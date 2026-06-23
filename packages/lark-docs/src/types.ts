@@ -162,6 +162,18 @@ export interface DocsRoute {
   filePath: string;
   /** Extracted page metadata. */
   pageData: PageData;
+  /**
+   * Additional paths that resolve to the same content (trailing/non-trailing
+   * slash variants). Each alias is added to the loaders map so that both
+   * "/docs/guide/config" and "/docs/guide/config/" serve the same page.
+   */
+  aliases?: string[];
+  /**
+   * True for virtual index routes generated for directories that have no
+   * index.md. These routes point to the first page (by sidebar_position or
+   * filename order) and are excluded from the sidebar to avoid duplicates.
+   */
+  isDirectoryIndex?: boolean;
 }
 
 // ============================================================

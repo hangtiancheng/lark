@@ -27,13 +27,19 @@ export const routes = Object.fromEntries(
 
 export const docsConfig = <%- docsConfigJson %>;
 
+// Canonical content paths — excludes trailing-slash aliases and virtual
+// index routes so the search index has no duplicate entries.
+const _searchablePaths = new Set(<%- searchablePathsJson %>);
+
 // Search index — lazily built on first search by loading all .md modules
 // and extracting pageData. This avoids serializing a large searchIndex
 // (every page's title + all headings + excerpt) into this generated file.
 let _searchIndex = null;
 export async function getSearchIndex() {
   if (_searchIndex) return _searchIndex;
-  const entries = Object.entries(loaders);
+  const entries = Object.entries(loaders).filter(([k]) =>
+    _searchablePaths.has(k),
+  );
   const mods = await Promise.all(entries.map(([, loader]) => loader()));
   _searchIndex = mods.map((mod, i) => {
     const link = entries[i][0];

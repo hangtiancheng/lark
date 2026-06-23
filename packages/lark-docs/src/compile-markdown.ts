@@ -75,9 +75,15 @@ export async function compileMarkdown(
 
   const headings = extractHeadings(content);
 
+  // Description defaults to the derived title (filename or directory name)
+  // when frontmatter description is missing.
+  const description =
+    (frontmatter["description"] as string) ||
+    deriveTitleFromPath(relativeFilePath);
+
   const pageData = {
     title,
-    description: (frontmatter["description"] as string) || "",
+    description,
     sidebarPosition: frontmatter["sidebar_position"] as number | undefined,
     sidebarLabel: (frontmatter["sidebar_label"] as string) || undefined,
     sidebarGroup: (frontmatter["sidebar_group"] as string) || undefined,

@@ -5,6 +5,7 @@
  * then alphabetically, and produces a SidebarItem[] tree.
  */
 import type { DocsRoute, SidebarItem } from "./types";
+import { sortDocsRoutes } from "./utils/route-sorting";
 
 /**
  * Auto-generate sidebar items for routes under a given prefix.
@@ -21,8 +22,10 @@ export function generateSidebar(
   baseUrl: string,
 ): SidebarItem[] {
   const normalizedPrefix = normalizePrefix(baseUrl, prefix);
-  const prefixRoutes = routes.filter((r) =>
-    r.path.startsWith(normalizedPrefix),
+  // Exclude virtual index routes (directories without index.md) — they
+  // duplicate the first page's content and should not appear in the sidebar.
+  const prefixRoutes = routes.filter(
+    (r) => r.path.startsWith(normalizedPrefix) && !r.isDirectoryIndex,
   );
 
   // Group by subdirectory
@@ -76,14 +79,8 @@ function normalizePrefix(_baseUrl: string, prefix: string): string {
   return prefix.replace(/\/+$/, "") + "/";
 }
 
-function sortRoutes(routes: DocsRoute[]): void {
-  routes.sort((a, b) => {
-    const posA = a.pageData.sidebarPosition ?? 999;
-    const posB = b.pageData.sidebarPosition ?? 999;
-    if (posA !== posB) return posA - posB;
-    return a.pageData.title.localeCompare(b.pageData.title);
-  });
-}
+// Re-export the shared sorting function under the local name used below.
+const sortRoutes = sortDocsRoutes;
 
 function formatGroupLabel(key: string): string {
   return key

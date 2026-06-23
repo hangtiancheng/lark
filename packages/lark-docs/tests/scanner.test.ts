@@ -51,12 +51,21 @@ describe("scanDocsDir", () => {
     try {
       const routes = scanDocsDir(dir, "/docs/");
 
-      expect(routes.length).toBe(4);
+      // 5 routes: root index, guide index, guide/config, api/router,
+      // plus a virtual index for api/ (no api/index.md)
+      expect(routes.length).toBe(5);
       const paths = routes.map((r) => r.path).sort();
       expect(paths).toContain("/docs/");
       expect(paths).toContain("/docs/guide/");
       expect(paths).toContain("/docs/guide/config");
       expect(paths).toContain("/docs/api/router");
+      expect(paths).toContain("/docs/api/");
+
+      // The virtual index for api/ should point to router.md's content
+      const apiIndex = routes.find((r) => r.path === "/docs/api/");
+      expect(apiIndex).toBeDefined();
+      expect(apiIndex!.isDirectoryIndex).toBe(true);
+      expect(apiIndex!.filePath).toMatch(/router\.md$/);
     } finally {
       cleanup(dir);
     }
@@ -101,10 +110,14 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      expect(routes.length).toBe(1);
-      expect(routes[0].pageData.title).toBe("Test Page");
-      expect(routes[0].pageData.description).toBe("A test");
-      expect(routes[0].pageData.sidebarPosition).toBe(2);
+      // 2 routes: test.md + virtual index /docs/ (root has no index.md)
+      expect(routes.length).toBe(2);
+
+      const testRoute = routes.find((r) => r.path === "/docs/test");
+      expect(testRoute).toBeDefined();
+      expect(testRoute!.pageData.title).toBe("Test Page");
+      expect(testRoute!.pageData.description).toBe("A test");
+      expect(testRoute!.pageData.sidebarPosition).toBe(2);
     } finally {
       cleanup(dir);
     }
@@ -180,8 +193,11 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/", { excludeDrafts: true });
-      expect(routes.length).toBe(1);
-      expect(routes[0].pageData.title).toBe("Published");
+      // 2 routes: published.md + virtual index /docs/ (root has no index.md)
+      expect(routes.length).toBe(2);
+      const published = routes.find((r) => r.path === "/docs/published");
+      expect(published).toBeDefined();
+      expect(published!.pageData.title).toBe("Published");
     } finally {
       cleanup(dir);
     }
@@ -273,5 +289,279 @@ describe("scanDocsDir", () => {
   it("returns empty array for non-existent directory", () => {
     const routes = scanDocsDir("/non/existent/path", "/docs/");
     expect(routes).toEqual([]);
+  });
+
+  // ============================================================
+  // Trailing slash alias tests
+  // ============================================================
+
+  it("generates trailing slash aliases for non-index routes", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "ch1.md": "# Chapter 1\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      const ch1 = routes.find((r) => r.path === "/docs/ch1");
+      expect(ch1).toBeDefined();
+      expect(ch1!.aliases).toContain("/docs/ch1/");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("generates non-trailing slash aliases for index routes", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "guide/index.md": "# Guide\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      const rootIndex = routes.find((r) => r.path === "/docs/");
+      expect(rootIndex).toBeDefined();
+      expect(rootIndex!.aliases).toContain("/docs");
+
+      const guideIndex = routes.find((r) => r.path === "/docs/guide/");
+      expect(guideIndex).toBeDefined();
+      expect(guideIndex!.aliases).toContain("/docs/guide");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("generates aliases for virtual index routes", () => {
+    const dir = createTempDocs({
+      "markdown/ch1.md": "# Ch1\n",
+      "markdown/ch2.md": "# Ch2\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      expect(virtualIndex).toBeDefined();
+      expect(virtualIndex!.isDirectoryIndex).toBe(true);
+      expect(virtualIndex!.aliases).toContain("/docs/markdown");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  // ============================================================
+  // Virtual index route tests
+  // ============================================================
+
+  it("creates virtual index for flat directory without root index.md", () => {
+    const dir = createTempDocs({
+      "ch1.md": "# Chapter 1\n",
+      "ch2.md": "# Chapter 2\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      // 3 routes: ch1, ch2, virtual index /docs/
+      expect(routes.length).toBe(3);
+
+      const virtualIndex = routes.find((r) => r.path === "/docs/");
+      expect(virtualIndex).toBeDefined();
+      expect(virtualIndex!.isDirectoryIndex).toBe(true);
+      // Should point to ch1.md (first alphabetically)
+      expect(virtualIndex!.filePath).toMatch(/ch1\.md$/);
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("creates virtual index for subdirectory without index.md", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "markdown/code-highlighting.md": "# Code\n",
+      "markdown/containers.md": "# Containers\n",
+      "markdown/frontmatter.md": "# Frontmatter\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      // Virtual index for markdown/ pointing to first page (alphabetical)
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      expect(virtualIndex).toBeDefined();
+      expect(virtualIndex!.isDirectoryIndex).toBe(true);
+      expect(virtualIndex!.filePath).toMatch(/code-highlighting\.md$/);
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("does not create virtual index when directory has index.md", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "guide/index.md": "# Guide\n",
+      "guide/config.md": "# Config\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      // No virtual index for guide/ — it has guide/index.md
+      const virtualIndex = routes.find(
+        (r) => r.isDirectoryIndex && r.path === "/docs/guide/",
+      );
+      expect(virtualIndex).toBeUndefined();
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("virtual index picks first page by sidebar_position when all have it", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "markdown/alpha.md": "---\nsidebar_position: 2\n---\n# Alpha\n",
+      "markdown/beta.md": "---\nsidebar_position: 0\n---\n# Beta\n",
+      "markdown/gamma.md": "---\nsidebar_position: 1\n---\n# Gamma\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      expect(virtualIndex).toBeDefined();
+      // beta.md has position 0 (lowest)
+      expect(virtualIndex!.filePath).toMatch(/beta\.md$/);
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("virtual index falls back to filename order when some sidebar_position missing", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "markdown/zebra.md": "---\nsidebar_position: 0\n---\n# Zebra\n",
+      "markdown/apple.md": "# Apple\n",
+      "markdown/mango.md": "# Mango\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      expect(virtualIndex).toBeDefined();
+      // apple.md comes first alphabetically (positions ignored because
+      // apple.md and mango.md are missing sidebar_position)
+      expect(virtualIndex!.filePath).toMatch(/apple\.md$/);
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  // ============================================================
+  // Metadata default tests
+  // ============================================================
+
+  it("defaults description to derived title when frontmatter missing", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "getting-started.md": "# Getting Started\n\nContent.",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+      const gs = routes.find((r) => r.path === "/docs/getting-started");
+      expect(gs).toBeDefined();
+      expect(gs!.pageData.description).toBe("Getting Started");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("defaults description to directory name for index.md", () => {
+    const dir = createTempDocs({
+      "index.md": "# Home\n",
+      "guide/index.md": "# Guide\n\nContent.",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+      const guide = routes.find((r) => r.path === "/docs/guide/");
+      expect(guide).toBeDefined();
+      expect(guide!.pageData.description).toBe("Guide");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  // ============================================================
+  // Integration test: user's exact directory structure
+  // ============================================================
+
+  it("handles the full docs directory structure from the requirement", () => {
+    const dir = createTempDocs({
+      "index.md": "---\ntitle: Home\n---\n# Home\n",
+      "api/index.md": "---\ntitle: API\n---\n# API\n",
+      "app/boot.ts": "// non-md file\n",
+      "app/index.html": "<html></html>",
+      "app/main.css": "body {}",
+      "get-started/index.md":
+        "---\ntitle: Get Started\nsidebar_position: 0\n---\n# Get Started\n",
+      "get-started/configuration.md":
+        "---\ntitle: Configuration\nsidebar_position: 1\n---\n# Configuration\n",
+      "markdown/code-highlighting.md": "# Code Highlighting\n",
+      "markdown/containers.md": "# Containers\n",
+      "markdown/frontmatter.md": "# Frontmatter\n",
+      "router/index.md": "---\ntitle: Router\n---\n# Router\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/docs/");
+      const allPaths = routes.map((r) => r.path);
+
+      // Every route should have a trailing-slash alias
+      for (const route of routes) {
+        expect(route.aliases).toBeDefined();
+        expect(route.aliases!.length).toBeGreaterThan(0);
+      }
+
+      // Root index: /docs/ and /docs
+      expect(allPaths).toContain("/docs/");
+      const rootIndex = routes.find((r) => r.path === "/docs/");
+      expect(rootIndex!.aliases).toContain("/docs");
+
+      // api/ has index.md: /docs/api/ and /docs/api
+      expect(allPaths).toContain("/docs/api/");
+      const apiIndex = routes.find((r) => r.path === "/docs/api/");
+      expect(apiIndex!.aliases).toContain("/docs/api");
+      expect(apiIndex!.isDirectoryIndex).toBeUndefined();
+
+      // get-started/ has index.md
+      expect(allPaths).toContain("/docs/get-started/");
+      expect(allPaths).toContain("/docs/get-started/configuration");
+
+      // markdown/ has NO index.md → virtual index pointing to first page
+      expect(allPaths).toContain("/docs/markdown/");
+      const markdownIndex = routes.find((r) => r.path === "/docs/markdown/");
+      expect(markdownIndex!.isDirectoryIndex).toBe(true);
+      expect(markdownIndex!.aliases).toContain("/docs/markdown");
+      // First page alphabetically: code-highlighting.md
+      expect(markdownIndex!.filePath).toMatch(/code-highlighting\.md$/);
+
+      // Individual markdown pages
+      expect(allPaths).toContain("/docs/markdown/code-highlighting");
+      expect(allPaths).toContain("/docs/markdown/containers");
+      expect(allPaths).toContain("/docs/markdown/frontmatter");
+
+      // router/ has index.md
+      expect(allPaths).toContain("/docs/router/");
+
+      // app/ and build/ (empty or non-md) should NOT produce routes
+      expect(allPaths.filter((p) => p.includes("/app"))).toHaveLength(0);
+      expect(allPaths.filter((p) => p.includes("/build"))).toHaveLength(0);
+    } finally {
+      cleanup(dir);
+    }
   });
 });

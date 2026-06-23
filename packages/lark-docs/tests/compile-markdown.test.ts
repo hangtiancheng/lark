@@ -94,6 +94,27 @@ Content here.
     expect(result).toContain('"title": "Guide"');
   });
 
+  it("defaults description to derived title when frontmatter missing", async () => {
+    const source = "# Getting Started\n\nContent.";
+    const result = await compileMarkdown(source, {
+      config: baseConfig,
+      filePath: "docs/getting-started.md",
+    });
+
+    // Description should default to derived title from filename
+    expect(result).toContain('"description": "Getting Started"');
+  });
+
+  it("defaults description to directory name for index.md", async () => {
+    const source = "# Guide\n\nContent.";
+    const result = await compileMarkdown(source, {
+      config: baseConfig,
+      filePath: "docs/guide/index.md",
+    });
+
+    expect(result).toContain('"description": "Guide"');
+  });
+
   it("uses 'Home' for root index.md without heading or frontmatter", async () => {
     const source = "Content without heading.";
     const result = await compileMarkdown(source, {

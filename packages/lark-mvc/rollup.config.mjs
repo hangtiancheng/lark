@@ -1,7 +1,6 @@
 // @ts-check
 
 import { readFileSync, rmSync, mkdirSync, copyFileSync } from "node:fs";
-import { basename } from "node:path";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import typescript from "@rollup/plugin-typescript";
@@ -23,15 +22,15 @@ const peerDeps = Object.keys(
 // plugin entries (vite/webpack/rspack) depend on Node.js built-ins and must
 // not be wrapped in a browser-targeted UMD/AMD format.
 const /** @type{({ name: string, external: boolean, umd: boolean }[])} */ entries =
-    [
-      { name: "index", external: true, umd: true },
-      { name: "compiler", external: false, umd: false },
-      { name: "webpack", external: false, umd: false },
-      { name: "rspack", external: false, umd: false },
-      { name: "vite", external: false, umd: false },
-      { name: "runtime", external: true, umd: true },
-      { name: "devtool", external: true, umd: false },
-    ];
+  [
+    { name: "index", external: true, umd: true },
+    { name: "compiler", external: false, umd: false },
+    { name: "webpack", external: false, umd: false },
+    { name: "rspack", external: false, umd: false },
+    { name: "vite", external: false, umd: false },
+    { name: "runtime", external: true, umd: true },
+    { name: "devtool", external: true, umd: false },
+  ];
 
 /** Externalize deps/peerDeps except @babel packages when the entry bundles them. */
 
@@ -117,7 +116,12 @@ const baseOutputConfigs = [
 ];
 
 // Browser formats — only for entries that don't depend on Node.js built-ins.
-const umdOutputConfigs = [
+// `name` is the entry name (e.g. "index", "runtime"). rollup's `output.amd.id`
+// accepts a STRING ONLY — passing a function makes rollup serialize the function
+// source via String(fn) and emit it verbatim as the AMD module ID, producing a
+// broken `define('(_chunk, outputOptions) => { ... }', ...)` call that no AMD
+// loader can resolve. So we compute the static ID per entry here instead.
+const umdOutputConfigs = (/** @type {string} */ name) => [
   {
     file: "dist/[name].umd.js",
     format: "umd",
@@ -131,17 +135,8 @@ const umdOutputConfigs = [
     exports: "named",
     globals: umdGlobals,
     amd: {
-      /**
-       * Derive AMD module ID from the output file name,
-       * e.g. dist/index.amd.js -> "lark-mvc/index".
-       * @param {import("rollup").RenderedChunk} _chunk
-       * @param {import("rollup").NormalizedOutputOptions} outputOptions
-       * @returns {string}
-       */
-      id: (_chunk, outputOptions) => {
-        const file = outputOptions.file ?? "";
-        return `lark-mvc/${basename(file, ".amd.js") || "index"}`;
-      },
+      // Derive AMD module ID from the entry name, e.g. "index" -> "lark-mvc/index".
+      id: `lark-mvc/${name}`,
     },
   },
 ];
@@ -151,49 +146,49 @@ const cjsShimsEntries = new Set(["vite", "webpack", "rspack"]);
 
 // --- JS bundles (ESM + CJS + optional UMD/AMD) ---
 const /** @type {import("rollup").OutputOptions[]} */ jsConfigs = entries.map(
-    ({ name, external, umd }) => {
-      const outputs = umd
-        ? [...baseOutputConfigs, ...umdOutputConfigs]
-        : baseOutputConfigs;
-      return {
-        input: `src/${name}.ts`,
-        output: outputs.map((o) => ({
-          ...o,
-          file: o.file.replace("[name]", name),
-        })),
-        external: makeExternal(external),
-        plugins: [
-          prebuildPlugin(),
-          resolve(),
-          commonjs(),
-          typescript({ tsconfig: "./tsconfig.build.json" }),
-          ...(cjsShimsEntries.has(name) ? [cjsShims()] : []),
-        ],
-      };
-    },
-  );
+  ({ name, external, umd }) => {
+    const outputs = umd
+      ? [...baseOutputConfigs, ...umdOutputConfigs(name)]
+      : baseOutputConfigs;
+    return {
+      input: `src/${name}.ts`,
+      output: outputs.map((o) => ({
+        ...o,
+        file: o.file.replace("[name]", name),
+      })),
+      external: makeExternal(external),
+      plugins: [
+        prebuildPlugin(),
+        resolve(),
+        commonjs(),
+        typescript({ tsconfig: "./tsconfig.build.json" }),
+        ...(cjsShimsEntries.has(name) ? [cjsShims()] : []),
+      ],
+    };
+  },
+);
 
 // --- Type declarations (.d.ts for ESM consumers) ---
 const /** @type {import("rollup").RollupOptions[]} */ dtsConfigs = entries.map(
-    ({ name }) => ({
-      input: `src/${name}.ts`,
-      output: {
-        file: `dist/${name}.d.ts`,
-        format: "es",
-      },
-      plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
-    }),
-  );
+  ({ name }) => ({
+    input: `src/${name}.ts`,
+    output: {
+      file: `dist/${name}.d.ts`,
+      format: "es",
+    },
+    plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
+  }),
+);
 
 // --- Type declarations (.d.cts for CJS consumers) ---
 const /** @type {import("rollup").RollupOptions[]} */ dtsCjsConfigs =
-    entries.map(({ name }) => ({
-      input: `src/${name}.ts`,
-      output: {
-        file: `dist/${name}.d.cts`,
-        format: "es",
-      },
-      plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
-    }));
+  entries.map(({ name }) => ({
+    input: `src/${name}.ts`,
+    output: {
+      file: `dist/${name}.d.cts`,
+      format: "es",
+    },
+    plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
+  }));
 
 export default defineConfig([...jsConfigs, ...dtsConfigs, ...dtsCjsConfigs]);

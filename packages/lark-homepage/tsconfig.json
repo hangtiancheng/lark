@@ -1,19 +1,30 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
+    "exactOptionalPropertyTypes": false,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
+    "lib": ["esnext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
+    "moduleDetection": "force",
     "moduleResolution": "bundler",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedSideEffectImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022",
+    "target": "esnext",
     "paths": {
       "@/*": ["./src/*"],
-      "@lark-docs/generated": ["./.lark-docs/generated/index"]
-    }
+      "@lark-docs/generated/*": ["./.lark-docs/generated/*"]
+    },
+    "verbatimModuleSyntax": true
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts", "**/*.d.ts"]
 }

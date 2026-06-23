@@ -2,7 +2,9 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
+    "esModuleInterop": true,
     "exactOptionalPropertyTypes": false,
+    "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "lib": ["esnext", "DOM", "DOM.Iterable"],
     "module": "esnext",
@@ -19,6 +21,7 @@
       "@lark-docs/generated/*": ["./.lark-docs/generated/*"],
       "@lark.js/docs/*": ["./src/*"]
     },
+    "resolveJsonModule": true,
     "rootDir": "./",
     "skipLibCheck": true,
     "sourceMap": true,

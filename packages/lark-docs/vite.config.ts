@@ -135,10 +135,13 @@ function libConfig(): UserConfig {
       {
         name: "cjs-shims",
         renderChunk(code, _chunk, outputOptions) {
-          if (outputOptions.format === "es") {
-            return CJS_SHIMS + "\n" + code;
-          }
-          return null;
+          if (outputOptions.format !== "es") return null;
+          // Only inject __filename/__dirname shims when the chunk actually
+          // references them (webpack.ts and rspack.ts use __filename as a
+          // loader self-reference). Browser-targeted chunks (theme, runtime,
+          // index) must not import Node.js built-in modules (url, path).
+          if (!/\b__(?:filename|dirname)\b/.test(code)) return null;
+          return CJS_SHIMS + "\n" + code;
         },
       },
       dts({

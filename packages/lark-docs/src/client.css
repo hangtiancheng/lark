@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-@plugin "daisyui";
 @plugin "@tailwindcss/typography";
 
 /* Scan theme templates for Tailwind class names */
@@ -13,8 +12,6 @@
     light --default,
     dark --prefersdark;
 }
-
-@plugin "@tailwindcss/typography";
 
 /* Override daisyUI input/textarea focus styles to use a subtle border */
 .input:focus,

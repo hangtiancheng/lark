@@ -4,12 +4,11 @@
  * Walks the filesystem to discover .md files, extracts frontmatter
  * and headings from each, and produces DocsRoute entries.
  *
- * Routing rules:
+ * Routing rules (no trailing slashes):
  * - Files/dirs starting with `_` or `.` are skipped
- * - `index.md` maps to the directory root (e.g. `/guide/`)
- * - Other `.md` files map to their stem (e.g. `/guide/config`)
- * - Every route gets a trailing/non-trailing slash alias so both
- *   `/guide/config` and `/guide/config/` resolve to the same page.
+ * - `index.md` maps to the directory path without trailing slash
+ *   (e.g. root index → "/docs", subdir index → "/docs/guide")
+ * - Other `.md` files map to their stem (e.g. "/docs/guide/config")
  * - Directories without `index.md` get a virtual index route that
  *   points to the first page (by sidebar_position or filename order).
  * - Files with `draft: true` in frontmatter are excluded when `excludeDrafts` is set
@@ -50,7 +49,8 @@ export function scanDocsDir(
   options?: { excludeDrafts?: boolean },
 ): DocsRoute[] {
   const routes: DocsRoute[] = [];
-  const normalizedBase = normalizeBase(baseUrl);
+  const base = normalizeBase(baseUrl); // "/lark-cli" or "/"
+  const effectiveBase = base === "/" ? "" : base;
 
   // Track directory info for virtual index route generation.
   // Key: directory prefix (e.g. "", "/guide", "/markdown").
@@ -86,9 +86,11 @@ export function scanDocsDir(
 
       const stem = entry.name.replace(/\.md$/, "");
       const isIndex = stem === "index";
-      const routePath = isIndex ? `${prefix}/` : `${prefix}/${stem}`;
-      const fullRoutePath = normalizedBase + routePath.replace(/^\//, "");
-      const viewId = generateViewId(routePath);
+      // routeSegment: "" for root index, "/guide" for subdir index,
+      // "/ch1" for root file, "/guide/config" for subdir file
+      const routeSegment = isIndex ? prefix : `${prefix}/${stem}`;
+      const fullRoutePath = effectiveBase + routeSegment || "/";
+      const viewId = generateViewId(routeSegment, isIndex);
 
       // Read and parse
       const raw = fs.readFileSync(fullPath, "utf-8");
@@ -137,7 +139,7 @@ export function scanDocsDir(
 
   // Generate virtual index routes for directories without index.md.
   // These routes point to the first page (by sidebar_position or filename)
-  // so that /docs/markdown/ serves content even without markdown/index.md.
+  // so that /docs/markdown serves content even without markdown/index.md.
   for (const [prefix, info] of dirInfoMap) {
     if (info.hasIndex) continue;
     if (info.children.length === 0) continue;
@@ -145,12 +147,12 @@ export function scanDocsDir(
     const firstRoute = getFirstRoute(info.children);
     if (!firstRoute) continue;
 
-    const routePath = `${prefix}/`;
-    const fullRoutePath = normalizedBase + routePath.replace(/^\//, "");
+    const routeSegment = prefix; // treated as index
+    const fullRoutePath = effectiveBase + routeSegment || "/";
 
     const virtualRoute: DocsRoute = {
       path: fullRoutePath,
-      viewId: generateViewId(routePath),
+      viewId: generateViewId(routeSegment, true),
       filePath: firstRoute.filePath,
       pageData: firstRoute.pageData,
       isDirectoryIndex: true,
@@ -159,48 +161,32 @@ export function scanDocsDir(
     routes.push(virtualRoute);
   }
 
-  // Generate trailing/non-trailing slash aliases for all routes.
-  for (const route of routes) {
-    route.aliases = generateAliases(route.path);
-  }
-
   return routes;
 }
 
+/**
+ * Normalize baseUrl to NOT have a trailing slash.
+ * "/lark-cli/" → "/lark-cli", "/docs/" → "/docs", "/" → "/"
+ */
 function normalizeBase(baseUrl: string): string {
   const trimmed = baseUrl.replace(/\/+$/, "");
-  return trimmed ? trimmed + "/" : "/";
+  return trimmed || "/";
 }
 
 /**
- * Generate the trailing/non-trailing slash alias for a route path.
+ * Generate a unique view ID from the route segment and index flag.
  *
- * - "/docs/guide/config" → ["/docs/guide/config/"]
- * - "/docs/guide/"       → ["/docs/guide"]
- * - "/docs/"             → ["/docs"]
- * - "/"                  → []  (empty alias skipped)
+ * - Root index (segment="") → "index"
+ * - Subdir index (segment="/guide") → "guide-index"
+ * - Regular file (segment="/guide/config") → "guide-config"
  */
-function generateAliases(routePath: string): string[] {
-  const aliases: string[] = [];
-
-  if (routePath.endsWith("/")) {
-    const alias = routePath.replace(/\/+$/, "");
-    if (alias && alias !== routePath) {
-      aliases.push(alias);
-    }
-  } else {
-    aliases.push(routePath + "/");
+function generateViewId(routeSegment: string, isIndex: boolean): string {
+  const id = routeSegment
+    .replace(/^\//, "")
+    .replace(/\//g, "-")
+    .replace(/[^a-zA-Z0-9-]/g, "");
+  if (isIndex) {
+    return id ? `${id}-index` : "index";
   }
-
-  return aliases;
-}
-
-function generateViewId(routePath: string): string {
-  return (
-    routePath
-      .replace(/^\//, "")
-      .replace(/\/$/, "-index")
-      .replace(/\//g, "-")
-      .replace(/[^a-zA-Z0-9-]/g, "") || "index"
-  );
+  return id || "index";
 }

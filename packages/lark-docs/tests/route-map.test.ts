@@ -4,7 +4,7 @@ import type { DocsRoute } from "../src/types";
 
 const mockRoutes: DocsRoute[] = [
   {
-    path: "/docs/",
+    path: "/docs",
     viewId: "docs-index",
     filePath: "/project/docs/index.md",
     pageData: {
@@ -14,7 +14,7 @@ const mockRoutes: DocsRoute[] = [
     },
   },
   {
-    path: "/docs/guide/",
+    path: "/docs/guide",
     viewId: "docs-guide-index",
     filePath: "/project/docs/guide/index.md",
     pageData: {
@@ -40,8 +40,8 @@ describe("generateRouteMap", () => {
     const map = generateRouteMap(mockRoutes);
 
     expect(map).toEqual({
-      "/docs/": "docs-index",
-      "/docs/guide/": "docs-guide-index",
+      "/docs": "docs-index",
+      "/docs/guide": "docs-guide-index",
       "/docs/guide/config": "docs-guide-config",
     });
   });

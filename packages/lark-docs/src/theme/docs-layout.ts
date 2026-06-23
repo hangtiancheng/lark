@@ -77,7 +77,10 @@ export function createDocsLayoutView(
             path: string,
           ) => Promise<{ pageData: PageData; contentHtml: string } | null>)
         | undefined;
-      const path = Router.parse().path || docsConfig.baseUrl || "/docs/";
+      const rawPath = Router.parse().path || docsConfig.baseUrl || "/";
+      // Normalize trailing slashes to match route keys (which never have
+      // trailing slashes). "/docs/ch1/" → "/docs/ch1".
+      const path = rawPath.replace(/\/+$/, "") || "/";
 
       const sig = this.signature;
       let content: {

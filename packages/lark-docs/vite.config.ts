@@ -12,7 +12,7 @@ import {
   type LibraryFormats,
   type PluginOption,
   type UserConfig,
-  type Rollup
+  type Rollup,
 } from "vite";
 import dts from "vite-plugin-dts";
 import { resolve } from "node:path";

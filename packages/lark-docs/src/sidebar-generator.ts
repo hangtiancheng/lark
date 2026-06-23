@@ -24,9 +24,14 @@ export function generateSidebar(
   const normalizedPrefix = normalizePrefix(baseUrl, prefix);
   // Exclude virtual index routes (directories without index.md) — they
   // duplicate the first page's content and should not appear in the sidebar.
-  const prefixRoutes = routes.filter(
-    (r) => r.path.startsWith(normalizedPrefix) && !r.isDirectoryIndex,
-  );
+  // Match routes that equal the prefix or start with prefix + "/".
+  const prefixRoutes = routes.filter((r) => {
+    if (r.isDirectoryIndex) return false;
+    if (!normalizedPrefix) return true; // root prefix matches all
+    return (
+      r.path === normalizedPrefix || r.path.startsWith(normalizedPrefix + "/")
+    );
+  });
 
   // Group by subdirectory
   const groups = new Map<string, DocsRoute[]>();
@@ -74,9 +79,9 @@ export function generateSidebar(
 }
 
 function normalizePrefix(_baseUrl: string, prefix: string): string {
-  // prefix already includes the baseUrl (e.g. "/docs/get-started/"),
-  // so we only normalize trailing slashes — no concatenation needed.
-  return prefix.replace(/\/+$/, "") + "/";
+  // Strip trailing slashes so prefix matching works with non-trailing-slash
+  // route paths. e.g. "/docs/get-started/" → "/docs/get-started"
+  return prefix.replace(/\/+$/, "");
 }
 
 // Re-export the shared sorting function under the local name used below.

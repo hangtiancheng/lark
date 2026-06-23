@@ -23,7 +23,9 @@ export function createSidebarView(View: typeof ViewClass, template: unknown) {
       const docsConfig: DocsConfig = (State.get("docsConfig") ||
         {}) as DocsConfig;
       const sidebar = docsConfig.sidebar || {};
-      const currentPath = Router.parse().path || "";
+      // Normalize trailing slashes for consistent active-item matching.
+      const currentPath =
+        (Router.parse().path || "").replace(/\/+$/, "") || "/";
 
       // Flatten sidebar groups into sidebarGroups array for the template.
       // Each prefix becomes a group; nested SidebarItem trees are preserved

@@ -30,7 +30,7 @@ function makeRoute(
 describe("generateSidebar", () => {
   it("generates sidebar items from routes", () => {
     const routes: DocsRoute[] = [
-      makeRoute("/docs/guide/", "Guide Home"),
+      makeRoute("/docs/guide", "Guide Home"),
       makeRoute("/docs/guide/config", "Configuration"),
       makeRoute("/docs/guide/plugins", "Plugins"),
     ];
@@ -121,7 +121,7 @@ describe("generateSidebar", () => {
 
   it("excludes virtual index routes from sidebar", () => {
     const routes: DocsRoute[] = [
-      makeRoute("/docs/markdown/", "Code Highlighting", {
+      makeRoute("/docs/markdown", "Code Highlighting", {
         relativePath: "markdown/code-highlighting.md",
         isDirectoryIndex: true,
       }),
@@ -138,7 +138,7 @@ describe("generateSidebar", () => {
 
     // Virtual index should not appear; only 2 real routes
     expect(flatItems.length).toBe(2);
-    expect(flatItems.some((i) => i.link === "/docs/markdown/")).toBe(false);
+    expect(flatItems.some((i) => i.link === "/docs/markdown")).toBe(false);
   });
 
   it("uses sidebarLabel when available", () => {

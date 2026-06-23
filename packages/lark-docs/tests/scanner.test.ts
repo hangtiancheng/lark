@@ -32,7 +32,7 @@ describe("scanDocsDir", () => {
       expect(routes.length).toBe(3);
 
       const paths = routes.map((r) => r.path).sort();
-      expect(paths).toContain("/docs/");
+      expect(paths).toContain("/docs");
       expect(paths).toContain("/docs/getting-started");
       expect(paths).toContain("/docs/config");
     } finally {
@@ -55,14 +55,14 @@ describe("scanDocsDir", () => {
       // plus a virtual index for api/ (no api/index.md)
       expect(routes.length).toBe(5);
       const paths = routes.map((r) => r.path).sort();
-      expect(paths).toContain("/docs/");
-      expect(paths).toContain("/docs/guide/");
+      expect(paths).toContain("/docs");
+      expect(paths).toContain("/docs/guide");
       expect(paths).toContain("/docs/guide/config");
       expect(paths).toContain("/docs/api/router");
-      expect(paths).toContain("/docs/api/");
+      expect(paths).toContain("/docs/api");
 
       // The virtual index for api/ should point to router.md's content
-      const apiIndex = routes.find((r) => r.path === "/docs/api/");
+      const apiIndex = routes.find((r) => r.path === "/docs/api");
       expect(apiIndex).toBeDefined();
       expect(apiIndex!.isDirectoryIndex).toBe(true);
       expect(apiIndex!.filePath).toMatch(/router\.md$/);
@@ -81,7 +81,7 @@ describe("scanDocsDir", () => {
     try {
       const routes = scanDocsDir(dir, "/docs/");
       expect(routes.length).toBe(1);
-      expect(routes[0].path).toBe("/docs/");
+      expect(routes[0].path).toBe("/docs");
     } finally {
       cleanup(dir);
     }
@@ -110,7 +110,7 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      // 2 routes: test.md + virtual index /docs/ (root has no index.md)
+      // 2 routes: test.md + virtual index /docs (root has no index.md)
       expect(routes.length).toBe(2);
 
       const testRoute = routes.find((r) => r.path === "/docs/test");
@@ -130,7 +130,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      const headings = routes[0].pageData.headings;
+      const testRoute = routes.find((r) => r.path === "/docs/test");
+      const headings = testRoute!.pageData.headings;
 
       expect(headings).toHaveLength(3);
       expect(headings[0]).toEqual({
@@ -161,7 +162,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      const headings = routes[0].pageData.headings;
+      const testRoute = routes.find((r) => r.path === "/docs/test");
+      const headings = testRoute!.pageData.headings;
       const texts = headings.map((h) => h.text);
 
       expect(texts).toContain("Real Heading");
@@ -179,7 +181,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      expect(routes[0].pageData.title).toBe("Real Title");
+      const testRoute = routes.find((r) => r.path === "/docs/test");
+      expect(testRoute!.pageData.title).toBe("Real Title");
     } finally {
       cleanup(dir);
     }
@@ -193,7 +196,7 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/", { excludeDrafts: true });
-      // 2 routes: published.md + virtual index /docs/ (root has no index.md)
+      // 2 routes: published.md + virtual index /docs (root has no index.md)
       expect(routes.length).toBe(2);
       const published = routes.find((r) => r.path === "/docs/published");
       expect(published).toBeDefined();
@@ -228,7 +231,7 @@ describe("scanDocsDir", () => {
     try {
       // baseUrl without trailing slash
       const routes = scanDocsDir(dir, "/docs");
-      expect(routes[0].path).toBe("/docs/");
+      expect(routes[0].path).toBe("/docs");
     } finally {
       cleanup(dir);
     }
@@ -241,7 +244,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      expect(routes[0].pageData.title).toBe("My Inferred Title");
+      const testRoute = routes.find((r) => r.path === "/docs/test");
+      expect(testRoute!.pageData.title).toBe("My Inferred Title");
     } finally {
       cleanup(dir);
     }
@@ -254,7 +258,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      expect(routes[0].pageData.title).toBe("Getting Started");
+      const gs = routes.find((r) => r.path === "/docs/getting-started");
+      expect(gs!.pageData.title).toBe("Getting Started");
     } finally {
       cleanup(dir);
     }
@@ -267,7 +272,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      expect(routes[0].pageData.title).toBe("Guide");
+      const guide = routes.find((r) => r.path === "/docs/guide");
+      expect(guide!.pageData.title).toBe("Guide");
     } finally {
       cleanup(dir);
     }
@@ -280,7 +286,8 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      expect(routes[0].pageData.title).toBe("Home");
+      const root = routes.find((r) => r.path === "/docs");
+      expect(root!.pageData.title).toBe("Home");
     } finally {
       cleanup(dir);
     }
@@ -289,66 +296,6 @@ describe("scanDocsDir", () => {
   it("returns empty array for non-existent directory", () => {
     const routes = scanDocsDir("/non/existent/path", "/docs/");
     expect(routes).toEqual([]);
-  });
-
-  // ============================================================
-  // Trailing slash alias tests
-  // ============================================================
-
-  it("generates trailing slash aliases for non-index routes", () => {
-    const dir = createTempDocs({
-      "index.md": "# Home\n",
-      "ch1.md": "# Chapter 1\n",
-    });
-
-    try {
-      const routes = scanDocsDir(dir, "/docs/");
-
-      const ch1 = routes.find((r) => r.path === "/docs/ch1");
-      expect(ch1).toBeDefined();
-      expect(ch1!.aliases).toContain("/docs/ch1/");
-    } finally {
-      cleanup(dir);
-    }
-  });
-
-  it("generates non-trailing slash aliases for index routes", () => {
-    const dir = createTempDocs({
-      "index.md": "# Home\n",
-      "guide/index.md": "# Guide\n",
-    });
-
-    try {
-      const routes = scanDocsDir(dir, "/docs/");
-
-      const rootIndex = routes.find((r) => r.path === "/docs/");
-      expect(rootIndex).toBeDefined();
-      expect(rootIndex!.aliases).toContain("/docs");
-
-      const guideIndex = routes.find((r) => r.path === "/docs/guide/");
-      expect(guideIndex).toBeDefined();
-      expect(guideIndex!.aliases).toContain("/docs/guide");
-    } finally {
-      cleanup(dir);
-    }
-  });
-
-  it("generates aliases for virtual index routes", () => {
-    const dir = createTempDocs({
-      "markdown/ch1.md": "# Ch1\n",
-      "markdown/ch2.md": "# Ch2\n",
-    });
-
-    try {
-      const routes = scanDocsDir(dir, "/docs/");
-
-      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
-      expect(virtualIndex).toBeDefined();
-      expect(virtualIndex!.isDirectoryIndex).toBe(true);
-      expect(virtualIndex!.aliases).toContain("/docs/markdown");
-    } finally {
-      cleanup(dir);
-    }
   });
 
   // ============================================================
@@ -364,10 +311,10 @@ describe("scanDocsDir", () => {
     try {
       const routes = scanDocsDir(dir, "/docs/");
 
-      // 3 routes: ch1, ch2, virtual index /docs/
+      // 3 routes: ch1, ch2, virtual index /docs
       expect(routes.length).toBe(3);
 
-      const virtualIndex = routes.find((r) => r.path === "/docs/");
+      const virtualIndex = routes.find((r) => r.path === "/docs");
       expect(virtualIndex).toBeDefined();
       expect(virtualIndex!.isDirectoryIndex).toBe(true);
       // Should point to ch1.md (first alphabetically)
@@ -389,7 +336,7 @@ describe("scanDocsDir", () => {
       const routes = scanDocsDir(dir, "/docs/");
 
       // Virtual index for markdown/ pointing to first page (alphabetical)
-      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown");
       expect(virtualIndex).toBeDefined();
       expect(virtualIndex!.isDirectoryIndex).toBe(true);
       expect(virtualIndex!.filePath).toMatch(/code-highlighting\.md$/);
@@ -410,7 +357,7 @@ describe("scanDocsDir", () => {
 
       // No virtual index for guide/ — it has guide/index.md
       const virtualIndex = routes.find(
-        (r) => r.isDirectoryIndex && r.path === "/docs/guide/",
+        (r) => r.isDirectoryIndex && r.path === "/docs/guide",
       );
       expect(virtualIndex).toBeUndefined();
     } finally {
@@ -429,7 +376,7 @@ describe("scanDocsDir", () => {
     try {
       const routes = scanDocsDir(dir, "/docs/");
 
-      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown");
       expect(virtualIndex).toBeDefined();
       // beta.md has position 0 (lowest)
       expect(virtualIndex!.filePath).toMatch(/beta\.md$/);
@@ -449,7 +396,7 @@ describe("scanDocsDir", () => {
     try {
       const routes = scanDocsDir(dir, "/docs/");
 
-      const virtualIndex = routes.find((r) => r.path === "/docs/markdown/");
+      const virtualIndex = routes.find((r) => r.path === "/docs/markdown");
       expect(virtualIndex).toBeDefined();
       // apple.md comes first alphabetically (positions ignored because
       // apple.md and mango.md are missing sidebar_position)
@@ -487,7 +434,7 @@ describe("scanDocsDir", () => {
 
     try {
       const routes = scanDocsDir(dir, "/docs/");
-      const guide = routes.find((r) => r.path === "/docs/guide/");
+      const guide = routes.find((r) => r.path === "/docs/guide");
       expect(guide).toBeDefined();
       expect(guide!.pageData.description).toBe("Guide");
     } finally {
@@ -520,46 +467,76 @@ describe("scanDocsDir", () => {
       const routes = scanDocsDir(dir, "/docs/");
       const allPaths = routes.map((r) => r.path);
 
-      // Every route should have a trailing-slash alias
-      for (const route of routes) {
-        expect(route.aliases).toBeDefined();
-        expect(route.aliases!.length).toBeGreaterThan(0);
-      }
+      // Root index: /docs (no trailing slash)
+      expect(allPaths).toContain("/docs");
 
-      // Root index: /docs/ and /docs
-      expect(allPaths).toContain("/docs/");
-      const rootIndex = routes.find((r) => r.path === "/docs/");
-      expect(rootIndex!.aliases).toContain("/docs");
-
-      // api/ has index.md: /docs/api/ and /docs/api
-      expect(allPaths).toContain("/docs/api/");
-      const apiIndex = routes.find((r) => r.path === "/docs/api/");
-      expect(apiIndex!.aliases).toContain("/docs/api");
+      // api/ has index.md: /docs/api (no trailing slash)
+      expect(allPaths).toContain("/docs/api");
+      const apiIndex = routes.find((r) => r.path === "/docs/api");
       expect(apiIndex!.isDirectoryIndex).toBeUndefined();
 
       // get-started/ has index.md
-      expect(allPaths).toContain("/docs/get-started/");
+      expect(allPaths).toContain("/docs/get-started");
       expect(allPaths).toContain("/docs/get-started/configuration");
 
       // markdown/ has NO index.md → virtual index pointing to first page
-      expect(allPaths).toContain("/docs/markdown/");
-      const markdownIndex = routes.find((r) => r.path === "/docs/markdown/");
+      expect(allPaths).toContain("/docs/markdown");
+      const markdownIndex = routes.find((r) => r.path === "/docs/markdown");
       expect(markdownIndex!.isDirectoryIndex).toBe(true);
-      expect(markdownIndex!.aliases).toContain("/docs/markdown");
       // First page alphabetically: code-highlighting.md
       expect(markdownIndex!.filePath).toMatch(/code-highlighting\.md$/);
 
-      // Individual markdown pages
+      // Individual markdown pages (no trailing slashes)
       expect(allPaths).toContain("/docs/markdown/code-highlighting");
       expect(allPaths).toContain("/docs/markdown/containers");
       expect(allPaths).toContain("/docs/markdown/frontmatter");
 
       // router/ has index.md
-      expect(allPaths).toContain("/docs/router/");
+      expect(allPaths).toContain("/docs/router");
 
       // app/ and build/ (empty or non-md) should NOT produce routes
       expect(allPaths.filter((p) => p.includes("/app"))).toHaveLength(0);
       expect(allPaths.filter((p) => p.includes("/build"))).toHaveLength(0);
+
+      // No route should have a trailing slash
+      for (const p of allPaths) {
+        expect(p.endsWith("/")).toBe(false);
+      }
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  // ============================================================
+  // Larky project scenario: flat directory with custom baseUrl
+  // ============================================================
+
+  it("handles flat directory with custom baseUrl (larky scenario)", () => {
+    const dir = createTempDocs({
+      "ch1.md": "---\ntitle: Introduction\n---\n# Introduction\n",
+      "ch2.md": "---\ntitle: Getting Started\n---\n# Getting Started\n",
+    });
+
+    try {
+      const routes = scanDocsDir(dir, "/lark-cli/");
+
+      // 3 routes: ch1, ch2, virtual index /lark-cli (root has no index.md)
+      expect(routes.length).toBe(3);
+
+      const allPaths = routes.map((r) => r.path);
+      expect(allPaths).toContain("/lark-cli");
+      expect(allPaths).toContain("/lark-cli/ch1");
+      expect(allPaths).toContain("/lark-cli/ch2");
+
+      // Virtual index points to ch1 (first alphabetically)
+      const virtualIndex = routes.find((r) => r.path === "/lark-cli");
+      expect(virtualIndex!.isDirectoryIndex).toBe(true);
+      expect(virtualIndex!.filePath).toMatch(/ch1\.md$/);
+
+      // No trailing slashes anywhere
+      for (const p of allPaths) {
+        expect(p.endsWith("/")).toBe(false);
+      }
     } finally {
       cleanup(dir);
     }

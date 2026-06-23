@@ -12,7 +12,10 @@ const loaders = {
  * Returns null for unknown paths so the layout can render a not-found state.
  */
 export async function loadContent(path) {
-  const loader = loaders[path];
+  // Normalize trailing slashes so "/docs/ch1/" resolves the same as
+  // "/docs/ch1". Route keys in loaders never have trailing slashes.
+  const normalized = (path || "/").replace(/\/+$/, "") || "/";
+  const loader = loaders[normalized];
   if (!loader) return null;
   const mod = await loader();
   return { pageData: mod.pageData, contentHtml: mod.contentHtml };

@@ -59,10 +59,8 @@ const CJS_SHIMS = [
 const docsConfig = defineDocsConfig({
   docs: "docs",
   baseUrl: "/docs/",
-  routeMode: "history",
   title: "@lark.js/docs",
   description: "Documentation site generator for @lark.js/mvc",
-  lang: "en-US",
   nav: [
     { text: "Get Started", link: "/docs/get-started/" },
     { text: "Markdown", link: "/docs/markdown/" },
@@ -190,7 +188,12 @@ function docsUserConfig(): UserConfig {
   return {
     root: resolve(PKG_DIR, "docs/app"),
     plugins: [
-      ...larkDocsPlugin({ config: docsConfig }),
+      ...larkDocsPlugin({
+        config: docsConfig,
+        virtualDom: false,
+        useSwc: true,
+        debug: true,
+      }),
       tailwindcss() as PluginOption,
     ],
     resolve: {

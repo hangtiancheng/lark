@@ -12,6 +12,4 @@
  */
 import search from "lucide-static/icons/search.svg?raw";
 
-export const icons = {
-  search,
-};
+export const icons = { search };

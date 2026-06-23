@@ -8,8 +8,8 @@ import { defineConfig, type PluginOption, type UserConfigFn } from "vite";
 import { resolve } from "node:path";
 import { larkDocsPlugin } from "@lark.js/docs/vite";
 import tailwindcss from "@tailwindcss/vite";
-import docsConfig from "./lark-docs.config";
 import { VitePWA } from "vite-plugin-pwa";
+import docsConfig from "./lark-docs.config";
 
 const PKG_DIR = import.meta.dirname;
 
@@ -25,7 +25,12 @@ export default defineConfig((({ mode, command }) => {
     base: isDev ? "/" : "/lark/",
     root: resolve(PKG_DIR, "app"),
     plugins: [
-      larkDocsPlugin({ config: docsConfig }) as PluginOption,
+      larkDocsPlugin({
+        config: docsConfig,
+        useSwc: false,
+        virtualDom: false,
+        debug: true,
+      }) as PluginOption,
       tailwindcss() as PluginOption,
       VitePWA({
         registerType: "autoUpdate",

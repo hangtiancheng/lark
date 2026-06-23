@@ -3,8 +3,6 @@
  * All shared types for the documentation site generator.
  */
 
-import type { FrameworkConfig } from "@lark.js/mvc";
-
 // Re-export FrameworkConfig so consumers don't need @lark.js/mvc directly
 export type { FrameworkConfig } from "@lark.js/mvc";
 
@@ -23,17 +21,11 @@ export interface DocsConfig {
   /** Base URL prefix for all generated routes. Default: "/docs/" */
   baseUrl: string;
 
-  /** Routing mode. Maps to @lark.js/mvc Router's routeMode. Default: "history" */
-  routeMode: "history" | "hash";
-
   /** Site title displayed in the navbar. */
   title: string;
 
   /** Site description for meta tags. */
   description?: string;
-
-  /** Language code. Default: "en-US" */
-  lang?: string;
 
   /** Top navigation items. */
   nav?: NavItem[];
@@ -53,18 +45,6 @@ export interface DocsConfig {
 
   /** Search configuration. */
   search?: SearchOptions;
-
-  /**
-   * Override options passed to the @lark.js/mvc Framework.boot() call.
-   *
-   * By default, lark-docs derives rootId, routeMode, defaultPath,
-   * virtualDom, defaultView, routes, and unmatchedView automatically.
-   * Use this to pass additional FrameworkConfig fields (e.g. crossConfigs,
-   * rewrite, error handler) without importing @lark.js/mvc directly.
-   *
-   * These values are shallow-merged over the generated defaults.
-   */
-  larkMvcConfig?: Partial<Omit<FrameworkConfig, "virtualDom">>;
 }
 
 /** Navigation item in the top navbar. */
@@ -126,7 +106,7 @@ export interface SearchOptions {
    *
    * Default: "local"
    */
-  provider: "local" | "docsearch" | "none";
+  provider?: "local" | "docsearch";
 }
 
 // ============================================================

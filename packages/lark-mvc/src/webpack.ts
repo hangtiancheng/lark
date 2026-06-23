@@ -50,23 +50,20 @@
  * ```
  */
 import { compileTemplate, extractGlobalVars } from "./compiler";
+import type { LarkMvcVitePluginOptions } from "./vite";
+
+export type LarkMvcWebpackLoaderOptions = LarkMvcVitePluginOptions;
 
 /** Webpack loader context */
 interface LoaderContext {
   /** Whether in development mode */
   dev?: boolean;
   /** Loader options */
-  getOptions: () => { debug?: boolean; virtualDom?: boolean; useSwc?: boolean };
+  getOptions: () => LarkMvcWebpackLoaderOptions;
 }
 
 /** Plugin options */
-interface LarkMvcPluginOptions {
-  /** Enable debug mode with line tracking (default: false) */
-  debug?: boolean;
-  /** Enable virtual DOM output (default: false) */
-  virtualDom?: boolean;
-  /** Use SWC instead of Babel for AST analysis (default: false) */
-  useSwc?: boolean;
+export interface LarkMvcWebpackPluginOptions extends LarkMvcWebpackLoaderOptions {
   /** File extension to match (default: /\.html$/) */
   test?: RegExp;
   /** Exclude pattern (default: /node_modules/) */
@@ -127,9 +124,9 @@ async function larkMvcLoader(
  * ```
  */
 class LarkMvcPlugin {
-  private options: LarkMvcPluginOptions;
+  private options: LarkMvcWebpackPluginOptions;
 
-  constructor(options: LarkMvcPluginOptions = {}) {
+  constructor(options: LarkMvcWebpackPluginOptions = {}) {
     this.options = {
       debug: false,
       virtualDom: false,

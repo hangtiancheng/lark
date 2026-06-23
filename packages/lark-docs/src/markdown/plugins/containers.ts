@@ -40,12 +40,17 @@ export function containerPlugin(
           const alertColor = ALERT_COLOR[type] ?? "";
 
           if (type === "details") {
-            return `<details role="alert" class="alert ${alertColor}">\n<summary class="font-semibold">${escapedTitle}</summary>\n`;
+            return `
+            <details role="alert" class="alert ${alertColor}">
+              <summary class="font-semibold">${escapedTitle}</summary>`;
           }
-          return `<div role="alert" class="alert ${alertColor}">\n<div>\n<p class="font-semibold">${escapedTitle}</p>\n`;
+          return `
+          <div role="alert" class="alert ${alertColor}">
+            <div>
+              <p class="font-semibold">${escapedTitle}</p>`;
         }
         // Closing tag
-        return type === "details" ? "</details>\n" : "</div>\n</div>\n";
+        return type === "details" ? "</details>" : "</div></div>";
       },
     });
   }

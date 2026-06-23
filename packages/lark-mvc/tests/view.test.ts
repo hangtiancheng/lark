@@ -27,9 +27,7 @@ function createTestFrame(id: string): Frame {
 function cleanupFrame(frame: Frame): void {
   const el = document.getElementById(frame.id);
   if (el) el.remove();
-  (Frame as { getAll(): Map<string, Frame> })
-    .getAll()
-    .delete(frame.id);
+  (Frame as { getAll(): Map<string, Frame> }).getAll().delete(frame.id);
 }
 
 describe("View", () => {

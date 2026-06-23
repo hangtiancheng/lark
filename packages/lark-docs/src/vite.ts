@@ -20,7 +20,10 @@ import fs from "node:fs";
 import type { DocsConfig } from "./types";
 import { compileMarkdown } from "./compile-markdown";
 import type { Plugin } from "vite";
-import { larkMvcPlugin7 } from "@lark.js/mvc/vite";
+import {
+  larkMvcPlugin7,
+  type LarkMvcVitePluginOptions,
+} from "@lark.js/mvc/vite";
 
 // Re-export build-time utilities for use in vite.config
 // (avoids importing from main entry which pulls in lucide-static SVG ?raw imports)
@@ -31,13 +34,9 @@ export { generateSidebar } from "./sidebar-generator";
 export { buildSearchIndex } from "./search-index";
 export type { DocsConfig, SidebarConfig } from "./types";
 
-export interface LarkDocsVitePluginOptions {
+export interface LarkDocsVitePluginOptions extends LarkMvcVitePluginOptions {
   /** Full docs config. */
   config: DocsConfig;
-  /** Enable debug mode for template compilation. */
-  debug?: boolean;
-  /** Use SWC for template variable extraction (faster). Default: true */
-  useSwc?: boolean;
 }
 
 // Suffix used to mark compiled .md files in the module graph
@@ -53,7 +52,7 @@ const MD_SUFFIX = "?lark-docs";
  * The virtualDom option is read from `config.virtualDom` automatically.
  */
 export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
-  const { config, debug = false, useSwc = true } = options;
+  const { config, debug = false, useSwc = true, virtualDom = false } = options;
 
   const docsPlugin: Plugin = {
     name: "lark-docs",
@@ -95,7 +94,7 @@ export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
 
   // The lark-mvc template plugin handles .html template compilation.
   // We integrate it internally so consumers don't need to configure it separately.
-  const mvcPlugin = larkMvcPlugin7({ debug, useSwc });
+  const mvcPlugin = larkMvcPlugin7({ debug, useSwc, virtualDom });
 
   return [docsPlugin, mvcPlugin];
 }

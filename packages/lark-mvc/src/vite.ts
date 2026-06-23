@@ -27,6 +27,15 @@ import { dirname, isAbsolute, join, resolve } from "path";
 import { existsSync, readFileSync } from "fs";
 import { compileTemplate, extractGlobalVars } from "./compiler";
 
+export interface LarkMvcVitePluginOptions {
+  /** Enable debug mode with line tracking (default: false) */
+  debug?: boolean;
+  /** Enable virtual DOM output (default: false) */
+  virtualDom?: boolean;
+  /** Use SWC instead of Babel for AST analysis (default: false) */
+  useSwc?: boolean;
+}
+
 /** Suffix appended to resolved IDs to mark them as lark template modules */
 const LARK_TEMPLATE_SUFFIX = "?lark-template";
 
@@ -37,13 +46,7 @@ const LARK_TEMPLATE_SUFFIX = "?lark-template";
  * @param options.virtualDom - Generate VDOM output instead of HTML string (default: false)
  * @returns Vite plugin instance
  */
-export function larkMvcPlugin(
-  options: {
-    debug?: boolean;
-    virtualDom?: boolean;
-    useSwc?: boolean;
-  } = {},
-): Plugin {
+export function larkMvcPlugin(options: LarkMvcVitePluginOptions = {}): Plugin {
   const { debug = false, virtualDom = false, useSwc = false } = options;
   let root = __dirname;
 

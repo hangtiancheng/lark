@@ -39,7 +39,8 @@ State.set({ docsConfig, loadContent, getSearchIndex });
 
 const config: FrameworkConfig = {
   rootId: "app",
-  routeMode: "history",
+  routeMode: "hash",
+  virtualDom: false,
   defaultPath: "/docs",
   // All /docs/* routes map to "theme/docs-layout" (see generated routes).
   // The layout stays mounted across navigation; observeLocation triggers

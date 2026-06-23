@@ -32,7 +32,10 @@ export function codeBlockPlugin(
     }
 
     // Fallback: plain escaped code with Tailwind/DaisyUI styling
-    return `<pre class="bg-neutral text-neutral-content rounded-box p-4 overflow-x-auto"><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>\n`;
+    return `
+    <pre class="bg-neutral text-neutral-content rounded-box p-4 overflow-x-auto">
+      <code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code>
+    </pre>\n`;
   };
 }
 

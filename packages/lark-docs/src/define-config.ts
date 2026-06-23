@@ -103,7 +103,6 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
   const runtimeConfig = {
     title: config.title,
     description: config.description || "",
-    lang: config.lang || "en-US",
     baseUrl: config.baseUrl,
     nav: config.nav || [],
     sidebar,

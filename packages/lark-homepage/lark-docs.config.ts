@@ -3,7 +3,6 @@ import { defineConfig } from "@lark.js/docs/vite";
 export default defineConfig({
   docs: "docs",
   baseUrl: "/lark/",
-  routeMode: "history",
   title: "Lark Homepage",
   description: "@lark.js/lark -- Documentation site generator (Homepage)",
   nav: [
@@ -16,8 +15,6 @@ export default defineConfig({
     "/lark/frontend/": "auto",
     "/lark/backend/": "auto",
   },
-  highlight: {
-    theme: "github-light",
-  },
+  highlight: { theme: "github-light" },
   search: { provider: "local" },
 });

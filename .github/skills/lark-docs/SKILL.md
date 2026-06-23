@@ -271,14 +271,14 @@ draft: false
 ---
 ```
 
-| Field              | Type      | Description                                                |
-| ------------------ | --------- | ---------------------------------------------------------- |
-| `title`            | `string`  | Page title. Falls back to first `# heading`, then filename |
-| `description`      | `string`  | Meta description and search excerpt. Falls back to filename-derived title |
+| Field              | Type      | Description                                                                                                                                                   |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`            | `string`  | Page title. Falls back to first `# heading`, then filename                                                                                                    |
+| `description`      | `string`  | Meta description and search excerpt. Falls back to filename-derived title                                                                                     |
 | `sidebar_position` | `number`  | Sort order in auto-sidebar (lower = higher). Uses all-or-nothing rule: if any page in a group lacks this field, all pages in that group sort by filename only |
-| `sidebar_label`    | `string`  | Override sidebar display text                              |
-| `sidebar_group`    | `string`  | Sidebar group name                                         |
-| `draft`            | `boolean` | Exclude from production builds                             |
+| `sidebar_label`    | `string`  | Override sidebar display text                                                                                                                                 |
+| `sidebar_group`    | `string`  | Sidebar group name                                                                                                                                            |
+| `draft`            | `boolean` | Exclude from production builds                                                                                                                                |
 
 Title resolution priority:
 

@@ -51,27 +51,21 @@
  */
 import type { Compiler, RspackPluginInstance } from "@rspack/core";
 import { compileTemplate, extractGlobalVars } from "./compiler.js";
+import type {
+  LarkMvcWebpackLoaderOptions,
+  LarkMvcWebpackPluginOptions,
+} from "./webpack.js";
+export type {
+  LarkMvcWebpackLoaderOptions,
+  LarkMvcWebpackPluginOptions,
+} from "./webpack.js";
 
 /** Rspack loader context */
 interface LoaderContext {
   /** Whether in development mode */
   dev?: boolean;
   /** Loader options */
-  getOptions: () => { debug?: boolean; virtualDom?: boolean; useSwc?: boolean };
-}
-
-/** Plugin options */
-interface LarkMvcPluginOptions {
-  /** Enable debug mode with line tracking (default: false) */
-  debug?: boolean;
-  /** Enable virtual DOM output (default: false) */
-  virtualDom?: boolean;
-  /** Use SWC instead of Babel for AST analysis (default: false) */
-  useSwc?: boolean;
-  /** File extension to match (default: /\.html$/) */
-  test?: RegExp;
-  /** Exclude pattern (default: /node_modules/) */
-  exclude?: RegExp;
+  getOptions: () => LarkMvcWebpackLoaderOptions;
 }
 
 /**
@@ -128,9 +122,9 @@ export async function larkMvcLoader(
  * ```
  */
 export class LarkMvcPlugin implements RspackPluginInstance {
-  private options: LarkMvcPluginOptions;
+  private options: LarkMvcWebpackPluginOptions;
 
-  constructor(options: LarkMvcPluginOptions = {}) {
+  constructor(options: LarkMvcWebpackPluginOptions = {}) {
     this.options = {
       debug: false,
       virtualDom: false,

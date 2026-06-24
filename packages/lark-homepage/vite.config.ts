@@ -15,8 +15,9 @@ const PKG_DIR = import.meta.dirname;
 
 // === Mode router ===
 
-export default defineConfig((({ mode, command }) => {
-  const isDev = mode === "development" || command === "serve";
+export default defineConfig((({ mode, command: _command }) => {
+  // When pnpm preview, _command === "serve"
+  const isDev = mode === "development"; // || _command === "serve";
   return {
     /**
      * 'serve': during dev (`vite` command)
@@ -39,9 +40,9 @@ export default defineConfig((({ mode, command }) => {
           "apple-touch-icon-180x180.png",
         ],
         manifest: {
-          name: "Lark Index",
-          short_name: "Lark",
-          description: "Chrome homepage",
+          name: "lark homepage",
+          short_name: "lark",
+          description: "lark homepage",
           theme_color: "#ecfdf5",
           background_color: "#ecfdf5",
           display: "standalone",

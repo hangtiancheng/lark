@@ -37,9 +37,11 @@ State.set({ docsConfig, loadContent, getSearchIndex });
 
 // === Boot ===
 
-const config: FrameworkConfig = {
+const config: Omit<FrameworkConfig, "routeMode"> & {
+  routeMode: "history";
+} = {
   rootId: "app",
-  routeMode: "hash",
+  routeMode: "history",
   virtualDom: false,
   defaultPath: "/docs",
   // All /docs/* routes map to "theme/docs-layout" (see generated routes).

@@ -21,7 +21,7 @@ import "./main.css";
 
 const config: FrameworkConfig = {
   rootId: "app",
-  routeMode: "hash",
+  routeMode: "history",
   routes,
   virtualDom: false,
   defaultPath: "/lark/",

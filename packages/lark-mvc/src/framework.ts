@@ -399,7 +399,7 @@ function getConfigImpl<T = unknown>(
   key?: string,
 ): FrameworkConfig | T | undefined {
   if (key === undefined) return config;
-  return config[key] as T | undefined;
+  return Reflect.get(config, key) as T | undefined;
 }
 
 /**

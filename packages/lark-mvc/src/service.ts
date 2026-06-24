@@ -48,7 +48,7 @@ export class Payload implements PayloadInterface {
 
   /** Set a value in payload data */
   set(
-    keyOrData: string | Record<string, unknown> | ServiceMetaEntry,
+    keyOrData: string | Record<string, unknown>,
     value?: unknown,
   ): PayloadInterface {
     if (typeof keyOrData === "string") {

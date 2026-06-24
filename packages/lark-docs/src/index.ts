@@ -13,6 +13,8 @@
  *   - "@lark.js/docs/compiler" (compileMarkdown)
  */
 
+import type { FrameworkConfig as LarkMvcFrameworkConfig } from "@lark.js/mvc";
+
 // ============================================================
 // Re-exports from @lark.js/mvc (so consumers don't need it directly)
 // ============================================================
@@ -30,7 +32,11 @@ export {
   useUrlState,
 } from "@lark.js/mvc";
 
-export type { FrameworkConfig, ViewInterface } from "@lark.js/mvc";
+export type FrameworkConfig = Omit<LarkMvcFrameworkConfig, "routeMode"> & {
+  routeMode: "history";
+};
+
+export type { ViewInterface } from "@lark.js/mvc";
 
 // ============================================================
 // @lark.js/docs types (browser-safe)

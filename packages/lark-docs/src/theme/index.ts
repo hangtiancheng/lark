@@ -37,18 +37,6 @@ import { createTocView } from "./toc";
 import { createSearchView } from "./search";
 
 /**
- * Options for registerThemeViews.
- *
- * When called BEFORE Framework.boot(), pass { virtualDom } to indicate
- * which rendering mode the templates should be compiled for. When called
- * AFTER boot, the FrameworkConfig is auto-detected.
- */
-interface RegisterThemeViewsOptions {
-  /** Whether to register VDOM-mode templates (default: auto-detect from config, fallback false) */
-  virtualDom?: boolean;
-}
-
-/**
  * Register all built-in theme views (layout, sidebar, toc, search) with
  * the lark-mvc view registry. Consumers call this once in boot.ts:
  *
@@ -68,7 +56,16 @@ interface RegisterThemeViewsOptions {
  */
 export function registerThemeViews(
   ViewClass: typeof View,
-  options?: RegisterThemeViewsOptions,
+  options?: /**
+   * Options for registerThemeViews.
+   *
+   * When called BEFORE Framework.boot(), pass { virtualDom } to indicate
+   * which rendering mode the templates should be compiled for. When called
+   * AFTER boot, the FrameworkConfig is auto-detected.
+   */ {
+    /** Whether to register VDOM-mode templates (default: auto-detect from config, fallback false) */
+    virtualDom?: boolean;
+  },
 ): void {
   // Determine rendering mode: explicit option > Framework config > default
   const virtualDom =

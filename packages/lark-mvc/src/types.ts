@@ -1056,7 +1056,7 @@ export interface ServiceMetaEntry {
    */
   cleanKeys?: string;
   /** Additional properties */
-  [key: string]: unknown;
+  [k: string]: unknown;
 }
 
 /** Cache info attached to Payload entity */
@@ -1381,15 +1381,13 @@ export interface FrameworkConfig {
   crossConfigs?: CrossSiteConfig[];
   /** Default false. */
   virtualDom?: boolean;
-  /** Dynamic config access, custom config items */
-  [key: string]: unknown;
 }
 
 export interface RouteViewConfig {
   /** View path */
   view: string;
   /** Additional properties merged into location */
-  [key: string]: unknown;
+  [k: string]: unknown;
 }
 
 // ============================================================

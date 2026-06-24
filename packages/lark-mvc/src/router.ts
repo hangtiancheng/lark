@@ -151,7 +151,7 @@ function attachViewAndPath(loc: Location): void {
     loc.view =
       typeof viewEntry === "string" ? viewEntry : viewEntry?.view || "";
     if (typeof viewEntry === "object" && viewEntry) {
-      assign(loc, viewEntry as Record<string, unknown>);
+      assign(loc, viewEntry);
     }
   }
 }

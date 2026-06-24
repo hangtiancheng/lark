@@ -108,8 +108,18 @@ describe("slugify", () => {
     expect(slugify("Hello World")).toBe("hello-world");
   });
 
-  it("removes special characters", () => {
-    expect(slugify("What's New?!")).toBe("whats-new");
+  it("replaces special characters with dashes", () => {
+    expect(slugify("What's New?!")).toBe("what-s-new");
+  });
+
+  it("preserves CJK characters", () => {
+    expect(slugify("路由导航")).toBe("路由导航");
+    expect(slugify("Getting Started 入门")).toBe("getting-started-入门");
+  });
+
+  it("prefixes leading digits for CSS selector safety", () => {
+    expect(slugify("123 Release")).toBe("_123-release");
+    expect(slugify("v2.0 Changes")).toBe("v2-0-changes");
   });
 
   it("collapses multiple dashes", () => {

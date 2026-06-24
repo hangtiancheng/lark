@@ -100,7 +100,7 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
   // Compose runtime docsConfig. searchIndex is NOT included here — it is
   // lazily built at runtime by getSearchIndex() (loading all .md modules on
   // first search) to keep this generated file small.
-  const runtimeConfig = {
+  const runtimeConfig: Omit<DocsConfig, "docs"> = {
     title: config.title,
     description: config.description || "",
     baseUrl: config.baseUrl,

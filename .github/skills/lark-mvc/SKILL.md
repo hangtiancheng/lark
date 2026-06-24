@@ -646,7 +646,6 @@ interface FrameworkConfig {
   crossConfigs?: CrossSiteConfig[]; // MF remote configs
   require?: (names: string[], params?) => Promise<unknown[]>; // async View loader
   virtualDom?: boolean; // defaults to false (real-DOM diff mode)
-  [k: string]: unknown; // custom keys are allowed
 }
 ```
 

@@ -5,7 +5,6 @@ import type { DocsConfig } from "../src/types";
 const baseConfig: DocsConfig = {
   docs: "docs",
   baseUrl: "/docs/",
-  routeMode: "history",
   title: "Test",
 };
 

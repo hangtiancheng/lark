@@ -97,7 +97,6 @@
     "build": "pnpm build:tsup",
     "build:rollup": "rollup -c rollup.config.mjs",
     "build:tsup": "tsup",
-    "clean": "rm -rf dist",
     "format": "prettier -w ./ --experimental-cli",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "vitest run",

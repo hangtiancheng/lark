@@ -1,4 +1,15 @@
+import { copyFileSync } from "node:fs";
 import { defineConfig } from "tsup";
+
+// tsup runs array configs in parallel via Promise.all — a single config's
+// onSuccess fires before other configs' DTS generation finishes.
+// Defer the copy to process exit so all builds are fully complete.
+(() => {
+  process.on("exit", () => {
+    copyFileSync("src/client.d.ts", "dist/client.d.ts");
+    copyFileSync("src/client.d.ts", "dist/client.d.cts");
+  });
+})();
 
 export default defineConfig([
   {

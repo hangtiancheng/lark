@@ -31,9 +31,8 @@
     "test:mini-zustand": "pnpm --filter @lark.js/mini-zustand test",
     "test:vue-reactivity": "pnpm --filter @lark.js/vue-reactivity test",
     "git:precommit": "rm -rf ./.claude && ln -s ./.github ./.claude",
-    "git:precommit:ci": "pnpm git:precommit && pnpm --filter @lark.js/docs git:pull",
     "git:commit": "pnpm git:precommit && git add -A && git commit -m \"feat: Introduce new features\"",
-    "git:commit:ci": "pnpm git:precommit:ci && git add -A && git commit -m \"ci: Deploy homepage\"",
+    "git:commit:ci": "pnpm git:precommit && git add -A && git commit -m \"ci: Deploy homepage\"",
     "git:push": "pnpm git:commit && git push origin main",
     "git:push:ci": "pnpm git:commit:ci && git push origin main"
   },

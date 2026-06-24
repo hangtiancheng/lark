@@ -67,12 +67,12 @@ const CJS_SHIMS = [
 
 // === Mode router ===
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   if (mode === "lib") {
     return libConfig();
   }
   if (mode === "docs") {
-    return docsDemoConfig();
+    return docsDemoConfig(command === "build");
   }
   throw new Error(`Error: mode ${mode}`);
 });

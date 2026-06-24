@@ -125,6 +125,41 @@ describe("VDOM Compiler", () => {
       const root = await compileAndRun("<p>first</p><p>second</p>");
       expect(root.tag).toBe("test-view");
     });
+
+    // Regression: previously a fixed maxVars=30 caused every element past
+    // the 30th to alias the last variable ($v29). That produced
+    // self-referential children arrays (span.children === arr, then
+    // arr.push(span)) and silently dropped earlier siblings, leading to
+    // duplicated/missing output. With >30 elements all content must survive.
+    it("renders all siblings when template exceeds 30 elements", async () => {
+      const spans = Array.from(
+        { length: 35 },
+        (_, i) => `<span>item${i}</span>`,
+      ).join("");
+      const root = await compileAndRun(
+        `<div class="container">${spans}</div>`,
+        {},
+        [],
+      );
+
+      const texts: string[] = [];
+      function walk(node: VDomNode) {
+        if (node.tag === V_TEXT_NODE) {
+          texts.push(node.html);
+          return;
+        }
+        if (Array.isArray(node.children)) {
+          for (const child of node.children) walk(child);
+        }
+      }
+      walk(root);
+
+      // Every item must appear exactly once — no losses, no duplicates.
+      expect(texts).toHaveLength(35);
+      for (let i = 0; i < 35; i++) {
+        expect(texts[i]).toBe(`item${i}`);
+      }
+    });
   });
 
   // ===== C. Expression handling =====

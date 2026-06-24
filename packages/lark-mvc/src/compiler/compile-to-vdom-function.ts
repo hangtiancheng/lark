@@ -190,19 +190,18 @@ export function compileToVDomFunction(
   });
 
   // ── Step 3: Allocate variables ──
-
+  //
+  // Variables are allocated on demand and declared after compilation
+  // completes (see Step 6). There is no hard cap — previously a fixed
+  // `maxVars = 30` caused variable exhaustion for templates with more
+  // than 30 elements, which silently aliased all overflow nodes to the
+  // last variable ($v29). That aliasing produced self-referential
+  // children arrays (span.children === arr, then arr.push(span)) and
+  // lost earlier siblings, leading to duplicated/missing output.
   const rootVar = `$v${varCounter++}`;
   lines.push(`let ${rootVar}=[]`);
 
-  const maxVars = 30;
-  const varDecls: string[] = [];
-  for (let i = 1; i < maxVars; i++) {
-    varDecls.push(`$v${i}`);
-  }
-  lines.push(`let ${varDecls.join(",")}`);
-
   function allocVar(): string {
-    if (varCounter >= maxVars) return `$v${maxVars - 1}`;
     return `$v${varCounter++}`;
   }
 
@@ -300,7 +299,14 @@ export function compileToVDomFunction(
 
   // ── Step 6: Build function body ──
 
-  const body = lines.join(";");
+  // Declare every allocated child variable ($v1 .. $v{varCounter-1}).
+  // rootVar ($v0) is already declared in lines[0]. Placing the
+  // declaration here (instead of a fixed upfront block) is what lets
+  // us support arbitrarily deep templates without exhausting vars.
+  const varDeclStmts: string[] = [];
+  for (let i = 1; i < varCounter; i++) varDeclStmts.push(`$v${i}`);
+  const varDecl = varDeclStmts.length ? `let ${varDeclStmts.join(",")};` : "";
+  const body = varDecl + lines.join(";");
 
   let funcBody = body;
   if (debug) {

@@ -98,17 +98,17 @@ describe("State", () => {
   it("clean - creates cleanup mixin", () => {
     const mixin = State.clean("cleanTest1,cleanTest2");
 
-    expect(mixin).toHaveProperty("make");
-    expect(typeof mixin.make).toBe("function");
+    expect(mixin).toHaveProperty("ctor");
+    expect(typeof mixin.ctor).toBe("function");
   });
 
-  it("clean - make call registers destroy callback", () => {
+  it("clean - ctor call registers destroy callback", () => {
     const mixin = State.clean("cleanTest3");
     const mockObj = {
       on: vi.fn(),
     };
 
-    mixin.make.call(mockObj);
+    mixin.ctor.call(mockObj);
 
     expect(mockObj.on).toHaveBeenCalledWith("destroy", expect.any(Function));
   });

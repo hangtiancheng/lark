@@ -120,7 +120,7 @@ Both integrations share the same compilation pipeline: `extractGlobalVars` extra
 import { defineView, Router } from "@lark.js/mvc";
 
 export default defineView({
-  make() {
+  ctor() {
     this.updater.set({ appName: "My App" });
     this.on("destroy", () => console.log(`view destroyed: ${this.id}`));
   },
@@ -130,7 +130,7 @@ export default defineView({
 });
 ```
 
-`defineView` is a typed wrapper around `View.extend`: via `ThisType<P & ViewInterface>` it threads the literal's own fields into `this`, so writing `this.appName` in `make` requires no cast. Runtime behavior is equivalent to `View.extend({...})`.
+`defineView` is a typed wrapper around `View.extend`: via `ThisType<P & ViewInterface>` it threads the literal's own fields into `this`, so writing `this.appName` in `ctor` requires no cast. Runtime behavior is equivalent to `View.extend({...})`.
 
 ### View and Template
 
@@ -439,7 +439,7 @@ Both produce equivalent runtime artifacts; the difference is purely in TypeScrip
 ### Lifecycle
 
 - `init(params?)` — Called when the view is first instantiated. `params` comes from query strings on `v-lark`. Read stores and call `this.assign()` to prepare initial data here.
-- `make()` — Called by the merged makes pipeline; each mixin's `make` executes in order. Suitable for "run once per instance" initialization.
+- `ctor()` — Called by the merged ctors pipeline; each mixin's `ctor` executes in order. Suitable for "run once per instance" initialization.
 - `assign()` — Should be called when data may have changed. Pattern: `this.updater.snapshot()` at the top, `this.updater.set(...)` in the middle, `return this.updater.altered()` at the end. The framework uses `altered()` to determine whether re-render is needed.
 - `render()` — Default implementation is `this.updater.digest()`. Wrapped by `View.wrapMethod`: increments signature on entry, handles pending endUpdate cleanup on exit.
 - Destruction — The framework automatically calls `release(key, true)` to release all `capture`d resources, cleans up event delegation, and sets signature to 0.
@@ -944,7 +944,7 @@ Similarities: unidirectional data flow; immutable write-back style; async protec
 | --------------------- | ---------------------------------------- | ------------------------------------------------------------ |
 | Component abstraction | Function components + Hooks              | Class inheritance `View.extend` / `defineView`               |
 | State encapsulation   | `useState` / `useReducer`                | View instance fields, `create()` store, `State`              |
-| Side effects          | `useEffect` / `useLayoutEffect`          | `init` / `make` + `capture` / `release`                      |
+| Side effects          | `useEffect` / `useLayoutEffect`          | `init` / `ctor` + `capture` / `release`                      |
 | Render interruption   | Fiber time-slicing, Suspense, Transition | Synchronous digest, not interruptible                        |
 | Compile optimization  | React Compiler (auto-memo)               | Template compile-time only; no runtime auto-memo             |
 | Server rendering      | RSC, streaming SSR                       | Not supported (design trade-off)                             |

@@ -685,7 +685,7 @@ export interface ViewInterface extends EventEmitterInterface<ViewInterface> {
   onRender?: (e?: ChangeEvent) => void;
   /**
    * Inherit View to create new view subclass.
-   * Supports props.make constructor, props.mixins, and event methods (e.g., `'name<click>'`).
+   * Supports props.ctor constructor, props.mixins, and event methods (e.g., `'name<click>'`).
    * @param props Prototype object containing init, render, and other methods
    * @param statics Object of static methods or properties
    */
@@ -978,9 +978,9 @@ export interface StateInterface extends EventEmitterInterface<StateInterface> {
    * Keys registered via this method are automatically cleaned when view is destroyed,
    * and corresponding key reference counts are decremented; data is auto-deleted when count reaches zero.
    * @param keys Comma-separated key string
-   * @returns Object with make method, called by mixins mechanism
+   * @returns Object with ctor method, called by mixins mechanism
    */
-  clean(keys: string): { make: AnyFunc };
+  clean(keys: string): { ctor: AnyFunc };
   /**
    * Detect data changes and dispatch changed event.
    * After set, must explicitly call `digest()` to dispatch changed event and notify views to update.

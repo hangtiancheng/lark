@@ -9,7 +9,7 @@ export default View.extend({
    * Constructor
    * Called when each View is initialized
    */
-  make() {
+  ctor() {
     console.log(`View instance created: ${this.id}`);
 
     // Set global shared data

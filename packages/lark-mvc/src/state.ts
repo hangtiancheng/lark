@@ -142,9 +142,9 @@ export const State: StateInterface = {
    * Create mixin to clean up state keys on view destroy.
    * Must be used in view.mixins array.
    */
-  clean(keys: string): { make: AnyFunc } {
+  clean(keys: string): { ctor: AnyFunc } {
     return {
-      make: function (this: { on: (event: string, handler: AnyFunc) => void }) {
+      ctor: function (this: { on: (event: string, handler: AnyFunc) => void }) {
         const keyList = setupKeysRef(keys);
         this.on("destroy", () => {
           teardownKeysRef(keyList);

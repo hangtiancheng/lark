@@ -34,7 +34,7 @@ describe("View", () => {
   describe("extend", () => {
     it("creates View subclass", () => {
       const ChildView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -47,7 +47,7 @@ describe("View", () => {
     it("subclass can be instantiated and sets basic properties", () => {
       const frame = createTestFrame("test-frame-1");
       const ChildView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -76,7 +76,7 @@ describe("View", () => {
       const ChildView = View.extend({
         customMethod,
         template: templateFn,
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -102,7 +102,7 @@ describe("View", () => {
         staticMethod?: AnyFunc;
       } = View.extend(
         {
-          make() {
+          ctor() {
             /** noop */
           },
         },

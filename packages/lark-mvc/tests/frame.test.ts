@@ -237,7 +237,7 @@ describe("Frame", () => {
 
       // Register an empty View class
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -262,7 +262,7 @@ describe("Frame", () => {
       document.body.appendChild(childEl);
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -286,7 +286,7 @@ describe("Frame", () => {
       document.body.appendChild(childEl);
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -310,7 +310,7 @@ describe("Frame", () => {
       document.body.appendChild(childEl);
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -344,7 +344,7 @@ describe("Frame", () => {
 
       const parent = createTestFrame("mz-parent-1");
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -376,7 +376,7 @@ describe("Frame", () => {
 
       const parent = createTestFrame("mz-parent-2");
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -405,7 +405,7 @@ describe("Frame", () => {
 
       const parent = createTestFrame("mz-parent-3");
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -433,7 +433,7 @@ describe("Frame", () => {
       document.body.appendChild(childEl2);
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -468,7 +468,7 @@ describe("Frame", () => {
       document.body.appendChild(parentEl);
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -583,7 +583,7 @@ describe("Frame", () => {
       document.body.appendChild(childEl);
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });
@@ -663,7 +663,7 @@ describe("Frame", () => {
       frame.hasAltered = 0; // Ensure originalTemplate can be saved
 
       const TestView = View.extend({
-        make() {
+        ctor() {
           /** noop */
         },
       });

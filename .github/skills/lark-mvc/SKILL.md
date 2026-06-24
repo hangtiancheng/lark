@@ -29,7 +29,7 @@ This guide covers architecture, the full public API, project layout, the three d
 
 Any task that names or clearly implies Lark:
 
-- Creating, extending, or registering Views; wiring view event handlers; setting up view lifecycle (`init`, `make`, `assign`, `render`, `destroy`).
+- Creating, extending, or registering Views; wiring view event handlers; setting up view lifecycle (`init`, `ctor`, `assign`, `render`, `destroy`).
 - Designing state with `create()` (zustand-aligned), `computed()`, `bindStore()`, `getState()` / `setState()` / `subscribe()`, or cross-view sharing through `State`.
 - Routing tasks: history/hash navigation, route guards (`Router.beforeEach`), two-phase `change`/`changed` events, `Router.to(...)`, `useUrlState()`.
 - Authoring `.html` templates with the `{{=}}` / `{{forOf}}` / `{{if}}` / `@event` / `v-lark` syntax.
@@ -223,7 +223,7 @@ The `<div id="app">` matches `rootId: "app"` in the boot config.
 import { defineView, Router } from "@lark.js/mvc";
 
 export default defineView({
-  make() {
+  ctor() {
     this.updater.set({ appName: "My App" });
     this.on("destroy", () => {
       console.log(`View destroyed: ${this.id}`);
@@ -235,7 +235,7 @@ export default defineView({
 });
 ```
 
-`defineView` is a thin, type-safe wrapper around `View.extend`: it threads the literal's own shape into `this` via `ThisType<P & ViewInterface>`, so `this.appName` inside `make` is typed without manual casts. Runtime behavior is identical to `View.extend({...})`.
+`defineView` is a thin, type-safe wrapper around `View.extend`: it threads the literal's own shape into `this` via `ThisType<P & ViewInterface>`, so `this.appName` inside `ctor` is typed without manual casts. Runtime behavior is identical to `View.extend({...})`.
 
 ### 5. Boot
 
@@ -496,7 +496,7 @@ export default View.extend({
 
 `View.extend(props, statics)` uses ES6 `class extends` for proper constructor chaining. The key implementation detail: extend props (like `template`) are applied as instance properties in the constructor after `super()`, because ES6 class field declarations (`template;` in the base View) set `this.template = undefined` in the constructor body, which would shadow any prototype property. The `render` method is explicitly not copied as an instance property -- it must remain on the prototype where `View.wrapMethod` has already wrapped it with signature checking and resource cleanup.
 
-The constructor calls `make()` functions (from `props.make` and mixin `makes`) with arguments `[initParams, { node, deep }]`.
+The constructor calls `ctor()` functions (from `props.ctor` and mixin `ctors`) with arguments `[initParams, { node, deep }]`.
 
 ### View.merge
 
@@ -1303,7 +1303,7 @@ All three produce compiled `.html` modules that import their runtime helpers fro
 28. **Sub-component `v-lark` paths must match exactly** -- template strings embed the paths at build time; renaming a `registerViewClass` path without updating the template breaks the load.
 29. **Dynamic `import()` shape is unknown** -- for chunk splitting, use a small `extractDefault()` helper to unwrap the ESM default, then cast with `as typeof View` (NOT `as any`).
 30. **`capture` with one argument is a getter** -- `this.capture("key")` returns the previously captured resource, not undefined. Only `this.capture("key", resource, destroyOnRender)` stores.
-31. **`View.prepare` runs once per class** -- guarded by `makes` marker on the constructor. Calling it twice is a no-op. This is why mixin event maps are frozen after first mount.
+31. **`View.prepare` runs once per class** -- guarded by `ctors` marker on the constructor. Calling it twice is a no-op. This is why mixin event maps are frozen after first mount.
 32. **EventEmitter is re-entrant safe** -- `off()` during `fire()` defers removal until all nested `fire()` calls complete. Handlers replaced with `noop` are compacted when `firingDepth` returns to 0.
 33. **VDOM mode requires `virtualDom: true` in config** -- the default rendering mode uses real-DOM diff. VDOM mode changes the compilation output and the diff engine. Setting `virtualDom: true` on the Vite plugin alone is not sufficient; also set it in `FrameworkConfig` (or the Vite plugin will pass it through to `compileTemplate` but the runtime will still use the string rendering path).
 34. **Rspack loader returns Promise, not callback** -- unlike the Webpack loader which uses `this.callback()`, the Rspack loader returns the compiled result as a Promise. Do not mix the two import paths.

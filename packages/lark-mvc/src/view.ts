@@ -384,23 +384,23 @@ export class View implements ViewInterface {
   // Static public methods
   // ============================================================
 
-  /** Collected makes from mixins */
-  static makes?: AnyFunc[];
+  /** Collected ctors from mixins */
+  static ctors?: AnyFunc[];
 
   /**
    * Prepare a View subclass by scanning its prototype for event method patterns.
    * Pattern: `$?name<eventType1,eventType2>(&modifiers)`
    *
-   * Only runs once per View subclass (guarded by makes marker).
+   * Only runs once per View subclass (guarded by ctors marker).
    * Called from Frame.mountView before creating the view instance.
    */
   static prepare(oView: typeof View): AnyFunc[] {
-    if (oView.makes) {
-      return oView.makes;
+    if (oView.ctors) {
+      return oView.ctors;
     }
 
-    const makes: AnyFunc[] = [];
-    oView.makes = makes;
+    const ctors: AnyFunc[] = [];
+    oView.ctors = ctors;
 
     const eventsObject: Record<string, number> = {};
     const eventsList: ViewGlobalEventEntry[] = [];
@@ -409,7 +409,7 @@ export class View implements ViewInterface {
     // Process mixins first
     const mixins = Reflect.get(oView.prototype, "mixins");
     if (mixins && Array.isArray(mixins)) {
-      View.mergeMixins(mixins, oView, makes);
+      View.mergeMixins(mixins, oView, ctors);
     }
 
     // Scan prototype for event method patterns
@@ -493,7 +493,7 @@ export class View implements ViewInterface {
     Reflect.set(oView.prototype, "$evtObjMap", eventsObject);
     Reflect.set(oView.prototype, "$globalEvtList", eventsList);
     Reflect.set(oView.prototype, "$selMap", selectorObject);
-    return makes;
+    return ctors;
   }
 
   /**
@@ -661,7 +661,7 @@ export class View implements ViewInterface {
   private static mergeMixins(
     mixins: Record<string, unknown>[],
     viewClass: typeof View,
-    makes: AnyFunc[],
+    ctors: AnyFunc[],
   ): void {
     const proto = asRecord(viewClass.prototype);
     const temp: Record<string, MixinEventHandler> = {};
@@ -674,8 +674,8 @@ export class View implements ViewInterface {
         const mixinFn = fn as MixinEventHandler;
         const exist = temp[p];
 
-        if (p === "make") {
-          makes.push(mixinFn);
+        if (p === "ctor") {
+          ctors.push(mixinFn);
           continue;
         }
 
@@ -731,7 +731,7 @@ export class View implements ViewInterface {
    * Extend View to create a new View subclass.
    *
    * Supports:
-   * - props.make: constructor-like init (called with initParams + {node, deep})
+   * - props.ctor: constructor-like init (called with initParams + {node, deep})
    * - props.mixins: array of mixin objects
    * - Event method patterns: `'name<click>'` etc.
    */
@@ -740,10 +740,10 @@ export class View implements ViewInterface {
     statics?: Record<string, unknown>,
   ): typeof View {
     const definedProps: Record<string, unknown> = props ?? {};
-    const make = definedProps["make"];
-    const makes: AnyFunc[] = [];
-    if (typeof make === "function") {
-      makes.push(make as AnyFunc);
+    const ctor = definedProps["ctor"];
+    const ctors: AnyFunc[] = [];
+    if (typeof ctor === "function") {
+      ctors.push(ctor as AnyFunc);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- Need reference to ParentView in closure for extend()
@@ -780,7 +780,7 @@ export class View implements ViewInterface {
         for (const key in definedProps) {
           if (
             hasOwnProperty(definedProps, key) &&
-            key !== "make" &&
+            key !== "ctor" &&
             key !== "render"
           ) {
             instanceProps[key] = definedProps[key];
@@ -802,7 +802,7 @@ export class View implements ViewInterface {
           },
         ];
 
-        const concatCtors = makes.concat(mixinCtors || []);
+        const concatCtors = ctors.concat(mixinCtors || []);
         if (concatCtors.length) {
           funcWithTry(concatCtors, params, this, noop);
         }
@@ -811,7 +811,7 @@ export class View implements ViewInterface {
 
     // Methods on prototype (for proper method lookup via prototype chain)
     for (const key in definedProps) {
-      if (hasOwnProperty(definedProps, key) && key !== "make") {
+      if (hasOwnProperty(definedProps, key) && key !== "ctor") {
         Reflect.set(ChildView.prototype, key, definedProps[key]);
       }
     }
@@ -837,7 +837,7 @@ export class View implements ViewInterface {
     this: typeof View,
     ...mixins: Record<string, unknown>[]
   ): typeof View {
-    const existingCtors = this.makes || [];
+    const existingCtors = this.ctors || [];
     View.mergeMixins(mixins, this, existingCtors);
     return this;
   }

@@ -382,7 +382,7 @@ State.diff(): ReadonlySet<string>
 Mixin factory. Decrements per-key reference counts on the view's destroy; keys with zero refs are removed from state. Use it to prevent State leaks.
 
 ```ts
-State.clean(keys: string): { make: AnyFunc }
+State.clean(keys: string): { ctor: AnyFunc }
 ```
 
 ```ts
@@ -405,7 +405,7 @@ Base view class. Imported via `import { View } from '@lark.js/mvc'`.
 
 ### View.extend(props, statics?)
 
-Create a View subclass. The `make` function from `props` (and from mixins) is collected into a `makes` array invoked in the constructor. Event method names matching `name<eventType>` are scanned at class-prepare time and routed through the EventDelegator.
+Create a View subclass. The `ctor` function from `props` (and from mixins) is collected into a `ctors` array invoked in the constructor. Event method names matching `name<eventType>` are scanned at class-prepare time and routed through the EventDelegator.
 
 ```ts
 View.extend(
@@ -418,7 +418,7 @@ View.extend(
 
 ### View.merge(...mixins)
 
-Merge mixin objects into the View prototype. Conflicting event methods become an internal `handlerList` invoked in order. The `make` function from each mixin is appended to `makes`.
+Merge mixin objects into the View prototype. Conflicting event methods become an internal `handlerList` invoked in order. The `ctor` function from each mixin is appended to `ctors`.
 
 ```ts
 View.merge(...mixins: Record<string, unknown>[]): typeof View
@@ -426,7 +426,7 @@ View.merge(...mixins: Record<string, unknown>[]): typeof View
 
 ### View.prepare(viewClass)
 
-Internal — scans the prototype for event method patterns. Idempotent (guarded by `makes`). Called from `Frame.mountView` before creating the view instance.
+Internal — scans the prototype for event method patterns. Idempotent (guarded by `ctors`). Called from `Frame.mountView` before creating the view instance.
 
 ### View instance properties
 
@@ -451,7 +451,7 @@ Internal — scans the prototype for event method patterns. Idempotent (guarded 
 
 | Hook               | Description                                                                                            |
 | ------------------ | ------------------------------------------------------------------------------------------------------ |
-| `make()`           | Constructor-like; called once per instance with `(initParams, { node, deep })`                         |
+| `ctor()`           | Constructor-like; called once per instance with `(initParams, { node, deep })`                         |
 | `init()`           | Initialization. May return a Promise; the framework waits for resolution before calling render         |
 | `render()`         | Default implementation calls `updater.digest()`. Wrapped to manage signature + resource cleanup        |
 | `assign(options?)` | Incremental update. Call `updater.snapshot()` first, return `updater.altered()` to skip when unchanged |
@@ -854,7 +854,7 @@ function bindStore<T extends Record<string, unknown>>(
 
 ```ts
 const MyView = defineView({
-  make() {
+  ctor() {
     // Observe all state keys (minus actions)
     bindStore(this, useCountStore);
 

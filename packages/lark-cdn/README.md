@@ -198,7 +198,7 @@ Edge cases:
 
 Because Level 3 always precedes Level 4, the `defaultVersion` field only takes effect when all versions are `isActive: false`. It is not "the version served when none is specified" but rather "the last-resort fallback when everything is offline."
 
-To make a specific version the de facto default, set its weight to 100 and set other versions' weight to 0 or isActive=false.
+To make a specific version the default, set its weight to 100 and set other versions' weight to 0 or isActive=false.
 
 ## 5 Caching Strategy
 

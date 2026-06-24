@@ -24,7 +24,7 @@ export function EmptyState({ status, targetUrl }: EmptyStateProps) {
             Enter a URL in the search bar above to connect to a Lark
             application, or navigate to{" "}
             <code className="rounded bg-sky-100 px-1.5 py-0.5 text-xs text-sky-600">
-              http://localhost:5173#http://localhost:3000
+              http://localhost:5173/?url=http://localhost:3000
             </code>
           </p>
           <div className="space-y-3 rounded-lg border border-sky-200/60 bg-white p-4 text-left">

@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@lark.js/mvc": "workspace:^",
+    "@sentry/react": "^10.60.0",
+    "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-virtual": "^3.14.3",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
@@ -21,7 +23,7 @@
   },
   "devDependencies": {
     "@rsbuild/core": "^2.0.15",
-    "@rsbuild/plugin-react": "^2.0.15",
+    "@rsbuild/plugin-react": "^2.1.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "catalog:",
     "@types/react": "^19.2.17",

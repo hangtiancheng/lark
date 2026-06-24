@@ -16,10 +16,7 @@ import {
 } from "vite";
 import dts from "vite-plugin-dts";
 import { resolve } from "node:path";
-import {
-  compileTemplate,
-  extractGlobalVars,
-} from "@lark.js/mvc/compiler";
+import { compileTemplate, extractGlobalVars } from "@lark.js/mvc/compiler";
 import tailwindcss from "@tailwindcss/vite";
 import { larkDocsPlugin } from "./src/vite";
 import { defineConfig as defineDocsConfig } from "./src/define-config";

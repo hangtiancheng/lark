@@ -3,7 +3,8 @@
     "*.page-template": "vue",
     "*.layout-template": "vue",
     "*.vue": "vue",
-    "*.gyp": "json"
+    "*.gyp": "json",
+    // "*.ejs": "javascript"
   },
   "cmake.ignoreCMakeListsMissing": true,
   "cSpell.words": [

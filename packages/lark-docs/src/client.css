@@ -60,7 +60,7 @@ mark {
 }
 
 .prose :where(code):not(:where([class~="not-prose"] *)) {
-  @apply text-[0.95em];
+  @apply text-[0.9em];
 }
 
 .prose :where(table):not(:where([class~="not-prose"] *)) {

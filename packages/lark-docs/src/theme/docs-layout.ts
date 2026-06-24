@@ -78,6 +78,17 @@ export function createDocsLayoutView(
           ) => Promise<{ pageData: PageData; contentHtml: string } | null>)
         | undefined;
       const rawPath = Router.parse().path || docsConfig.baseUrl || "/";
+
+      // Redirect /index, /index.md, /index.html to the clean directory path.
+      // Uses replace=true so no history entry is added (true redirect).
+      // e.g. "/docs/guide/index.md" → "/docs/guide", "/index" → "/"
+      const indexMatch = rawPath.match(/^(.*?)(?:\/index(?:\.md|\.html)?)\/?$/);
+      if (indexMatch) {
+        const cleanPath = indexMatch[1] || "/";
+        Router.to(cleanPath, {}, true);
+        return;
+      }
+
       // Normalize trailing slashes to match route keys (which never have
       // trailing slashes). "/docs/ch1/" → "/docs/ch1".
       const path = rawPath.replace(/\/+$/, "") || "/";

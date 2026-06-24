@@ -12,9 +12,10 @@ const loaders = {
  * Returns null for unknown paths so the layout can render a not-found state.
  */
 export async function loadContent(path) {
-  // Normalize trailing slashes so "/docs/ch1/" resolves the same as
-  // "/docs/ch1". Route keys in loaders never have trailing slashes.
-  const normalized = (path || "/").replace(/\/+$/, "") || "/";
+  // Normalize path: strip trailing slashes and /index, /index.md, /index.html
+  // suffixes so "/docs/ch1/index.md" resolves the same as "/docs/ch1".
+  let normalized = (path || "/").replace(/\/+$/, "") || "/";
+  normalized = normalized.replace(/^(.*?)(?:\/index(?:\.md|\.html)?)\/?$/, (_m, p1) => p1 || "/");
   const loader = loaders[normalized];
   if (!loader) return null;
   const mod = await loader();

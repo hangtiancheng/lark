@@ -30,7 +30,7 @@ import {
 } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 /** Documentation site configuration used in docs mode. */
-import docsConfig from "./lark-docs.config";
+import larkDocsConfig from "./lark-docs.config";
 
 // === Shared constants ===
 
@@ -68,13 +68,15 @@ const CJS_SHIMS = [
 // === Mode router ===
 
 export default defineConfig(({ mode, command }) => {
+  const isDev = command === "serve";
   if (mode === "lib") {
-    return libConfig();
+    return libConfig({ isDev });
   }
   if (mode === "docs") {
-    return docsDemoConfig(command === "serve");
+    return docsConfig({ isDev });
   }
-  throw new Error(`Error: mode ${mode}`);
+  // Best-effort
+  return docsConfig({ isDev });
 });
 
 // === Library build ===
@@ -285,7 +287,8 @@ function themeDualMode(options?: { debug?: boolean }): PluginOption {
   };
 }
 
-function libConfig(): UserConfig {
+function libConfig(options?: { isDev?: boolean }): UserConfig {
+  const { isDev = true } = options ?? {};
   return {
     build: {
       lib: {
@@ -315,7 +318,7 @@ function libConfig(): UserConfig {
     plugins: [
       // Compile .html template imports in theme/ into JS functions in BOTH
       // string and VDOM modes so consumers can use either rendering mode.
-      themeDualMode({ debug: true }) as PluginOption,
+      themeDualMode({ debug: isDev }) as PluginOption,
       {
         name: "cjs-shims",
         renderChunk(code, _chunk, outputOptions) {
@@ -339,16 +342,17 @@ function libConfig(): UserConfig {
 
 // === Documentation site build ===
 
-function docsDemoConfig(isDev = true): UserConfig {
+function docsConfig(options?: { isDev?: boolean }): UserConfig {
+  const { isDev = true } = options ?? {};
   return {
     root: resolve(PKG_DIR, "app"),
     plugins: [
       // Virtual module plugin — no ordering constraint needed since virtual
       // module IDs (virtual:lark-docs/*) are never intercepted by
       // larkMvcPlugin7 or Vite's built-in HTML handler.
-      themeDualMode({ debug: true }) as PluginOption,
+      themeDualMode({ debug: isDev }) as PluginOption,
       ...larkDocsPlugin({
-        config: docsConfig,
+        config: larkDocsConfig,
         virtualDom: false,
         debug: true,
       }),

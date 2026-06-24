@@ -347,6 +347,7 @@ function docsConfig(options?: { isDev?: boolean }): UserConfig {
   return {
     base: isDev ? "/" : "/lark/",
     root: resolve(PKG_DIR, "app"),
+    publicDir: resolve(PKG_DIR, "public"),
     plugins: [
       // Virtual module plugin — no ordering constraint needed since virtual
       // module IDs (virtual:lark-docs/*) are never intercepted by

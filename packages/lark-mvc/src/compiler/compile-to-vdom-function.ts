@@ -311,7 +311,7 @@ export function compileToVDomFunction(
   let funcBody = body;
   if (debug) {
     const filePart = file ? `\\r\\n\\tat file:${file}` : "";
-    funcBody = `let $dbgExpr,$dbgArt,$dbgLine;try{${body}}catch(ex){let msg='render view error:'+(ex.message||ex);msg+='${filePart}';throw msg;}`;
+    funcBody = `let $dbgExpr,$dbgArt,$dbgLine;try{${body}}catch(e){let msg='render error:'+(e.message||e);msg+='${filePart}';throw msg;}`;
   }
 
   // View ID injection: any remaining \x1f in code blocks → '+$viewId+'

@@ -128,7 +128,7 @@ function compileToFunction(
 
   if (debug) {
     const filePart = file ? `\\r\\n\\tat file:${file}` : "";
-    funcSource = `let $dbgExpr,$dbgArt,$dbgLine;try{${funcSource}}catch(ex){let msg='render view error:'+(ex.message||ex);if($dbgArt)msg+='\\r\\n\\tsrc art:{{'+$dbgArt+'}}\\r\\n\\tat line:'+$dbgLine;msg+='\\r\\n\\t'+($dbgArt?'translate to:':'expr:');msg+=$dbgExpr+'${filePart}';throw msg;}`;
+    funcSource = `let $dbgExpr,$dbgArt,$dbgLine;try{${funcSource}}catch(e){let msg='render error:'+(e.message||e);if($dbgArt)msg+='\\r\\n\\tsrc art:{{'+$dbgArt+'}}\\r\\n\\tat line:'+$dbgLine;msg+='\\r\\n\\t'+($dbgArt?'translate to:':'expr:');msg+=$dbgExpr+'${filePart}';throw msg;}`;
   }
 
   // ─── View ID injection: \x1f → '+$viewId+' ────────────────────────

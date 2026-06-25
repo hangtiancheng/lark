@@ -481,11 +481,11 @@ When debug mode is enabled (via `larkMvcPlugin({ debug: true })` for Vite or `op
 Error message format:
 
 ```
-render view error: <error message>
+render error: <error message>
     src art: {{=user.name}}
     at line: 42
     translate to: <%=user.name%>
-    at file:src/views/home.html
+    at file: src/views/home.html
 ```
 
 ## Global Variable Extraction

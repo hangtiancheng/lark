@@ -126,10 +126,37 @@ const IMPORT_RE = /^import\s+\{([^}]+)\}\s+from\s+["']([^"']+)["'];?\s*$/;
 /**
  * Split compiled template output into import lines and function body.
  *
- * compileTemplate() returns ES module source: import statements followed
- * by `export default function(...) { ... }`. This separates them so the
- * imports can be merged/deduplicated and the body reassigned to a const.
+ * compileTemplate() returns ES module source in two possible formats:
+ *
+ *   Old: `export default function(data, viewId, refData) { ... }`
+ *   New: `function __larkTemplate(data, viewId, refData) { ... }`
+ *        `export default __larkTemplate;`
+ *
+ * The new format exists so the auto-injected HMR snippet can reference the
+ * template function by name. This function separates imports from body and
+ * normalizes both formats into an anonymous function expression suitable
+ * for `const __str = function(...) {...}`.
+ *
+ * Regexes are used instead of `startsWith` so the matching is robust against
+ * whitespace variations and does not hardcode the function name (`__larkTemplate`).
  */
+
+/**
+ * Matches `export default <identifier>;` — a bare reference to a named
+ * function declaration on a preceding line. Does NOT match
+ * `export default function(...)` because `function` is followed by `(`
+ * (not end-of-line), and the `(?!function\b)` lookahead guards against a
+ * multiline `export default function` declaration.
+ */
+const BARE_EXPORT_RE =
+  /^export\s+default\s+(?!function\b)[a-zA-Z_$][\w$]*\s*;?\s*$/;
+
+/**
+ * Matches `function <name>(` — a named function declaration. Used to convert
+ * to an anonymous `function(` expression so it can be assigned to a const.
+ */
+const NAMED_FUNC_RE = /^function\s+[a-zA-Z_$][\w$]*\s*\(/;
+
 function splitModule(source: string): {
   imports: string[];
   body: string;
@@ -140,8 +167,20 @@ function splitModule(source: string): {
   for (const line of lines) {
     if (line.startsWith("import ")) {
       imports.push(line);
+    } else if (BARE_EXPORT_RE.test(line)) {
+      // New format: `export default __larkTemplate;` is a bare reference to
+      // the named function declaration above. Drop it entirely — the
+      // function itself is already captured in the body.
+      continue;
     } else {
-      bodyLines.push(line.replace(/^export default /, ""));
+      let processed = line.replace(/^export\s+default\s+/, "");
+      // Convert `function __larkTemplate(` → `function(` so the named
+      // function declaration becomes an anonymous function expression.
+      // Without this, `const __str = function __larkTemplate(...)` creates
+      // a named function expression whose name is inaccessible outside the
+      // function body, causing `ReferenceError: __larkTemplate is not defined`.
+      processed = processed.replace(NAMED_FUNC_RE, "function(");
+      bodyLines.push(processed);
     }
   }
   return { imports, body: bodyLines.join("\n") };

@@ -95,12 +95,12 @@ export class View implements ViewInterface {
   /** Prototype-stored event maps shape (set by View.prepare). */
   private get protoEventState(): {
     $evtObjMap?: Record<string, number>;
-    $selMap?: Record<string, ViewEventSelectorEntry>;
+    $selectorMap?: Record<string, ViewEventSelectorEntry>;
     $globalEvtList?: ViewGlobalEventEntry[];
   } {
     return Object.getPrototypeOf(this) as {
       $evtObjMap?: Record<string, number>;
-      $selMap?: Record<string, ViewEventSelectorEntry>;
+      $selectorMap?: Record<string, ViewEventSelectorEntry>;
       $globalEvtList?: ViewGlobalEventEntry[];
     };
   }
@@ -116,10 +116,10 @@ export class View implements ViewInterface {
 
   /**
    * Selector event map: eventType -> selector list.
-   * Read from prototype ($selMap) set by View.prepare.
+   * Read from prototype ($selectorMap) set by View.prepare.
    */
   get eventSelectorMap(): Record<string, ViewEventSelectorEntry> {
-    return this.protoEventState.$selMap ?? {};
+    return this.protoEventState.$selectorMap ?? {};
   }
 
   /**
@@ -492,7 +492,7 @@ export class View implements ViewInterface {
     // Store event maps on prototype
     Reflect.set(oView.prototype, "$evtObjMap", eventsObject);
     Reflect.set(oView.prototype, "$globalEvtList", eventsList);
-    Reflect.set(oView.prototype, "$selMap", selectorObject);
+    Reflect.set(oView.prototype, "$selectorMap", selectorObject);
     return ctors;
   }
 
@@ -501,7 +501,7 @@ export class View implements ViewInterface {
    * Called from Frame during mount/unmount.
    */
   static delegateEvents(view: ViewInterface, destroy = false): void {
-    // Read event maps via getters (which read from prototype $evtObjMap/$selMap/$globalEvtList).
+    // Read event maps via getters (which read from prototype $evtObjMap/$selectorMap/$globalEvtList).
     const eventsObject = view.eventObjectMap;
     const selectorObject = view.eventSelectorMap;
     const eventsList = view.globalEventList;

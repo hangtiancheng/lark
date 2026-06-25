@@ -448,7 +448,7 @@ Both produce equivalent runtime artifacts; the difference is purely in TypeScrip
 
 ### Event Methods
 
-Event methods are named `name<eventType>` or `$selector<eventType>`. `View.prepare` scans the prototype at class definition time, parsing methods into three maps (`$evtObjMap` / `$selMap` / `$globalEvtList`) written to the prototype, managed at runtime by `EventDelegator`.
+Event methods are named `name<eventType>` or `$selector<eventType>`. `View.prepare` scans the prototype at class definition time, parsing methods into three maps (`$evtObjMap` / `$selectorMap` / `$globalEvtList`) written to the prototype, managed at runtime by `EventDelegator`.
 
 | Syntax                     | Meaning                                            |
 | -------------------------- | -------------------------------------------------- |

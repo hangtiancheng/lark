@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { compileTemplate } from "../src/compiler";
 import { vdomCreate } from "../src/vdom";
-import { V_TEXT_NODE } from "../src/common";
+import { V_TEXT_NODE, SPLITTER } from "../src/common";
 import * as runtime from "../src/runtime";
 import type { VDomNode } from "../src/types";
 
@@ -173,11 +173,16 @@ describe("VDOM Compiler", () => {
       expect(src).toContain("$vdomCreate(0,$strSafe(name))");
     });
 
-    it("compiles {{!expr}} as raw text node", async () => {
+    it("compiles {{!expr}} as SPLITTER raw HTML node (not V_TEXT_NODE)", async () => {
+      // {{!}} must produce a SPLITTER-tagged raw HTML node by passing `1`
+      // as the children argument: `$vdomCreate(0, $strSafe(expr), 1)`.
+      // If it omitted the `1` (as before the fix), vdomCreate would return a
+      // V_TEXT_NODE whose html gets HTML-encoded when serialized into the
+      // parent's innerHTML — breaking raw HTML semantics in VDOM mode.
       const src = await compileSource("<div>{{!rawContent}}</div>", {
         globalVars: ["rawContent"],
       });
-      expect(src).toContain("$strSafe(rawContent)");
+      expect(src).toContain("$vdomCreate(0,$strSafe(rawContent),1)");
     });
 
     it("compiles {{@expr}} as ref lookup", async () => {
@@ -371,6 +376,59 @@ describe("VDOM Compiler", () => {
       expect(root.html).toContain("4");
       const div = root.children![0] as VDomNode;
       expect(div.children!.length).toBe(4);
+    });
+
+    it("renders {{!expr}} as raw HTML (not escaped) in VDOM mode", async () => {
+      // Regression test for the compiler + vdomCreateNode coupling bug:
+      // {{!}} must produce a SPLITTER-tagged raw HTML node (via
+      // $vdomCreate(0, $strSafe(expr), 1)) whose html is NOT HTML-encoded
+      // when serialized into the parent's innerHTML.
+      //
+      // Before the fix, {{!}} produced a V_TEXT_NODE whose html was
+      // escaped via encodeHTML, so <b>bold</b> became &lt;b&gt;bold&lt;/b&gt;.
+      const root = await compileAndRun(
+        "<div>{{!rawHtml}}</div>",
+        { rawHtml: "<b>bold</b>" },
+        ["rawHtml"],
+      );
+      const div = root.children![0] as VDomNode;
+      const rawNode = div.children![0] as VDomNode;
+
+      // The raw HTML node must be a SPLITTER node, not a V_TEXT_NODE
+      expect(rawNode.tag).toBe(SPLITTER);
+      expect(rawNode.tag).not.toBe(V_TEXT_NODE);
+
+      // The html field holds the raw HTML string unmodified
+      expect(rawNode.html).toBe("<b>bold</b>");
+
+      // Critical: the parent div's serialized innerHTML must contain the
+      // raw <b> tag (NOT the HTML-encoded &lt;b&gt; form). This is what
+      // distinguishes {{!}} (raw) from {{=}} (escaped).
+      expect(div.html).toContain("<b>bold</b>");
+      expect(div.html).not.toContain("&lt;b&gt;");
+    });
+
+    it("renders {{!}} and {{=}} with correct escape semantics side by side", async () => {
+      // Ensures both operators coexist correctly: {{=}} escapes, {{!}} doesn't.
+      const root = await compileAndRun(
+        "<div>{{=escaped}}{{!raw}}</div>",
+        { escaped: "<i>x</i>", raw: "<b>y</b>" },
+        ["escaped", "raw"],
+      );
+      const div = root.children![0] as VDomNode;
+
+      // {{=escaped}} → V_TEXT_NODE, HTML-encoded in parent innerHTML
+      const escapedNode = div.children![0] as VDomNode;
+      expect(escapedNode.tag).toBe(V_TEXT_NODE);
+
+      // {{!raw}} → SPLITTER, raw HTML preserved
+      const rawNode = div.children![1] as VDomNode;
+      expect(rawNode.tag).toBe(SPLITTER);
+      expect(rawNode.html).toBe("<b>y</b>");
+
+      // Parent innerHTML contains escaped form for {{=}} and raw form for {{!}}
+      expect(div.html).toContain("&lt;i&gt;x&lt;/i&gt;");
+      expect(div.html).toContain("<b>y</b>");
     });
   });
 

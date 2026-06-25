@@ -504,7 +504,7 @@ The constructor calls `ctor()` functions (from `props.ctor` and mixin `ctors`) w
 
 ### Event methods
 
-Lark scans the View prototype once per class (in `View.prepare`) and builds three event maps on the prototype (`$evtObjMap`, `$selMap`, `$globalEvtList`). DOM events are delegated to `document.body` using capture-phase listeners with reference counting -- the first binding installs the listener, the last unbinding removes it.
+Lark scans the View prototype once per class (in `View.prepare`) and builds three event maps on the prototype (`$evtObjMap`, `$selectorMap`, `$globalEvtList`). DOM events are delegated to `document.body` using capture-phase listeners with reference counting -- the first binding installs the listener, the last unbinding removes it.
 
 | Pattern                    | Meaning                                            |
 | -------------------------- | -------------------------------------------------- |

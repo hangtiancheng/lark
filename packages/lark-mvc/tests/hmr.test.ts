@@ -119,7 +119,9 @@ describe("HMR", () => {
       // Register a class, then trigger dispose
       const TestView = View.extend({});
       registerViewClass("test/dispose-view", TestView);
-      expect(Frame.getAll().size >= 0).toBe(true); // sanity check
+      // Verify the class is actually registered (replaces previous
+      // `size >= 0` tautology which was always true)
+      expect(getViewClassRegistry()["test/dispose-view"]).toBe(TestView);
 
       // Simulate HMR dispose
       hot.disposeCb!({});
@@ -154,29 +156,72 @@ describe("HMR", () => {
     });
 
     it("accept callback falls back to module itself when no default export", () => {
+      // Vite passes the new module namespace to the accept callback.
+      // When the module has no `default` export but is itself a function
+      // (e.g. a wrapper that re-exports a View class),
+      // `candidate = newModule?.default ?? newModule` resolves to newModule.
       const hot = createMockHot();
       acceptView(hot, "test/accept-no-default");
 
       const NewView = View.extend({});
-      // Simulate a module that exports the View class directly (not as default)
+      // Pass the View class directly as the module (no .default property)
       hot.acceptCb!(NewView as { default?: unknown });
 
-      const reg = getViewClassRegistry();
-      // When newModule has no .default, it falls through to newModule itself
-      // But newModule is the View class (a function), so it should be registered
-      // Actually, the logic is: candidate = newModule?.default ?? newModule
-      // If newModule is a function (View class), it has no .default property
-      // So candidate = newModule itself, which is the View class
-      // Wait, but the accept callback receives `mod` which is `{ default?: unknown } | undefined`
-      // If we pass a View class directly, it doesn't have a .default property
-      // So `newModule?.default` is undefined, and `candidate = newModule`
-      // But `newModule` is the View class (a function), so `typeof candidate === 'function'` is true
-      // So it should be registered. But the key is "test/accept-no-default"
-      // Let me check: the accept callback receives `mod` which is the new module namespace
-      // In our test, we're passing the View class directly as `mod`
-      // The View class is a function, so `typeof candidate === 'function'` is true
-      // So it should be registered with the viewPath "test/accept-no-default"
-      expect(reg["test/accept-no-default"]).toBe(NewView);
+      expect(getViewClassRegistry()["test/accept-no-default"]).toBe(NewView);
+    });
+
+    it("accept callback falls back to registry for webpack/rspack (no newModule)", async () => {
+      // webpack/rspack: `module.hot.accept(cb)` does NOT pass the new module
+      // to the callback — the module has already re-executed by the time the
+      // callback runs. If the re-executed module called registerViewClass(),
+      // the registry already holds the new class; acceptView should fall
+      // back to getViewClass(viewPath) and hot-swap frames with it instead
+      // of calling hot.invalidate().
+      const viewPath = "test/accept-webpack-fallback";
+      const hot = createMockHot();
+      acceptView(hot, viewPath);
+
+      // Simulate the re-executed module having registered the new class
+      const NewView = View.extend({
+        template: makeTemplate("webpack-template"),
+        init() {
+          this.updater.set({ count: 7 });
+        },
+      });
+
+      const frame = createTestFrame("accept-webpack-fb");
+      // Mount with the OLD class (simulate pre-HMR state)
+      const OldView = View.extend({
+        template: makeTemplate("old-template"),
+        init() {
+          this.updater.set({ count: 7 });
+        },
+      });
+      registerViewClass(viewPath, OldView);
+      frame.mountView(viewPath);
+      await flushMicrotasks();
+
+      // Restore the NEW class in registry (simulating re-execution)
+      registerViewClass(viewPath, NewView);
+      const viewBefore = frame.view;
+
+      // Trigger accept with undefined newModule (webpack/rspack behavior)
+      hot.acceptCb!(undefined);
+
+      // Should NOT invalidate — registry fallback succeeded
+      expect(hot.invalidated).toBe(false);
+      // State preserved through the hot-swap
+      expect(frame.view!.updater.get<number>("count")).toBe(7);
+      // Instance identity preserved
+      expect(frame.view).toBe(viewBefore);
+      // New template applied
+      expect(
+        document
+          .getElementById("accept-webpack-fb")!
+          .querySelector(".webpack-template"),
+      ).not.toBeNull();
+
+      cleanupFrame(frame);
     });
 
     it("accept callback calls invalidate when new module is not a function", () => {
@@ -359,7 +404,7 @@ describe("HMR", () => {
       const frame = createTestFrame("hot-swap-preserve");
 
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -376,11 +421,16 @@ describe("HMR", () => {
       // New class with a different template — init would reset count to 0
       // if it were re-invoked, but hotSwapView must NOT call init.
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           this.updater.set({ count: 0 });
         },
       });
+
+      // Capture the view instance BEFORE hot-swap to verify identity
+      // preservation. The previous assertion `expect(frame.view).toBe(frame.view)`
+      // was a tautology (x === x) and proved nothing.
+      const viewBefore = frame.view;
 
       hotSwapView(frame, NewView);
 
@@ -389,12 +439,12 @@ describe("HMR", () => {
 
       // New template applied to DOM
       const el = document.getElementById("hot-swap-preserve")!;
-      expect(el.querySelector(".new-tpl")).not.toBeNull();
-      expect(el.querySelector(".old-tpl")).toBeNull();
+      expect(el.querySelector(".new-template")).not.toBeNull();
+      expect(el.querySelector(".old-template")).toBeNull();
       expect(el.textContent).toContain("count=42");
 
       // The view instance identity is preserved (not a new instance)
-      expect(frame.view).toBe(frame.view);
+      expect(frame.view).toBe(viewBefore);
 
       cleanupFrame(frame);
     });
@@ -403,7 +453,7 @@ describe("HMR", () => {
       const frame = createTestFrame("hot-swap-no-init");
 
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 10 });
         },
@@ -415,7 +465,7 @@ describe("HMR", () => {
 
       const initSpy = vi.fn();
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           initSpy();
           this.updater.set({ count: 0 });
@@ -436,7 +486,7 @@ describe("HMR", () => {
       frame.viewPath = "test/hot-swap-fallback";
 
       const NewView = View.extend({
-        template: makeTemplate("fallback-tpl"),
+        template: makeTemplate("fallback-template"),
         init() {
           this.updater.set({ count: 1 });
         },
@@ -458,7 +508,7 @@ describe("HMR", () => {
 
       const destroyHandler = vi.fn();
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 0 });
           this.on("destroy", destroyHandler);
@@ -470,7 +520,7 @@ describe("HMR", () => {
       await flushMicrotasks();
 
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -498,7 +548,7 @@ describe("HMR", () => {
     it("hot-swaps all frames matching the viewPath", async () => {
       const viewPath = "test/hot-swap-batch";
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -515,7 +565,7 @@ describe("HMR", () => {
       frame2.view!.updater.set({ count: 200 }).digest();
 
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -529,10 +579,14 @@ describe("HMR", () => {
 
       // Both frames use the new template
       expect(
-        document.getElementById("hot-swap-batch-1")!.querySelector(".new-tpl"),
+        document
+          .getElementById("hot-swap-batch-1")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
       expect(
-        document.getElementById("hot-swap-batch-2")!.querySelector(".new-tpl"),
+        document
+          .getElementById("hot-swap-batch-2")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame1);
@@ -542,7 +596,7 @@ describe("HMR", () => {
     it("does not touch frames with a different viewPath", async () => {
       const frame = createTestFrame("hot-swap-other");
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 5 });
         },
@@ -552,7 +606,7 @@ describe("HMR", () => {
       await flushMicrotasks();
 
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -563,7 +617,9 @@ describe("HMR", () => {
 
       expect(frame.view!.updater.get<number>("count")).toBe(5);
       expect(
-        document.getElementById("hot-swap-other")!.querySelector(".old-tpl"),
+        document
+          .getElementById("hot-swap-other")!
+          .querySelector(".old-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame);
@@ -579,7 +635,7 @@ describe("HMR", () => {
       const hot = createMockHot();
 
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -595,7 +651,7 @@ describe("HMR", () => {
       acceptView(hot, viewPath);
 
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -607,7 +663,9 @@ describe("HMR", () => {
       // State preserved through the accept callback
       expect(frame.view!.updater.get<number>("count")).toBe(99);
       expect(
-        document.getElementById("accept-preserve")!.querySelector(".new-tpl"),
+        document
+          .getElementById("accept-preserve")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
 
       // New class registered for future synchronous mounts
@@ -623,19 +681,19 @@ describe("HMR", () => {
   // ============================================================
   describe("hotSwapByTemplate", () => {
     it("updates template on all views using the old template", async () => {
-      const oldTpl = makeTemplate("old-tpl");
-      const newTpl = makeTemplate("new-tpl");
+      const oldTpl = makeTemplate("old-template");
+      const newTpl = makeTemplate("new-template");
 
-      const frame = createTestFrame("hot-swap-tpl");
+      const frame = createTestFrame("hot-swap-template");
       const TestView = View.extend({
         template: oldTpl,
         init() {
           this.updater.set({ count: 0 });
         },
       });
-      registerViewClass("test/hot-swap-tpl", TestView);
+      registerViewClass("test/hot-swap-template", TestView);
 
-      frame.mountView("test/hot-swap-tpl");
+      frame.mountView("test/hot-swap-template");
       await flushMicrotasks();
 
       // Mutate state
@@ -647,20 +705,24 @@ describe("HMR", () => {
       expect(frame.view!.updater.get<number>("count")).toBe(77);
       // New template applied
       expect(
-        document.getElementById("hot-swap-tpl")!.querySelector(".new-tpl"),
+        document
+          .getElementById("hot-swap-template")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
       expect(
-        document.getElementById("hot-swap-tpl")!.querySelector(".old-tpl"),
+        document
+          .getElementById("hot-swap-template")!
+          .querySelector(".old-template"),
       ).toBeNull();
-      expect(document.getElementById("hot-swap-tpl")!.textContent).toContain(
-        "count=77",
-      );
+      expect(
+        document.getElementById("hot-swap-template")!.textContent,
+      ).toContain("count=77");
 
       cleanupFrame(frame);
     });
 
     it("does nothing when oldTemplate === newTemplate", async () => {
-      const tpl = makeTemplate("same-tpl");
+      const tpl = makeTemplate("same-template");
       const frame = createTestFrame("hot-swap-same");
       const TestView = View.extend({
         template: tpl,
@@ -677,7 +739,9 @@ describe("HMR", () => {
       // No crash, state intact
       expect(frame.view!.updater.get<number>("count")).toBe(5);
       expect(
-        document.getElementById("hot-swap-same")!.querySelector(".same-tpl"),
+        document
+          .getElementById("hot-swap-same")!
+          .querySelector(".same-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame);
@@ -690,7 +754,7 @@ describe("HMR", () => {
   describe("hotSwapByClass", () => {
     it("swaps prototype and updates registry for matching class", async () => {
       const OldView = View.extend({
-        template: makeTemplate("old-tpl"),
+        template: makeTemplate("old-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -706,7 +770,7 @@ describe("HMR", () => {
       frame.view!.updater.set({ count: 33 }).digest();
 
       const NewView = View.extend({
-        template: makeTemplate("new-tpl"),
+        template: makeTemplate("new-template"),
         init() {
           this.updater.set({ count: 0 });
         },
@@ -721,7 +785,9 @@ describe("HMR", () => {
       expect(frame.view!.updater.get<number>("count")).toBe(33);
       // New template applied
       expect(
-        document.getElementById("hot-swap-class")!.querySelector(".new-tpl"),
+        document
+          .getElementById("hot-swap-class")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
       // Registry updated
       expect(getViewClassRegistry()["test/hot-swap-class"]).toBe(NewView);

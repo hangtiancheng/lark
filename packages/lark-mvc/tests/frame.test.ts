@@ -23,6 +23,11 @@ function cleanupFrame(frame: Frame): void {
   Frame.getAll().delete(id);
 }
 
+/** Flush the microtask queue so deferred mounts (Promise.resolve in doMountView) complete. */
+function flushMicrotasks(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe("Frame", () => {
   afterEach(() => {
     if (Reflect.get(Frame, "_rootFrame") !== undefined) {
@@ -575,12 +580,8 @@ describe("Frame", () => {
       cleanupFrame(frame);
     });
 
-    it("sets destroyed flag when view exists", () => {
+    it("sets destroyed flag when view exists", async () => {
       const frame = createTestFrame("uv-test-3");
-      const childEl = document.createElement("div");
-      childEl.id = "uv-child-3";
-      childEl.innerHTML = "original content";
-      document.body.appendChild(childEl);
 
       const TestView = View.extend({
         ctor() {
@@ -589,18 +590,32 @@ describe("Frame", () => {
       });
       registerViewClass("test-view-uv", TestView);
 
-      // mountFrame will mountView and set viewInstance
-      frame.mountFrame("uv-child-3", "test-view-uv");
+      // The previous version of this test used `frame.mountFrame("uv-child-3",
+      // "test-view-uv")` which creates a CHILD frame and mounts the view on
+      // it. The assertion then checked `frame.view` (the PARENT frame's view)
+      // which is always undefined — so `expect(frame.destroyed).toBe(0)`
+      // passed trivially, validating the *no-view* early-return path instead
+      // of the "view exists" path the test name claims.
+      //
+      // Now we mount the view directly on `frame` via mountView. doMountView
+      // sets `this.viewInstance = view` synchronously (frame.ts L256), so we
+      // can verify the view exists immediately. We still await one microtask
+      // flush so that init()'s Promise.resolve callback completes before
+      // unmountView fires the destroy event.
+      frame.mountView("test-view-uv");
 
-      // unmountView sets destroyed = 1 when view exists
-      // Note: mountView is asynchronous (Promise.resolve), so view may not be ready yet
-      // Testing frame's own unmountView: without view, destroyed is not set
-      // With view, destroyed = 1 is set
+      // Precondition: view must actually be mounted for the test to match
+      // its name ("when view exists")
+      expect(frame.view).toBeDefined();
+
+      await flushMicrotasks();
+
       frame.unmountView();
-      // unmountView does not set destroyed when no view (returns early)
-      expect(frame.destroyed).toBe(0);
 
-      childEl.remove();
+      // unmountView sets destroyed = 1 when a view exists (after the
+      // `if (!view) return` guard in frame.ts)
+      expect(frame.destroyed).toBe(1);
+
       cleanupFrame(frame);
     });
   });

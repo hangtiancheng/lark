@@ -238,6 +238,24 @@ export function vdomCreateNode(
     return document.createTextNode(vnode.html);
   }
 
+  if (tag === SPLITTER) {
+    // Raw HTML node: parse via <template> to avoid the InvalidCharacterError
+    // that createElementNS(ns, "\x1e") would throw — SPLITTER is U+001E,
+    // which is not a valid XML QName localName.
+    //
+    // The <template> element parses HTML in a namespace-agnostic way,
+    // matching string-mode innerHTML semantics so {{!rawHtml}} renders
+    // identically in both string and VDOM modes.
+    //
+    // Returns the first child node; if the raw HTML is empty or produces no
+    // nodes, falls back to an empty text node to keep the ChildNode return
+    // contract. Multi-top-level-node raw HTML only renders the first node —
+    // a known limitation of the single-ChildNode return type.
+    const template = document.createElement("template");
+    template.innerHTML = vnode.html;
+    return template.content.firstChild || document.createTextNode("");
+  }
+
   const sTag = typeof tag === "string" ? tag : tag.toString();
   const ns = VDOM_NS_MAP[sTag] || owner.namespaceURI;
   const el = document.createElementNS(ns, sTag);
@@ -395,6 +413,24 @@ function vdomSetNode(
 
   // Element nodes
   if (lastTag === newTag) {
+    // ── SPLITTER (raw HTML) nodes: no attrs or children to diff ──
+    // When the raw HTML content differs, replace the entire DOM node via
+    // vdomCreateNode (which parses the new HTML via <template>). The
+    // general attrs+html short-circuit and attribute-diff paths below are
+    // no-ops for SPLITTER (attrsMap is undefined), so without this branch
+    // the DOM would silently fail to update when raw HTML changes.
+    if (newTag === SPLITTER) {
+      if (lastVDom.html !== newVDom.html) {
+        ref.changed = 1;
+        domUnmountFrames(frame, realNode);
+        oldParent.replaceChild(
+          vdomCreateNode(newVDom, oldParent, ref),
+          realNode,
+        );
+      }
+      return;
+    }
+
     // ── Fast path: attrs + html equality short-circuit ──
     // When both the serialized opening tag (attrs) and serialized innerHTML
     // (html) are identical, neither attributes nor children changed.

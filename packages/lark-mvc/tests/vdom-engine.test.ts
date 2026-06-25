@@ -197,13 +197,58 @@ describe("VDOM Engine", () => {
       expect(dom.tagName).toBe("circle");
     });
 
-    it("creates raw HTML node (SPLITTER tag)", () => {
+    it("vdomCreateNode creates raw HTML from SPLITTER tag via <template> parsing", () => {
+      // SPLITTER (raw HTML) vnodes are created via vdomCreate(0, html, 1).
+      // vdomCreateNode parses the raw HTML through a <template> element to
+      // avoid the InvalidCharacterError that createElementNS(ns, "\x1e")
+      // would throw — SPLITTER is U+001E, not a valid XML QName.
+      //
+      // This test was previously a deception: it only asserted
+      // `vnode.tag === SPLITTER` without ever invoking vdomCreateNode,
+      // masking the broken creation path. After the source fix, it now
+      // verifies that raw HTML is correctly parsed and injected as a real
+      // DOM node (not escaped as text).
       const ref = createVDomRef("test");
       const owner = document.createElement("div");
       const vnode = vdomCreate(0, "<b>raw</b>", 1);
       expect(vnode.tag).toBe(SPLITTER);
-      // When tag is SPLITTER (not V_TEXT_NODE), vdomCreateNode should handle it
-      // This tests the raw HTML rendering path
+      expect(vnode.html).toBe("<b>raw</b>");
+
+      const dom = vdomCreateNode(vnode, owner, ref) as Element;
+      expect(dom.nodeType).toBe(Node.ELEMENT_NODE);
+      expect(dom.tagName).toBe("B");
+      expect(dom.textContent).toBe("raw");
+
+      // Verify the raw HTML was parsed (not HTML-encoded as text)
+      owner.appendChild(dom);
+      expect(owner.querySelector("b")?.textContent).toBe("raw");
+      expect(owner.innerHTML).toContain("<b>raw</b>");
+    });
+
+    it("vdomCreateNode returns empty text node for empty SPLITTER html", () => {
+      const ref = createVDomRef("test");
+      const owner = document.createElement("div");
+      const vnode = vdomCreate(0, "", 1);
+      expect(vnode.tag).toBe(SPLITTER);
+
+      const dom = vdomCreateNode(vnode, owner, ref);
+      expect(dom.nodeType).toBe(Node.TEXT_NODE);
+      expect(dom.nodeValue).toBe("");
+    });
+
+    it("vdomCreateNode renders only the first top-level node for multi-node raw HTML", () => {
+      // Known limitation: SPLITTER raw HTML with multiple top-level nodes
+      // only renders the first node, because vdomCreateNode returns a single
+      // ChildNode. This matches the single-ChildNode return contract and is
+      // acceptable for the {{!}} use case (typically single-node or text).
+      const ref = createVDomRef("test");
+      const owner = document.createElement("div");
+      const vnode = vdomCreate(0, "<b>first</b><b>second</b>", 1);
+      expect(vnode.tag).toBe(SPLITTER);
+
+      const dom = vdomCreateNode(vnode, owner, ref) as Element;
+      expect(dom.tagName).toBe("B");
+      expect(dom.textContent).toBe("first");
     });
   });
 

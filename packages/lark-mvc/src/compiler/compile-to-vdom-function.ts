@@ -253,11 +253,20 @@ export function compileToVDomFunction(
     if (expr.op === "=" || expr.op === ":") {
       lines.push(`${parentVar}.push($vdomCreate(0,$strSafe(${expr.content})))`);
     } else if (expr.op === "!") {
+      // Raw HTML output: pass `1` as the children argument so vdomCreate
+      // produces a SPLITTER-tagged raw-HTML node (tag=\x1e) instead of a
+      // V_TEXT_NODE. This is critical — V_TEXT_NODE children are HTML-encoded
+      // (via encodeHTML) when serialized into the parent's innerHTML, which
+      // would escape the raw HTML and break {{!}} semantics in VDOM mode.
+      //
+      // SPLITTER nodes are rendered via vdomCreateNode's <template>-based
+      // path (see vdom.ts), which parses the raw HTML namespace-agnostically,
+      // matching string-mode innerHTML behavior.
       if (expr.content.startsWith("$encUri(") && expr.content.endsWith(")")) {
-        lines.push(`${parentVar}.push($vdomCreate(0,${expr.content}))`);
+        lines.push(`${parentVar}.push($vdomCreate(0,${expr.content},1))`);
       } else {
         lines.push(
-          `${parentVar}.push($vdomCreate(0,$strSafe(${expr.content})))`,
+          `${parentVar}.push($vdomCreate(0,$strSafe(${expr.content}),1))`,
         );
       }
     } else if (expr.op === "@") {

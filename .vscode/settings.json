@@ -8,6 +8,7 @@
   },
   "cmake.ignoreCMakeListsMissing": true,
   "cSpell.words": [
+    "agnostically",
     "amap",
     "apos",
     "beforeunload",
@@ -59,6 +60,7 @@
     "vite",
     "vitesse",
     "vnode",
+    "vnodes",
     "xxhash"
   ],
   "css.validate": false

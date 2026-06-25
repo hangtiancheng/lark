@@ -1,55 +1,51 @@
 /**
- * View class registry: viewPath -> ViewClass.
+ * View setup registry: viewPath -> ViewSetup function.
  *
- * Extracted into its own module so that `frame.ts` and `view.ts` no longer
- * need to import each other's concrete classes just to share the registry —
- * they each take a type-only dependency on `View` and a value-level
- * dependency on this registry instead. That keeps the module graph cleaner.
+ * In the functional system, the registry stores `ViewSetup` functions (not
+ * View classes). `defineView(setupFn)` returns the setup function, which is
+ * registered here and later called by `mountCtx` to create a `ViewCtx`.
  */
 import { parseUri } from "./utils";
-import type { View } from "./view";
+import type { ViewSetup } from "./types";
 
-/** Registry of view classes keyed by path. */
-const viewClassRegistry: Record<string, typeof View> = {};
+/** Registry of view setup functions keyed by path. */
+const viewSetupRegistry: Record<string, ViewSetup> = {};
 
 /**
- * Look up a previously registered View class by path.
- * Returns `undefined` if no class is registered for `path`.
+ * Look up a previously registered View setup function by path.
+ * Returns `undefined` if no setup is registered for `path`.
  */
-export function getViewClass(path: string): typeof View | undefined {
-  return viewClassRegistry[path];
+export function getViewClass(path: string): ViewSetup | undefined {
+  return viewSetupRegistry[path];
 }
 
 /**
- * Register a View class for a given view path.
+ * Register a View setup function for a given view path.
  * Called after module loading completes (or up front during boot).
  */
-export function registerViewClass(
-  viewPath: string,
-  ViewClass: typeof View,
-): void {
+export function registerViewClass(viewPath: string, setup: ViewSetup): void {
   const parsed = parseUri(viewPath);
   const path = parsed.path;
   if (path) {
-    viewClassRegistry[path] = ViewClass;
+    viewSetupRegistry[path] = setup;
   }
 }
 
 /**
- * Invalidate a View class from the registry.
+ * Invalidate a View setup from the registry.
  * Used by HMR to force re-loading of a view module.
  */
 export function invalidateViewClass(viewPath: string): void {
   const parsed = parseUri(viewPath);
   const path = parsed.path;
   if (path) {
-    Reflect.deleteProperty(viewClassRegistry, path);
+    Reflect.deleteProperty(viewSetupRegistry, path);
   }
 }
 
 /**
- * Get the full view class registry (for HMR / debugging).
+ * Get the full view setup registry (for HMR / debugging).
  */
-export function getViewClassRegistry(): Record<string, typeof View> {
-  return viewClassRegistry;
+export function getViewClassRegistry(): Record<string, ViewSetup> {
+  return viewSetupRegistry;
 }

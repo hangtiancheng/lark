@@ -8,7 +8,7 @@
  */
 import { RouterEvents } from "./common";
 import { hasOwnProperty, setData, EMPTY_STRING_SET } from "./utils";
-import { EventEmitter } from "./event-emitter";
+import { createEmitter } from "./event-emitter";
 import type { AnyFunc, ChangeEvent, StateInterface } from "./types";
 
 /** Application state data */
@@ -27,14 +27,14 @@ let stashedChangedKeys: ReadonlySet<string> = EMPTY_STRING_SET;
 let dataIsChanged = false;
 
 /** Event emitter for state events */
-const emitter = new EventEmitter();
+const emitter = createEmitter();
 
 /** Whether framework has booted */
 let booted = false;
 
 /** Mark framework as booted (called from Framework.boot) */
 export function markBooted(): void {
-  booted = true;
+  booted = true; void booted;
 }
 
 /** Increment reference count for keys */
@@ -73,17 +73,8 @@ function teardownKeysRef(keyList: string[]): void {
  * `clearNotify(key)` resets the dedup flag once the legitimate
  * `State.set` + `State.digest` actually runs.
  */
-const warnedKeys = new Set<string>();
 
-function clearNotify(key: string): void {
-  warnedKeys.delete(key);
-}
 
-function delayNotify(key: string, message: string): void {
-  if (warnedKeys.has(key)) return;
-  warnedKeys.add(key);
-  console.warn(message);
-}
 
 /**
  * Observable in-memory data object.
@@ -153,7 +144,7 @@ export const State: StateInterface = {
   /**
    * Bind event listener.
    */
-  on(event: string, handler: (e: ChangeEvent) => void): typeof State {
+  on(event: string, handler: (e?: ChangeEvent) => void): typeof State {
     emitter.on(event, handler);
     return State;
   },

@@ -21,11 +21,13 @@ export { applyStyle } from "./apply-style";
 // Mark / Unmark (async callback validity tracking)
 export { mark, unmark } from "./mark";
 
-// Cache (LFU-style with frequency eviction)
-export { Cache } from "./cache";
+// Cache (LFU-style with frequency eviction — functional factory)
+export { createCache } from "./cache";
+export type { CacheApi } from "./types";
 
-// EventEmitter (multi-cast events)
-export { EventEmitter } from "./event-emitter";
+// EventEmitter (multi-cast events — functional factory)
+export { createEmitter } from "./event-emitter";
+export type { EmitterApi } from "./types";
 
 // State (cross-view observable data)
 export { State, markBooted } from "./state";
@@ -33,8 +35,10 @@ export { State, markBooted } from "./state";
 // Router (history/hash with two-phase change)
 export { Router, markRouterBooted, getRouteMode } from "./router";
 
-// Frame (view lifecycle management)
-export { Frame, registerViewClass, invalidateViewClass } from "./frame";
+// Frame (view lifecycle management — functional factory + singleton)
+export { Frame, createFrame } from "./frame";
+export type { FrameStaticApi } from "./frame";
+export { registerViewClass, invalidateViewClass } from "./frame";
 
 // Module loader (async view loading via FrameworkConfig.require)
 export { config as frameworkConfig, use } from "./module-loader";
@@ -42,8 +46,9 @@ export { config as frameworkConfig, use } from "./module-loader";
 // CrossSite (micro-frontend bridge View)
 export { default as CrossSite, resetProjectsMap } from "./cross-site";
 
-// Updater (per-view data binding)
-export { Updater } from "./updater";
+// Updater (per-view data binding — functional factory)
+export { createUpdater } from "./updater";
+export type { UpdaterApi } from "./types";
 
 // ============================== VDOM ==============================
 
@@ -52,11 +57,32 @@ export { vdomCreate, createVDomRef } from "./vdom";
 
 // ============================== VDOM ==============================
 
-// View (base view class with extend/merge) + typed factory
-export { View, defineView } from "./view";
+// View (functional — defineView factory + hooks)
+export {
+  defineView,
+  mountCtx,
+  unmountCtx,
+  registerEvents,
+  unregisterEvents,
+  destroyAllResources,
+  runInvokes,
+} from "./view";
+export type { ViewCtx, ViewSetup, ViewInstance } from "./types";
+
+// Hooks runtime
+export {
+  useState,
+  useEffect,
+  useStore,
+  useInterval,
+  useTimeout,
+  useResource,
+  useEvent,
+} from "./hooks";
 
 // Service + Payload (API request management)
-export { Service, Payload } from "./service";
+export { createService, createPayload } from "./service"
+export type { ServiceApi, ServiceInstance, PayloadApi } from "./service";
 
 // EventDelegator (DOM event delegation)
 export { EventDelegator } from "./event-delegator";

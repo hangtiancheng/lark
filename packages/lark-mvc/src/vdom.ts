@@ -23,7 +23,7 @@ import {
 } from "./common";
 import { parseUri, hasOwnProperty, callFunction } from "./utils";
 import { domUnmountFrames } from "./dom";
-import type { VDomNode, VDomRef, FrameInterface, ViewInterface } from "./types";
+import type { VDomNode, VDomRef, FrameObj, ViewCtx } from "./types";
 
 // ============================================================
 // Constants
@@ -386,9 +386,9 @@ function vdomSetNode(
   lastVDom: VDomNode,
   newVDom: VDomNode,
   ref: VDomRef,
-  frame: FrameInterface,
+  frame: FrameObj,
   keys: ReadonlySet<string>,
-  rootView: ViewInterface,
+  rootView: ViewCtx,
   ready: () => void,
 ): void {
   // Text/raw-HTML nodes: if tags differ between text and raw, just replace
@@ -573,9 +573,9 @@ export function vdomSetChildNodes(
   lastVDom: VDomNode | undefined,
   newVDom: VDomNode,
   ref: VDomRef,
-  frame: FrameInterface,
+  frame: FrameObj,
   keys: ReadonlySet<string>,
-  view: ViewInterface,
+  view: ViewCtx,
   ready: () => void,
 ): void {
   // Fast path: first render

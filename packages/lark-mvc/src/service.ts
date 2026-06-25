@@ -1,63 +1,76 @@
 /**
  * Service: API request management with caching, deduplication, and queue.
  *
- * - Service.extend(syncFn, cacheMax?, cacheBuffer?): creates subclass with sync function
- * - Service.add(attrs): registers API endpoint metadata
- * - new Service().all(attrs, done): fetch all, use cache when available
- * - new Service().one(attrs, done): fetch all, callback on each completion
- * - new Service().save(attrs, done): fetch all, skip cache (always request)
+ * Functional factory style — no class, no this, no prototype.
+ *
+ * - createService(syncFn, cacheMax?, cacheBuffer?): creates a service type
+ * - serviceApi.add(attrs): registers API endpoint metadata
+ * - serviceApi.instance().all(attrs, done): fetch all, use cache when available
+ * - serviceApi.instance().one(attrs, done): fetch all, callback on each completion
+ * - serviceApi.instance().save(attrs, done): fetch all, skip cache (always request)
  * - enqueue/dequeue: task queue for sequential async operations
  * - destroy: cancel pending requests
- * - Payload: response wrapper with get/set
+ * - createPayload(data?): response wrapper with get/set
  */
 import { SPLITTER } from "./common";
 import { assign, funcWithTry, noop, generateId } from "./utils";
-import { Cache } from "./cache";
-import { EventEmitter } from "./event-emitter";
+import { createCache } from "./cache";
+import type { CacheApi } from "./types";
+import { createEmitter } from "./event-emitter";
+import type { EmitterApi } from "./types";
 import type {
   AnyFunc,
   ServiceMetaEntry,
   ServiceCacheInfo,
   PendingCacheEntry,
   PayloadInterface,
-  EventEmitterInterface,
 } from "./types";
 
 // ============================================================
-// Payload: response wrapper
+// Payload: response wrapper (functional factory)
 // ============================================================
 
-/**
- * Payload wraps API response data with convenient access methods.
- */
-export class Payload implements PayloadInterface {
-  /** Payload data */
+export interface PayloadApi extends PayloadInterface {
   data: Record<string, unknown>;
-
-  /** Internal cache info */
   cacheInfo?: ServiceCacheInfo;
-
-  constructor(data: Record<string, unknown> = {}) {
-    this.data = data;
-  }
-
-  /** Get a value from payload data */
-  get<T = unknown>(key: string): T {
-    return this.data[key] as T;
-  }
-
-  /** Set a value in payload data */
+  get<T = unknown>(key: string): T;
   set(
     keyOrData: string | Record<string, unknown>,
     value?: unknown,
-  ): PayloadInterface {
-    if (typeof keyOrData === "string") {
-      this.data[keyOrData] = value;
-    } else {
-      assign(this.data, keyOrData);
-    }
-    return this;
+  ): PayloadApi;
+}
+
+/** Type guard: check if a value is a PayloadApi */
+function isPayload(v: unknown): v is PayloadApi {
+  if (v == null || typeof v !== "object") return false;
+  return "data" in v && "get" in v;
+}
+
+/**
+ * Create a Payload wrapping API response data.
+ * Replaces `new Payload(data)`.
+ */
+export function createPayload(data: Record<string, unknown> = {}): PayloadApi {
+  const payloadData = data;
+
+  function get<T = unknown>(key: string): T {
+    return payloadData[key] as T;
   }
+
+  function set(
+    keyOrData: string | Record<string, unknown>,
+    value?: unknown,
+  ): PayloadApi {
+    if (typeof keyOrData === "string") {
+      payloadData[keyOrData] = value;
+    } else {
+      assign(payloadData, keyOrData);
+    }
+    return api;
+  }
+
+  const api: PayloadApi = { data: payloadData, get, set };
+  return api;
 }
 
 // ============================================================
@@ -68,422 +81,314 @@ const FETCH_FLAGS_ALL = 1;
 const FETCH_FLAGS_ONE = 2;
 
 // ============================================================
-// ServiceSendTarget: minimal interface for serviceSend
+// Service internals (per-type closure state)
 // ============================================================
 
-/**
- * Minimal interface describing what serviceSend actually uses
- * from a service instance. This avoids coupling to the full
- * ServiceInterface which mixes instance and static methods.
- */
-interface ServiceSendTarget {
-  destroyed: number;
-  busy: number;
-  internals: {
-    metaList: Record<string, ServiceMetaEntry>;
-    payloadCache: Cache<Payload>;
-    pendingCacheKeys: Record<string, PendingCacheEntry>;
-    syncFn: (payload: Payload, callback: () => void) => void;
-    staticEmitter: EventEmitter;
-  };
-  type: {
-    get(
-      attrs: Record<string, unknown>,
-      createNew?: boolean,
-    ): { entity: Payload; needsUpdate: boolean };
-  };
-  enqueue(callback: AnyFunc): unknown;
+interface ServiceInternals {
+  metaList: Record<string, ServiceMetaEntry>;
+  payloadCache: CacheApi<PayloadApi>;
+  pendingCacheKeys: Record<string, PendingCacheEntry>;
+  syncFn: (payload: PayloadApi, callback: () => void) => void;
+  staticEmitter: EmitterApi;
 }
 
 // ============================================================
-// Service class (ES6, following the View.ts pattern)
+// Service instance API
+// ============================================================
+
+export interface ServiceInstance {
+  id: string;
+  busy: number;
+  destroyed: number;
+  emitter: EmitterApi;
+  all(
+    attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
+    done: AnyFunc,
+  ): ServiceInstance;
+  one(
+    attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
+    done: AnyFunc,
+  ): ServiceInstance;
+  save(
+    attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
+    done: AnyFunc,
+  ): ServiceInstance;
+  enqueue(callback: AnyFunc): ServiceInstance;
+  dequeue(...args: unknown[]): void;
+  destroy(): void;
+  on(event: string, handler: AnyFunc): ServiceInstance;
+  off(event: string, handler?: AnyFunc): ServiceInstance;
+  fire(event: string, data?: Record<string, unknown>): ServiceInstance;
+}
+
+// ============================================================
+// Service type API (replaces Service class static methods)
+// ============================================================
+
+export interface ServiceApi {
+  add(attrs: ServiceMetaEntry | ServiceMetaEntry[]): void;
+  meta(attrs: string | Record<string, unknown>): ServiceMetaEntry;
+  create(attrs: Record<string, unknown>): PayloadApi;
+  get(
+    attrs: Record<string, unknown>,
+    createNew?: boolean,
+  ): { entity: PayloadApi; needsUpdate: boolean };
+  cached(attrs: Record<string, unknown>): PayloadApi | undefined;
+  clear(names: string | string[]): void;
+  on(event: string, handler: AnyFunc): void;
+  off(event: string, handler?: AnyFunc): void;
+  fire(event: string, data?: Record<string, unknown>): void;
+  instance(): ServiceInstance;
+}
+
+// ============================================================
+// createService — factory function (replaces Service.extend)
 // ============================================================
 
 /**
- * Service: API request management with caching, deduplication, and queue.
+ * Create a Service type with a custom sync function.
+ * Replaces `Service.extend(syncFn, cacheMax, cacheBuffer)`.
  *
- * - Service.extend(syncFn, cacheMax?, cacheBuffer?): creates subclass with sync function
- * - Service.add(attrs): registers API endpoint metadata
- * - new Service().all(attrs, done): fetch all, use cache when available
- * - new Service().one(attrs, done): fetch all, callback on each completion
- * - new Service().save(attrs, done): fetch all, skip cache (always request)
- * - enqueue/dequeue: task queue for sequential async operations
- * - destroy: cancel pending requests
- *
- * Per-type state (metaList, payloadCache, pendingCacheKeys, syncFn, staticEmitter)
- * is stored as static class properties. When extend() creates a subclass,
- * each subclass gets its own copies of these static properties, ensuring
- * isolation between different Service types.
+ * Each call creates independent closure state (metaList, payloadCache, etc.),
+ * ensuring full isolation between different Service types.
  */
-export class Service {
-  /** Service instance ID */
-  id = "";
-
-  /** Whether service is busy (1 = busy) */
-  busy = 0;
-
-  /** Whether service is destroyed (1 = destroyed) */
-  destroyed = 0;
-
-  /** Task queue for sequential operations */
-  taskQueue: AnyFunc[] = [];
-
-  /** Previous dequeue arguments */
-  prevArgs: unknown[] = [];
-
-  /** Instance event emitter */
-  private _emitter = new EventEmitter();
-
-  constructor() {
-    this.id = generateId("service");
-  }
-
-  // ============================================================
-  // Instance accessors for type-level data
-  // ============================================================
-
-  /** Instance event emitter (public accessor) */
-  get emitter(): EventEmitterInterface {
-    return this._emitter;
-  }
-
-  /**
-   * Get internals object for serviceSend compatibility.
-   * References per-type static state from the current class.
-   */
-  get internals(): ServiceSendTarget["internals"] {
-    const constructor = this.constructor as typeof Service;
-    return {
-      metaList: constructor._metaList,
-      payloadCache: constructor._payloadCache,
-      pendingCacheKeys: constructor._pendingCacheKeys,
-      syncFn: constructor._syncFn,
-      staticEmitter: constructor._staticEmitter,
-    };
-  }
-
-  /**
-   * Get type reference (the constructor) for serviceSend compatibility.
-   * Static methods like get/create are accessible via the constructor.
-   */
-  get type(): ServiceSendTarget["type"] {
-    return this.constructor as unknown as ServiceSendTarget["type"];
-  }
-
-  // ============================================================
-  // Instance methods
-  // ============================================================
-
-  /**
-   * Fetch all endpoints, callback when all complete.
-   * Uses cache when available.
-   */
-  all(
-    attrs:
-      | string
-      | Record<string, unknown>
-      | (string | Record<string, unknown>)[],
-    done: AnyFunc,
-  ): this {
-    serviceSend(this, attrs, done, FETCH_FLAGS_ALL, false);
-    return this;
-  }
-
-  /**
-   * Fetch all endpoints, callback on each completion.
-   */
-  one(
-    attrs:
-      | string
-      | Record<string, unknown>
-      | (string | Record<string, unknown>)[],
-    done: AnyFunc,
-  ): this {
-    serviceSend(this, attrs, done, FETCH_FLAGS_ONE, false);
-    return this;
-  }
-
-  /**
-   * Fetch all endpoints, skip cache (always request).
-   */
-  save(
-    attrs:
-      | string
-      | Record<string, unknown>
-      | (string | Record<string, unknown>)[],
-    done: AnyFunc,
-  ): this {
-    serviceSend(this, attrs, done, FETCH_FLAGS_ALL, true);
-    return this;
-  }
-
-  /**
-   * Enqueue a task for sequential execution.
-   */
-  enqueue(callback: AnyFunc): this {
-    if (!this.destroyed) {
-      this.taskQueue.push(callback);
-      this.dequeue(...this.prevArgs);
-    }
-    return this;
-  }
-
-  /**
-   * Dequeue and execute the next task in queue.
-   */
-  dequeue(...args: unknown[]): void {
-    if (!this.busy && !this.destroyed) {
-      this.busy = 1;
-      setTimeout(() => {
-        this.busy = 0;
-        if (!this.destroyed) {
-          const task = this.taskQueue.shift();
-          if (task) {
-            this.prevArgs = args;
-            funcWithTry(task, args, this, noop);
-          }
-        }
-      }, 0);
-    }
-  }
-
-  /**
-   * Destroy the service instance.
-   * After destruction, no new requests can be sent.
-   */
-  destroy(): void {
-    this.destroyed = 1;
-    this.taskQueue = [];
-  }
-
-  // Instance event methods (delegate to instance emitter)
-  on(event: string, handler: AnyFunc): this {
-    this._emitter.on(event, handler);
-    return this;
-  }
-
-  off(event: string, handler?: AnyFunc): this {
-    this._emitter.off(event, handler);
-    return this;
-  }
-
-  fire(event: string, data?: Record<string, unknown>): this {
-    this._emitter.fire(event, data);
-    return this;
-  }
-
-  // ============================================================
-  // Per-type static state
-  // ============================================================
-
-  /** Per-type metadata registry */
-  static _metaList: Record<string, ServiceMetaEntry> = {};
-
-  /** Per-type payload cache (LFU with frequency eviction) */
-  static _payloadCache = new Cache<Payload>({
-    maxSize: 20,
-    bufferSize: 5,
+export function createService(
+  syncFn: (payload: PayloadApi, callback: () => void) => void,
+  cacheMax = 20,
+  cacheBuffer = 5,
+): ServiceApi {
+  const metaList: Record<string, ServiceMetaEntry> = {};
+  const payloadCache = createCache<PayloadApi>({
+    maxSize: cacheMax,
+    bufferSize: cacheBuffer,
   });
+  const pendingCacheKeys: Record<string, PendingCacheEntry> = {};
+  const staticEmitter = createEmitter();
 
-  /** Per-type pending cache keys for deduplication */
-  static _pendingCacheKeys: Record<string, PendingCacheEntry> = {};
+  const internals: ServiceInternals = {
+    metaList,
+    payloadCache,
+    pendingCacheKeys,
+    syncFn,
+    staticEmitter,
+  };
 
-  /** Per-type sync function */
-  static _syncFn: (payload: Payload, callback: () => void) => void = noop;
-
-  /** Per-type static event emitter */
-  static _staticEmitter = new EventEmitter();
-
-  /** Per-type cache max size */
-  static _cacheMax = 20;
-
-  /** Per-type cache buffer size */
-  static _cacheBuffer = 5;
-
-  // ============================================================
-  // Static methods (operate on per-type state via `this`)
-  // ============================================================
-
-  /**
-   * Register API endpoint metadata.
-   */
-  static add(attrs: ServiceMetaEntry | ServiceMetaEntry[]): void {
+  function add(attrs: ServiceMetaEntry | ServiceMetaEntry[]): void {
     if (!Array.isArray(attrs)) {
       attrs = [attrs];
     }
-    for (const payload of attrs) {
-      if (payload) {
-        const name = payload.name;
-        const cache = payload.cache;
-        payload.cache = cache ? cache | 0 : 0;
-        this._metaList[name] = payload;
+    for (const entry of attrs) {
+      if (entry) {
+        const name = entry.name;
+        const cache = entry.cache;
+        entry.cache = cache ? cache | 0 : 0;
+        metaList[name] = entry;
       }
     }
   }
 
-  /**
-   * Get metadata for an API endpoint.
-   */
-  static meta(attrs: string | Record<string, unknown>): ServiceMetaEntry {
+  function meta(attrs: string | Record<string, unknown>): ServiceMetaEntry {
     const name =
       typeof attrs === "string" ? attrs : String(attrs["name"] ?? "");
-    const known = this._metaList[name];
+    const known = metaList[name];
     if (known) return known;
     return attrs as ServiceMetaEntry;
   }
 
-  /**
-   * Create a Payload for an API request.
-   */
-  static create(attrs: Record<string, unknown>): Payload {
-    const meta = this.meta(attrs);
-    const cache = toCacheValue(attrs["cache"]) || meta.cache || 0;
-    const entity = new Payload();
-    entity.set(meta);
+  function create(attrs: Record<string, unknown>): PayloadApi {
+    const m = meta(attrs);
+    const cache = toCacheValue(attrs["cache"]) || m.cache || 0;
+    const entity = createPayload();
+    entity.set(m);
     entity.cacheInfo = {
-      name: meta.name,
-      after: typeof meta.after === "function" ? meta.after : undefined,
-      cleans: typeof meta.cleanKeys === "string" ? meta.cleanKeys : undefined,
-      key: cache ? defaultCacheKey(meta, attrs) : "",
+      name: m.name,
+      after: typeof m.after === "function" ? m.after : undefined,
+      cleans: typeof m.cleanKeys === "string" ? m.cleanKeys : undefined,
+      key: cache ? defaultCacheKey(m, attrs) : "",
       time: 0,
     };
     if (attrs !== null) {
       entity.set(attrs);
     }
-    const before = meta.before;
+    const before = m.before;
     if (typeof before === "function") {
       funcWithTry(before, [entity], entity, noop);
     }
-    this._staticEmitter.fire("begin", { payload: entity });
+    staticEmitter.fire("begin", { payload: entity });
     return entity;
   }
 
-  /**
-   * Get or create a Payload for an API request.
-   */
-  static get(
+  function get(
     attrs: Record<string, unknown>,
     createNew?: boolean,
-  ): { entity: Payload; needsUpdate: boolean } {
-    let entity: Payload | undefined;
+  ): { entity: PayloadApi; needsUpdate: boolean } {
+    let entity: PayloadApi | undefined;
     let needsUpdate = false;
     if (!createNew) {
-      entity = this.cached(attrs);
+      entity = cached(attrs);
     }
     if (!entity) {
-      entity = this.create(attrs);
+      entity = create(attrs);
       needsUpdate = true;
     }
     return { entity, needsUpdate };
   }
 
-  /**
-   * Get cached Payload if available and not expired.
-   */
-  static cached(attrs: Record<string, unknown>): Payload | undefined {
-    const meta = this.meta(attrs);
-    const cache = toCacheValue(attrs["cache"]) || meta.cache || 0;
+  function cached(attrs: Record<string, unknown>): PayloadApi | undefined {
+    const m = meta(attrs);
+    const cache = toCacheValue(attrs["cache"]) || m.cache || 0;
     let cacheKey = "";
     if (cache) {
-      cacheKey = defaultCacheKey(meta, attrs);
+      cacheKey = defaultCacheKey(m, attrs);
     }
     if (cacheKey) {
-      const info = this._pendingCacheKeys[cacheKey];
+      const info = pendingCacheKeys[cacheKey];
       if (info) {
         const entity = info.entity;
-        return entity instanceof Payload ? entity : undefined;
+        return isPayload(entity) ? entity : undefined;
       }
-      const cached = this._payloadCache.get(cacheKey);
-      if (cached && cached.cacheInfo) {
-        if (Date.now() - cached.cacheInfo.time > cache) {
-          this._payloadCache.del(cacheKey);
+      const cachedPayload = payloadCache.get(cacheKey);
+      if (cachedPayload && cachedPayload.cacheInfo) {
+        if (Date.now() - cachedPayload.cacheInfo.time > cache) {
+          payloadCache.del(cacheKey);
           return undefined;
         }
-        return cached;
+        return cachedPayload;
       }
     }
     return undefined;
   }
 
-  /**
-   * Clear cached payloads by endpoint name.
-   */
-  static clear(names: string | string[]): void {
+  function clear(names: string | string[]): void {
     const nameSet = new Set(
       (typeof names === "string" ? names : names.join(",")).split(","),
     );
     const keysToDelete: string[] = [];
-    this._payloadCache.forEach((payload) => {
+    payloadCache.forEach((payload) => {
       const info = payload?.cacheInfo;
       if (info && info.key && nameSet.has(info.name)) {
         keysToDelete.push(info.key);
       }
     });
     for (const key of keysToDelete) {
-      this._payloadCache.del(key);
+      payloadCache.del(key);
     }
   }
 
-  // Static event methods (operate on per-type emitter)
-  static on(event: string, handler: AnyFunc): void {
-    this._staticEmitter.on(event, handler);
+  function on(event: string, handler: AnyFunc): void {
+    staticEmitter.on(event, handler);
   }
 
-  static off(event: string, handler?: AnyFunc): void {
-    this._staticEmitter.off(event, handler);
+  function off(event: string, handler?: AnyFunc): void {
+    staticEmitter.off(event, handler);
   }
 
-  static fire(event: string, data?: Record<string, unknown>): void {
-    this._staticEmitter.fire(event, data);
+  function fire(event: string, data?: Record<string, unknown>): void {
+    staticEmitter.fire(event, data);
   }
 
-  /**
-   * Create a new Service subclass with a custom sync function.
-   *
-   * Each subclass gets its OWN copies of every per-type static field
-   * (`_metaList`, `_payloadCache`, `_pendingCacheKeys`, `_syncFn`,
-   * `_staticEmitter`, `_cacheMax`, `_cacheBuffer`) via `static override`.
-   * This is intentional: it ensures that endpoint metadata, cache state,
-   * in-flight dedup keys, and event subscribers are fully isolated between
-   * different Service types, even when one extends another.
-   *
-   * **Do not refactor these `static override` declarations away** — sharing
-   * them through prototype inheritance would let endpoints registered on one
-   * subclass leak into another, and the LFU cache evictions of one type
-   * would race with those of another.
-   */
-  static extend(
-    this: typeof Service,
-    newSyncFn: (payload: Payload, callback: () => void) => void,
-    newCacheMax?: number,
-    newCacheBuffer?: number,
-  ): typeof Service {
-    const ParentService = this;
+  function instance(): ServiceInstance {
+    const id = generateId("service");
+    const instEmitter = createEmitter();
+    let busy = 0;
+    let destroyed = 0;
+    const taskQueue: AnyFunc[] = [];
+    let prevArgs: unknown[] = [];
 
-    class ChildService extends ParentService {
-      // Intentionally per-subclass — see Service.extend doc.
-      static override _metaList: Record<string, ServiceMetaEntry> = {};
-      static override _payloadCache = new Cache<Payload>({
-        maxSize: newCacheMax || ParentService._cacheMax,
-        bufferSize: newCacheBuffer || ParentService._cacheBuffer,
-      });
-      static override _pendingCacheKeys: Record<string, PendingCacheEntry> = {};
-      static override _syncFn = newSyncFn;
-      static override _staticEmitter = new EventEmitter();
-      static override _cacheMax = newCacheMax || ParentService._cacheMax;
-      static override _cacheBuffer =
-        newCacheBuffer || ParentService._cacheBuffer;
+    function all(
+      attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
+      done: AnyFunc,
+    ): ServiceInstance {
+      serviceSend(inst, attrs, done, FETCH_FLAGS_ALL, false, internals);
+      return inst;
     }
 
-    return ChildService;
+    function one(
+      attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
+      done: AnyFunc,
+    ): ServiceInstance {
+      serviceSend(inst, attrs, done, FETCH_FLAGS_ONE, false, internals);
+      return inst;
+    }
+
+    function save(
+      attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
+      done: AnyFunc,
+    ): ServiceInstance {
+      serviceSend(inst, attrs, done, FETCH_FLAGS_ALL, true, internals);
+      return inst;
+    }
+
+    function enqueue(callback: AnyFunc): ServiceInstance {
+      if (!destroyed) {
+        taskQueue.push(callback);
+        dequeue(...prevArgs);
+      }
+      return inst;
+    }
+
+    function dequeue(...args: unknown[]): void {
+      if (!busy && !destroyed) {
+        busy = 1;
+        setTimeout(() => {
+          busy = 0;
+          if (!destroyed) {
+            const task = taskQueue.shift();
+            if (task) {
+              prevArgs = args;
+              funcWithTry(task, args, inst, noop);
+            }
+          }
+        }, 0);
+      }
+    }
+
+    function destroy(): void {
+      destroyed = 1;
+      taskQueue.length = 0;
+    }
+
+    function onInst(event: string, handler: AnyFunc): ServiceInstance {
+      instEmitter.on(event, handler);
+      return inst;
+    }
+
+    function offInst(event: string, handler?: AnyFunc): ServiceInstance {
+      instEmitter.off(event, handler);
+      return inst;
+    }
+
+    function fireInst(event: string, data?: Record<string, unknown>): ServiceInstance {
+      instEmitter.fire(event, data);
+      return inst;
+    }
+
+    const inst: ServiceInstance = {
+      id,
+      busy,
+      destroyed,
+      emitter: instEmitter,
+      all,
+      one,
+      save,
+      enqueue,
+      dequeue,
+      destroy,
+      on: onInst,
+      off: offInst,
+      fire: fireInst,
+    };
+
+    return inst;
   }
+
+  return { add, meta, create, get, cached, clear, on, off, fire, instance };
 }
 
 // ============================================================
 // Internal helpers
 // ============================================================
 
-/** Memoize `JSON.stringify(meta)` — meta entries are immutable after `add()`. */
 const metaJsonCache = new WeakMap<ServiceMetaEntry, string>();
 
 function getMetaJson(meta: ServiceMetaEntry): string {
@@ -502,7 +407,6 @@ function defaultCacheKey(
   return JSON.stringify(attrs) + SPLITTER + getMetaJson(meta);
 }
 
-/** Coerce an unknown cache TTL value to a non-negative integer (ms). */
 function toCacheValue(v: unknown): number {
   if (typeof v === "number") return v | 0;
   if (typeof v === "string") {
@@ -513,21 +417,19 @@ function toCacheValue(v: unknown): number {
 }
 
 /**
- * Service_Send: fetch attrs, handle caching and deduplication.
+ * serviceSend: fetch attrs, handle caching and deduplication.
  */
 function serviceSend(
-  service: ServiceSendTarget,
-  attrs:
-    | string
-    | Record<string, unknown>
-    | (string | Record<string, unknown>)[],
+  service: ServiceInstance,
+  attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
   done: AnyFunc,
   flag: number,
   save: boolean,
+  internals: ServiceInternals,
 ): void {
   if (service.destroyed) return;
   if (service.busy) {
-    const queued: AnyFunc = () => serviceSend(service, attrs, done, flag, save);
+    const queued: AnyFunc = () => serviceSend(service, attrs, done, flag, save, internals);
     service.enqueue(queued);
     return;
   }
@@ -543,8 +445,7 @@ function serviceSend(
     attrList = [attrs];
   }
 
-  const internals = service.internals;
-  const { syncFn, pendingCacheKeys, staticEmitter } = internals;
+  const { syncFn, pendingCacheKeys, staticEmitter, payloadCache } = internals;
   let requestCount = 0;
   const total = attrList.length;
   const doneArr: unknown[] = new Array(total + 1);
@@ -556,10 +457,10 @@ function serviceSend(
 
     if (error) {
       errorArgs[idx] = error;
-      staticEmitter.fire("fail", { payload, error } as Record<string, unknown>);
+      staticEmitter.fire("fail", { payload, error });
     } else {
       newPayload = true;
-      staticEmitter.fire("done", { payload } as Record<string, unknown>);
+      staticEmitter.fire("done", { payload });
     }
 
     if (!service.destroyed) {
@@ -572,12 +473,12 @@ function serviceSend(
         }
       }
       if (flag === FETCH_FLAGS_ONE) {
-        funcWithTry(done, [error || null, payload, finish, idx], service, noop);
+        funcWithTry(done, [error ?? null, payload, finish, idx], service, noop);
       }
     }
 
     if (newPayload) {
-      staticEmitter.fire("end", { payload, error } as Record<string, unknown>);
+      staticEmitter.fire("end", { payload, error });
     }
   };
 
@@ -586,10 +487,9 @@ function serviceSend(
 
     const attrObj: Record<string, unknown> =
       typeof attr === "string" ? { name: attr } : attr;
-    const payloadInfo = service.type.get(attrObj, save);
+    const payloadInfo = internals ? getPayload(internals, attrObj, save) : { entity: createPayload(), needsUpdate: true };
     const payloadEntity = payloadInfo.entity;
-    const cacheKey = payloadEntity.cacheInfo?.key || "";
-    // Added by Qwen3.7
+    const cacheKey = payloadEntity.cacheInfo?.key ?? "";
     doneArr[requestCount + 1] = payloadEntity;
     const complete = remoteComplete.bind(null, requestCount++);
 
@@ -604,9 +504,9 @@ function serviceSend(
         const cacheComplete = (): void => {
           const list = pendingCacheKeys[cacheKey];
           const entity = list.entity;
-          if (entity instanceof Payload && entity.cacheInfo) {
+          if (isPayload(entity) && entity.cacheInfo) {
             entity.cacheInfo.time = Date.now();
-            internals.payloadCache.set(cacheKey, entity);
+            payloadCache.set(cacheKey, entity);
           }
           Reflect.deleteProperty(pendingCacheKeys, cacheKey);
           for (const cb of list) {
@@ -622,4 +522,63 @@ function serviceSend(
       complete();
     }
   }
+}
+
+/** Get or create payload using the service internals */
+function getPayload(
+  internals: ServiceInternals,
+  attrs: Record<string, unknown>,
+  createNew?: boolean,
+): { entity: PayloadApi; needsUpdate: boolean } {
+  const metaList = internals.metaList;
+  const name = String(attrs["name"] ?? "");
+  const known = metaList[name];
+  const m: ServiceMetaEntry = known ?? (attrs as ServiceMetaEntry);
+  const cache = toCacheValue(attrs["cache"]) || m.cache || 0;
+  let cacheKey = "";
+  if (cache) {
+    cacheKey = defaultCacheKey(m, attrs);
+  }
+
+  let entity: PayloadApi | undefined;
+  let needsUpdate = false;
+
+  if (!createNew && cacheKey) {
+    const info = internals.pendingCacheKeys[cacheKey];
+    if (info) {
+      const e = info.entity;
+      if (isPayload(e)) entity = e;
+    }
+    if (!entity) {
+      const cachedPayload = internals.payloadCache.get(cacheKey);
+      if (cachedPayload && cachedPayload.cacheInfo) {
+        if (Date.now() - cachedPayload.cacheInfo.time > cache) {
+          internals.payloadCache.del(cacheKey);
+        } else {
+          entity = cachedPayload;
+        }
+      }
+    }
+  }
+
+  if (!entity) {
+    entity = createPayload();
+    entity.set(m);
+    entity.cacheInfo = {
+      name: m.name,
+      after: typeof m.after === "function" ? m.after : undefined,
+      cleans: typeof m.cleanKeys === "string" ? m.cleanKeys : undefined,
+      key: cacheKey,
+      time: 0,
+    };
+    if (attrs) entity.set(attrs);
+    const before = m.before;
+    if (typeof before === "function") {
+      funcWithTry(before, [entity], entity, noop);
+    }
+    internals.staticEmitter.fire("begin", { payload: entity });
+    needsUpdate = true;
+  }
+
+  return { entity, needsUpdate };
 }

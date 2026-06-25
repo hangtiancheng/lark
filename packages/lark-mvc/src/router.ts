@@ -18,8 +18,8 @@ import {
   RouterEvents,
 } from "./common";
 import { hasOwnProperty, assign, parseUri, toUri, asRecord } from "./utils";
-import { Cache } from "./cache";
-import { EventEmitter } from "./event-emitter";
+import { createCache } from "./cache"
+import { createEmitter } from "./event-emitter";
 import type {
   AnyFunc,
   Location,
@@ -35,13 +35,13 @@ import type {
 // ============================================================
 
 /** Event emitter for router events */
-const emitter = new EventEmitter();
+const emitter = createEmitter();
 
 /** Href → Location cache */
-const hrefCache = new Cache<Location>();
+const hrefCache = createCache<Location>();
 
 /** (oldHref + newHref) → { changed, diff } cache */
-const changedCache = new Cache<{ changed: boolean; diff: LocationDiff }>();
+const changedCache = createCache<{ changed: boolean; diff: LocationDiff }>();
 
 /** Last parsed location */
 let lastLocation: Location = createEmptyLocation();

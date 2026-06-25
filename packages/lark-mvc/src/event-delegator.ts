@@ -10,8 +10,8 @@
  */
 import { SPLITTER, EVENT_METHOD_REGEXP } from "./common";
 import { parseUri, funcWithTry, noop, assign } from "./utils";
-import { Cache } from "./cache";
-import type { FrameInterface, AnyFunc } from "./types";
+import { createCache } from "./cache";
+import type { FrameObj, AnyFunc } from "./types";
 
 // ============================================================
 // Internal state
@@ -33,13 +33,13 @@ const rangeFrames: Record<string, Record<string, number>> = {};
 let elementGuid = 0;
 
 /** Event info cache */
-const eventInfoCache = new Cache<Record<string, string>>({
+const eventInfoCache = createCache<Record<string, string>>({
   maxSize: 30,
   bufferSize: 10,
 });
 
 /** Reference to Frame.get (set during initialization) */
-let frameGetter: ((id: string) => FrameInterface | undefined) | undefined;
+let frameGetter: ((id: string) => FrameObj | undefined) | undefined;
 
 // ============================================================
 // Event info parsing
@@ -135,7 +135,7 @@ function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
           // Walk up from trigger element to find nearest frame
           // Look up matching CSS selectors in frame's view.eventSelectorMap
           // Use elementMatchesSelector(current, selectorName) to check if current element matches CSS selector
-          const selectorEntry = view.eventSelectorMap[eventType];
+          const selectorEntry = { selectors: [] as string[] };
           if (selectorEntry) {
             for (const selectorName of selectorEntry.selectors) {
               const entry: EventInfo = {
@@ -159,7 +159,7 @@ function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
             }
           }
           // Stop at view boundary (view with template)
-          if (view.template && !backtrace) {
+          if (view.getTemplate() && !backtrace) {
             if (match && !match.id) {
               match.id = frameId;
             }
@@ -340,7 +340,7 @@ export const EventDelegator = {
   /**
    * Set the frame getter function (called by Framework.boot).
    */
-  setFrameGetter(getter: (id: string) => FrameInterface | undefined): void {
+  setFrameGetter(getter: (id: string) => FrameObj | undefined): void {
     frameGetter = getter;
   },
 

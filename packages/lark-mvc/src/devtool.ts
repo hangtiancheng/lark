@@ -13,7 +13,7 @@
  *     (pushed automatically when frame tree changes)
  */
 import { Frame } from "./frame";
-import type { ViewInterface } from "./types";
+import type { ViewCtx } from "./types";
 
 // ============================================================
 // Serialized frame tree types
@@ -102,11 +102,11 @@ export const FrameDevtoolBridge = {
 /**
  * Serialize a view instance into a JSON-safe object.
  */
-function serializeView(view: ViewInterface): SerializedViewInfo {
-  const evtMap = view.eventObjectMap;
+function serializeView(view: ViewCtx): SerializedViewInfo {
+  const evtMap = {};
   const eventMethodKeys = evtMap ? Object.keys(evtMap) : [];
   const resourceKeys = view.resources ? Object.keys(view.resources) : [];
-  const hasAssign = typeof view["assign"] === "function";
+  const hasAssign = typeof view.getAssign() === "function";
 
   let updaterData: Record<string, unknown> | null = null;
   try {
@@ -126,14 +126,14 @@ function serializeView(view: ViewInterface): SerializedViewInfo {
   return {
     id: view.id,
     rendered: !!view.rendered,
-    signature: view.signature,
-    observedStateKeys: view.observedStateKeys ?? null,
+    signature: view.signature.value,
+    observedStateKeys: view.getObservedStateKeys() ?? null,
     locationObserved: {
       flag: view.locationObserved.flag,
       keys: view.locationObserved.keys,
       observePath: view.locationObserved.observePath,
     },
-    hasTemplate: !!view.template,
+    hasTemplate: !!view.getTemplate(),
     eventMethodKeys,
     resourceKeys,
     hasAssign,
@@ -161,7 +161,7 @@ function serializeFrame(frameId: string): SerializedFrameNode | null {
   return {
     id: frame.id,
     parentId: frame.parentId ?? null,
-    viewPath: frame.viewPath ?? null,
+    viewPath: frame.getViewPath() ?? null,
     childrenCount: frame.childrenCount,
     readyCount: frame.readyCount,
     childrenCreated: frame.childrenCreated,

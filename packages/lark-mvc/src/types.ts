@@ -92,7 +92,8 @@ export interface CacheInterface<T = unknown> {
   /**
    * Number of cache entries.
    */
-  readonly size: number;
+  /** Cache size (accessed via getSize) */
+  getSize(): number;
   /**
    * Clear all cache entries. Triggers onRemove callback for each deleted entry.
    */
@@ -878,6 +879,217 @@ export interface UpdaterInterface {
 }
 
 // ============================================================
+// Functional API interfaces (replace class-based interfaces above)
+// ============================================================
+
+/**
+ * Functional emitter API (replaces `EventEmitterInterface`).
+ *
+ * Returned by `createEmitter()`. No `this` binding — handlers are called
+ * with `null` context. Methods return the API object for chaining.
+ */
+export interface EmitterApi<T = unknown> {
+  on(name: string, fn: (e?: ChangeEvent) => void): EmitterApi<T>;
+  off(name: string, fn?: AnyFunc): EmitterApi<T>;
+  fire(
+    name: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): EmitterApi<T>;
+}
+
+/**
+ * Functional cache API (replaces `CacheInterface`).
+ *
+ * Returned by `createCache()`. `size` is a getter property.
+ */
+export interface CacheApi<T = unknown> {
+  set(key: string, resource: T): void;
+  get(key: string): T | undefined;
+  del(key: string): void;
+  has(key: string): boolean;
+  clear(): void;
+  forEach(callback: (value: T | undefined) => void): void;
+  getSize(): number;
+}
+
+/**
+ * Functional updater API (replaces `UpdaterInterface`).
+ *
+ * Returned by `createUpdater()`. `refData` is a getter property.
+ * `set()` returns the API object for chaining.
+ */
+export interface UpdaterApi {
+  get: <T = unknown>(key?: string) => T;
+  set: (
+    data: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+  ) => UpdaterApi;
+  digest: (
+    data?: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+    callback?: () => void,
+  ) => void;
+  forceDigest: () => void;
+  snapshot: () => UpdaterApi;
+  altered: () => boolean | undefined;
+  refData: Record<string, unknown>;
+  translate: (data: unknown) => unknown;
+  parse: (expr: string) => unknown;
+  getChangedKeys: () => ReadonlySet<string>;
+}
+
+/**
+ * Mutable reference cell — replaces direct property mutation on class instances.
+ * Used for `signature` and `rendered` on `ViewCtx`.
+ */
+export interface Ref<T> {
+  value: T;
+}
+
+/**
+ * Functional view context (replaces `ViewInterface` as the runtime view handle).
+ *
+ * Passed as the first argument to every view setup function. Provides
+ * framework APIs without `this` binding.
+ */
+export interface ViewCtx {
+  /** View ID (same as owner frame ID) */
+  id: string;
+  /** Owner frame reference */
+  owner: FrameObj;
+  /** Updater API for data binding */
+  updater: UpdaterApi;
+  /** Signature: >0 means active, incremented on render, 0 = destroyed */
+  signature: Ref<number>;
+  /** Whether rendered at least once */
+  rendered: Ref<boolean>;
+  /** View template function (accessed via getTemplate/setTemplate) */
+  getTemplate(): ViewTemplate | VDomTemplate | undefined;
+  setTemplate(v: ViewTemplate | VDomTemplate | undefined): void;
+  /** Location observation config */
+  locationObserved: ViewLocationObserved;
+  /** Observed state keys (accessed via getObservedStateKeys/setObservedStateKeys) */
+  getObservedStateKeys(): string[] | undefined;
+  setObservedStateKeys(v: string[] | undefined): void;
+  /** Resource map */
+  resources: Record<string, ViewResourceEntry>;
+  /** Internal emitter for lifecycle events ("destroy", "render", etc.) */
+  emitter: EmitterApi;
+  /** EndUpdate pending flag (accessed via getEndUpdatePending/setEndUpdatePending) */
+  getEndUpdatePending(): number | undefined;
+  setEndUpdatePending(v: number | undefined): void;
+  /** Last rendered VDOM tree (only used when virtualDom is enabled) */
+  vdom?: VDomNode;
+  /** Wrapped render method */
+  renderMethod?: AnyFunc;
+  /** Event handlers returned by setup (accessed via getEvents/setEvents) */
+  getEvents(): Record<string, AnyFunc> | undefined;
+  setEvents(v: Record<string, AnyFunc> | undefined): void;
+  /** Cleanup functions registered by useEffect */
+  cleanups: Array<() => void>;
+  /** assign function returned by setup (accessed via getAssign/setAssign) */
+  getAssign(): ((options?: unknown) => boolean | undefined) | undefined;
+  setAssign(v: ((options?: unknown) => boolean | undefined) | undefined): void;
+
+  // Lifecycle / framework API methods
+  render(): void;
+  init(params?: unknown): void;
+  beginUpdate(id?: string): void;
+  endUpdate(id?: string, inner?: boolean): void;
+  wrapAsync<Fn extends AnyFunc>(
+    fn: Fn,
+    context?: unknown,
+  ): (...args: Parameters<Fn>) => ReturnType<Fn> | undefined;
+  observeLocation(
+    params: string | string[] | Record<string, unknown>,
+    observePath?: boolean,
+  ): void;
+  observeState(keys: string | string[]): void;
+  capture(key: string, resource?: unknown, destroyOnRender?: boolean): unknown;
+  release(key: string, destroy?: boolean): unknown;
+  leaveTip(message: string, condition: () => boolean): void;
+  fire(
+    event: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): void;
+  on(event: string, handler: AnyFunc): () => void;
+  off(event: string, handler?: AnyFunc): void;
+}
+
+/**
+ * Functional frame object (replaces `FrameInterface` for runtime use).
+ *
+ * Created by `createFrame()`. Uses `ViewCtx` instead of `ViewInterface`.
+ */
+export interface FrameObj {
+  id: string;
+  /** View path (accessed via getViewPath) */
+  getViewPath(): string | undefined;
+  readonly parentId: string | undefined;
+  view: ViewCtx | undefined;
+  invokeList: FrameInvokeEntry[];
+  signature: number;
+  destroyed: number;
+  hasAltered: number;
+  originalTemplate?: string;
+  holdFireCreated: number;
+  childrenCreated: number;
+  childrenAlter: number;
+  childrenMap: Record<string, string>;
+  childrenCount: number;
+  readyCount: number;
+  readyMap: Set<string>;
+  emitter: EmitterApi;
+  /** Dispatcher visit tag (set during dispatcherUpdate walk) */
+  dispatcherUpdateTag?: number;
+
+  mountView(viewPath: string, viewInitParams?: Record<string, unknown>): void;
+  unmountView(): void;
+  mountFrame(
+    frameId: string,
+    viewPath: string,
+    viewInitParams?: Record<string, unknown>,
+  ): FrameObj;
+  unmountFrame(id?: string): void;
+  mountZone(zoneId?: string): void;
+  unmountZone(zoneId?: string): void;
+  parent(level?: number): FrameObj | undefined;
+  invoke(name: string, args?: unknown[]): unknown;
+  children(): string[];
+  on(event: string, handler: AnyFunc): FrameObj;
+  off(event: string, handler?: AnyFunc): FrameObj;
+  fire(event: string, data?: Record<string, unknown>): FrameObj;
+}
+
+/**
+ * View setup function — the functional replacement for `View.extend(config)`.
+ *
+ * Called once on mount with a `ViewCtx` and optional init params.
+ * Returns a descriptor with `template`, `events`, and optional `assign`.
+ */
+export type ViewSetup = (
+  ctx: ViewCtx,
+  params?: unknown,
+) => {
+  template?: ViewTemplate | VDomTemplate;
+  events?: Record<string, AnyFunc>;
+  assign?: (options?: unknown) => boolean | undefined;
+};
+
+/**
+ * Functional view instance — the runtime object created by `defineView` +
+ * `createFrame().mountView()`. Wraps a `ViewCtx` and its setup function.
+ */
+export interface ViewInstance {
+  ctx: ViewCtx;
+  setup: ViewSetup;
+}
+
+// ============================================================
 // Service types
 // ============================================================
 
@@ -1268,17 +1480,17 @@ export interface FrameworkInterface {
    * Base class with EventEmitter.
    * Inherits EventEmitter for use as a base class in the framework.
    */
-  Base: typeof import("./event-emitter").EventEmitter;
+  Base: typeof import("./event-emitter").createEmitter;
   /**
    * View class.
    * Use `View.extend()` to create subclasses.
    */
-  View: typeof import("./view").View;
+  View: typeof import("./view").defineView;
   /**
    * Cache class.
    * Use `new Cache()` to create cache instances.
    */
-  Cache: typeof import("./cache").Cache;
+  Cache: typeof import("./cache").createCache;
   /**
    * Global state object.
    */

@@ -1,68 +1,65 @@
 /**
- * Multi-cast event emitter.
+ * Multi-cast event emitter (functional factory).
  *
  * Supports: on/off/fire with re-entrant safety. While `fire()` is iterating
  * a listener list, `off()` calls schedule a deferred removal that is applied
  * once the outermost `fire()` completes — so handlers can detach themselves
  * (or each other) without skipping siblings or breaking iteration.
+ *
+ * Replaces the former `EventEmitter` class with a `createEmitter()` factory.
+ * No `class`, no `this`, no `prototype`.
  */
 import { SPLITTER } from "./common";
 import { noop, funcWithTry } from "./utils";
 import type {
   AnyFunc,
   ChangeEvent,
-  EventEmitterInterface,
+  EmitterApi,
   EventListenerEntry,
 } from "./types";
 
 /**
- * Multi-cast event emitter class.
+ * Create a multi-cast event emitter.
+ *
+ * @returns An emitter API object with `on`, `off`, `fire` methods.
  *
  * @example
- * const emitter = new EventEmitter();
+ * const emitter = createEmitter();
  * emitter.on('change', (data) => console.log(data));
  * emitter.fire('change', { key: 'value' });
  */
-export class EventEmitter<T = unknown> implements EventEmitterInterface<T> {
+export function createEmitter<T = unknown>(): EmitterApi<T> {
   /** Event listeners: prefixed key -> listener array */
-  listeners = new Map<string, EventListenerEntry[]>();
+  const listeners = new Map<string, EventListenerEntry[]>();
 
   /** Number of `fire()` calls currently on the stack (re-entrancy depth). */
-  private firingDepth = 0;
+  let firingDepth = 0;
 
   /** Keys whose listener list needs compaction after firing settles. */
-  private pendingCompaction: Set<string> | undefined;
+  let pendingCompaction: Set<string> | undefined;
 
-  /**
-   * Bind event listener.
-   */
-  on(event: string, handler: (this: T, e: ChangeEvent) => void): this {
+  function on(event: string, handler: (e: ChangeEvent) => void): EmitterApi<T> {
     const key = SPLITTER + event;
-    let list = this.listeners.get(key);
+    let list = listeners.get(key);
     if (!list) {
       list = [];
-      this.listeners.set(key, list);
+      listeners.set(key, list);
     }
-    list.push({ handler, executing: 0 });
-    return this;
+    list.push({ handler: handler as AnyFunc, executing: 0 });
+    return api;
   }
 
-  /**
-   * Unbind event listener.
-   * If handler is provided, removes only that handler.
-   * If no handler, removes all handlers for the event.
-   */
-  off(event: string, handler?: AnyFunc): this {
+  function off(event: string, handler?: AnyFunc): EmitterApi<T> {
     const key = SPLITTER + event;
     if (handler) {
-      const list = this.listeners.get(key);
-      if (!list) return this;
-      if (this.firingDepth > 0) {
+      const list = listeners.get(key);
+      if (!list) return api;
+      if (firingDepth > 0) {
         // Re-entrant remove during fire(): mark with noop and defer compaction.
         for (const listener of list) {
           if (listener.handler === handler) {
             listener.handler = noop;
-            (this.pendingCompaction ??= new Set()).add(key);
+            (pendingCompaction ??= new Set()).add(key);
             break;
           }
         }
@@ -73,44 +70,28 @@ export class EventEmitter<T = unknown> implements EventEmitterInterface<T> {
             break;
           }
         }
-        if (list.length === 0) this.listeners.delete(key);
+        if (list.length === 0) listeners.delete(key);
       }
     } else {
       // Remove all handlers for this event.
-      this.listeners.delete(key);
-      Reflect.deleteProperty(
-        this,
-        `on${event[0].toUpperCase() + event.slice(1)}`,
-      );
+      listeners.delete(key);
     }
-    return this;
+    return api;
   }
 
-  /**
-   * Fire event, execute all bound handlers. Safe for re-entrant `off()` calls
-   * during dispatch: removed handlers are replaced with noop and compacted
-   * after the outermost fire returns.
-   *
-   * @param event - Event name
-   * @param data - Event data (type property added automatically)
-   * @param remove - Whether to remove all handlers after firing
-   * @param lastToFirst - Whether to execute handlers in reverse order
-   */
-  fire(
+  function fire(
     event: string,
     data?: Record<string, unknown>,
     remove?: boolean,
     lastToFirst?: boolean,
-  ): this {
+  ): EmitterApi<T> {
     const key = SPLITTER + event;
-    const list = this.listeners.get(key);
+    const list = listeners.get(key);
 
-    if (!data) {
-      data = {};
-    }
-    data["type"] = event;
+    const eventData: Record<string, unknown> = data ?? {};
+    eventData["type"] = event;
 
-    this.firingDepth++;
+    firingDepth++;
     try {
       if (list) {
         const len = list.length;
@@ -120,37 +101,32 @@ export class EventEmitter<T = unknown> implements EventEmitterInterface<T> {
           if (!listener) continue;
           if (listener.handler === noop) continue;
           listener.executing = 1;
-          funcWithTry([listener.handler], [data], this, noop);
+          funcWithTry([listener.handler], [eventData], null, noop);
           listener.executing = "";
         }
       }
 
-      // Call onEventName method if exists
-      const onMethodName =
-        `on${event[0].toUpperCase() + event.slice(1)}` as keyof this;
-      const onMethod = this[onMethodName] as AnyFunc;
-      if (typeof onMethod === "function") {
-        funcWithTry([onMethod], [data], this, noop);
-      }
-
       if (remove) {
-        this.off(event);
+        off(event);
       }
     } finally {
-      this.firingDepth--;
-      if (this.firingDepth === 0 && this.pendingCompaction) {
-        for (const k of this.pendingCompaction) {
-          const l = this.listeners.get(k);
+      firingDepth--;
+      if (firingDepth === 0 && pendingCompaction) {
+        for (const k of pendingCompaction) {
+          const l = listeners.get(k);
           if (!l) continue;
           for (let i = l.length - 1; i >= 0; i--) {
             if (l[i].handler === noop) l.splice(i, 1);
           }
-          if (l.length === 0) this.listeners.delete(k);
+          if (l.length === 0) listeners.delete(k);
         }
-        this.pendingCompaction = undefined;
+        pendingCompaction = undefined;
       }
     }
 
-    return this;
+    return api;
   }
+
+  const api: EmitterApi<T> = { on, off, fire };
+  return api;
 }

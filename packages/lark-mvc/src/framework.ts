@@ -26,19 +26,19 @@ import {
 } from "./utils";
 import { mark, unmark } from "./mark";
 import { applyStyle } from "./apply-style";
-import { Cache } from "./cache";
-import { EventEmitter } from "./event-emitter";
+import { createCache } from "./cache";
+import { createEmitter } from "./event-emitter";
 import { Router, markRouterBooted } from "./router";
 import { State, markBooted as markStateBooted } from "./state";
 import { Frame } from "./frame";
+import type { FrameObj } from "./types";
 import { EventDelegator } from "./event-delegator";
-import { View } from "./view";
+import { defineView } from "./view";
 import { installFrameDevtoolBridge } from "./devtool";
 import type {
   AnyFunc,
   FrameworkConfig,
-  FrameInterface,
-  ViewInterface,
+  ViewCtx,
   ChangeEvent,
   RouteChangedEvent,
   FrameworkInterface,
@@ -173,7 +173,7 @@ function isThenable(value: unknown): value is PromiseLike<void> {
 /**
  * Check if a view's observed location keys have changed.
  */
-function viewIsObserveChanged(view: ViewInterface): boolean {
+function viewIsObserveChanged(view: ViewCtx): boolean {
   const loc = view.locationObserved;
   let result = false;
 
@@ -200,10 +200,10 @@ function viewIsObserveChanged(view: ViewInterface): boolean {
  * Check if a view's observed state keys have changed.
  */
 function stateIsObserveChanged(
-  view: ViewInterface,
+  view: ViewCtx,
   stateKeys: ReadonlySet<string>,
 ): boolean {
-  const observedKeys = view.observedStateKeys;
+  const observedKeys = view.getObservedStateKeys();
   if (!observedKeys) return false;
   for (const key of observedKeys) {
     if (stateKeys.has(key)) return true;
@@ -220,11 +220,6 @@ function stateIsObserveChanged(
  * - State_IsObserveChanged for state changes
  * - Async render Promise support
  */
-/** A frame may carry a per-cycle visit tag set by the dispatcher. */
-interface FrameWithDispatcherTag extends FrameInterface {
-  dispatcherUpdateTag?: number;
-}
-
 /**
  * Walk the Frame tree iteratively, rendering any view whose observed keys
  * have changed. Uses an explicit LIFO stack so deeply nested Frame trees
@@ -235,25 +230,25 @@ interface FrameWithDispatcherTag extends FrameInterface {
  * draining the stack synchronously meanwhile.
  */
 function dispatcherUpdate(
-  frame: FrameInterface,
+  frame: FrameObj,
   stateKeys?: ReadonlySet<string>,
 ): void {
-  const stack: FrameInterface[] = [frame];
+  const stack: FrameObj[] = [frame];
 
-  const drain = (s: FrameInterface[]): void => {
+  const drain = (s: FrameObj[]): void => {
     while (s.length > 0) {
-      const current = s.pop() as FrameInterface;
-      const tagged = current as FrameWithDispatcherTag;
+      const current = s.pop();
+      if (!current) continue;
       const view = current.view;
 
       if (
         !view ||
-        tagged.dispatcherUpdateTag === dispatcherUpdateTag ||
-        view.signature <= 1
+        current.dispatcherUpdateTag === dispatcherUpdateTag ||
+        view.signature.value <= 1
       ) {
         continue;
       }
-      tagged.dispatcherUpdateTag = dispatcherUpdateTag;
+      current.dispatcherUpdateTag = dispatcherUpdateTag;
 
       const isChanged = stateKeys
         ? stateIsObserveChanged(view, stateKeys)
@@ -276,7 +271,7 @@ function dispatcherUpdate(
       if (renderPromise) {
         // Defer this subtree until render settles; keep draining siblings now.
         renderPromise.then(() => {
-          const subStack: FrameInterface[] = [];
+          const subStack: FrameObj[] = [];
           for (let i = children.length - 1; i >= 0; i--) {
             const child = Frame.get(children[i]);
             if (child) subStack.push(child);
@@ -489,7 +484,7 @@ export const Framework: FrameworkInterface = {
     // branch), so it reliably indicates "a mount has been initiated for
     // this frame" — which is exactly the condition we want to guard on.
     const defaultView = config.defaultView || "";
-    if (defaultView && !rootFrame.viewPath) {
+    if (defaultView && !rootFrame.getViewPath()) {
       rootFrame.mountView(defaultView);
     }
   },
@@ -585,9 +580,9 @@ export const Framework: FrameworkInterface = {
   guid: generateId,
 
   /**
-   * Cache class.
+   * Cache factory (functional).
    */
-  Cache,
+  Cache: createCache,
 
   /**
    * Ensure element has an ID.
@@ -602,7 +597,7 @@ export const Framework: FrameworkInterface = {
   /**
    * Base class with EventEmitter.
    */
-  Base: EventEmitter,
+  Base: createEmitter,
 
   // ============================================================
   // Module access
@@ -614,8 +609,8 @@ export const Framework: FrameworkInterface = {
   /** State module */
   State,
 
-  /** View class */
-  View,
+  /** View factory (functional) */
+  View: defineView,
 
   /** Frame class */
   Frame,

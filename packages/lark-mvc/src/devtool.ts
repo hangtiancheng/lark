@@ -223,14 +223,23 @@ export function installFrameDevtoolBridge(): void {
   if (typeof window === "undefined") return;
 
   bridgeInstalled = true;
+  console.log("[Bridge] installFrameDevtoolBridge — listener installed");
 
   window.addEventListener("message", (event: MessageEvent) => {
     const data = event.data;
+    const type = data && typeof data === "object" ? data.type : "(non-object)";
+    console.log(
+      "[Bridge] message ← type:",
+      type,
+      "| origin:",
+      event.origin,
+      "| source is parent:",
+      event.source === window.parent,
+    );
     if (!data || typeof data !== "object") return;
 
-    const type = data.type;
-
     if (type === FrameDevtoolBridge.MSG_PING) {
+      console.log("[Bridge] PING received — sending PONG");
       // Respond with pong so the devtool knows we're a Lark app
       const source = event.source as WindowProxy | null;
       if (source) {
@@ -243,6 +252,7 @@ export function installFrameDevtoolBridge(): void {
     }
 
     if (type === FrameDevtoolBridge.MSG_REQUEST_TREE) {
+      console.log("[Bridge] REQUEST_TREE received — sending TREE");
       // Serialize and send back the frame tree
       const tree = serializeFrameTree();
       const source = event.source as WindowProxy | null;

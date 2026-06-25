@@ -6,13 +6,13 @@
 framework rather than a bolt-on plugin. The micro-frontend story is built on
 three orthogonal primitives:
 
-1. A module loader ([module-loader.ts](file:///Users/hangtiancheng/github/lark/packages/lark-mvc/src/module-loader.ts) `use()`)
+1. A module loader ([module-loader.ts](./packages/lark-mvc/src/module-loader.ts) `use()`)
    that bridges `FrameworkConfig.require` to the Webpack MF runtime, falling
    back to native `dynamic import()` when no loader is configured.
-2. A view registry ([view-registry.ts](file:///Users/hangtiancheng/github/lark/packages/lark-mvc/src/view-registry.ts))
+2. A view registry ([view-registry.ts](./packages/lark-mvc/src/view-registry.ts))
    that caches loaded `View` classes by path, turning the second access to a
    remote view into a synchronous lookup.
-3. A bridge view ([cross-site.ts](file:///Users/hangtiancheng/github/lark/packages/lark-mvc/src/cross-site.ts)
+3. A bridge view ([cross-site.ts](./packages/lark-mvc/src/cross-site.ts)
    `CrossSite`) that wraps a remote view path with skeleton rendering,
    per-project `prepare` preloading, in-place `assign` reuse, and race-protected
    mounting.
@@ -25,37 +25,6 @@ network response finally arrives.
 ---
 
 ## Architecture Layers
-
-```
-┌────────────────────────────────────────────────────────────-──┐
-│  Template layer                                               │
-│  v-lark="remote-app/views/home"                               │
-│  v-lark="cross-site?view=remote-app/views/home&bizCode=…"    │
-└────────────────────────┬────────────────────────────────────-─┘
-                         │
-┌────────────────────────--──────────────────────────────────-──┐
-│  Frame.mountView(viewPath, params)                            │
-│  - parseUri(viewPath) → { path, params }                     │
-│  - getViewClass(path) hit  → doMountView (sync path)         │
-│  - getViewClass(path) miss → use(path, cb) (async path)      │
-│  - sign = this.signature is captured before await             │
-└────────────────────────┬─────────────────────────────────────-┘
-                         │
-┌────────────────────────--─────────────────────────────────────┐
-│  module-loader.ts :: use(names, callback?)                    │
-│  - config.require defined → delegate (Webpack MF / SystemJS) │
-│  - config.require undefined → Promise.all(import(path))      │
-│  - ESM unwrap: __esModule || typeof mod.default === function  │
-└────────────────────────┬────────────────────────────────────-─┘
-                         │
-┌────────────────────────-──────────────────────────────────-───┐
-│  Webpack Module Federation runtime (host application)         │
-│  - __webpack_init_sharing__("default")                        │
-│  - container = window[remoteName]                             │
-│  - container.init(__webpack_share_scopes__.default)           │
-│  - container.get("./module-path") → factory                  │
-└────────────────────────────────────────────────────────────-──┘
-```
 
 The dashed boundary between layers means each tier can be replaced
 independently: the loader can be swapped for a SystemJS variant, and
@@ -106,7 +75,7 @@ const [Home] = await use(["remote-app/views/home"]);
 
 Resolution algorithm:
 
-```
+```ts
 nameList = typeof names === "string" ? [names] : names
 
 if (config.require) {

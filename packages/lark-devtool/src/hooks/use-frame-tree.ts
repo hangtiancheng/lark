@@ -6,6 +6,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { SerializedFrameTree, ConnectionStatus, VisMessage } from "../types";
 import { MSG_PING, MSG_PONG, MSG_REQUEST_TREE, MSG_TREE, MSG_TREE_DELTA } from "../types";
 
+/**
+ * Debug logger — prefixed with `[Devtool]` so you can filter it in the
+ * browser DevTools console (e.g. type `[Devtool]` in the console filter box).
+ * Remove or gate behind a flag once the issue is resolved.
+ */
+const log = (...args: unknown[]): void => console.log("[Devtool]", ...args);
+
 /** Hook configuration */
 interface UseFrameTreeConfig {
   /** Target URL to load in the iframe */
@@ -59,8 +66,16 @@ export function useFrameTree({
   const sendMessage = useCallback(
     (msg: VisMessage) => {
       const iframe = iframeRef.current;
-      if (!iframe?.contentWindow) return;
       const origin = targetUrl ? new URL(targetUrl).origin : "*";
+      if (!iframe) {
+        log("sendMessage SKIP — iframeRef.current is null:", msg.type);
+        return;
+      }
+      if (!iframe.contentWindow) {
+        log("sendMessage SKIP — iframe.contentWindow is null:", msg.type);
+        return;
+      }
+      log("sendMessage →", msg.type, "targetOrigin:", origin);
       iframe.contentWindow.postMessage(msg, origin);
     },
     [targetUrl],
@@ -74,6 +89,7 @@ export function useFrameTree({
   /** Force a reconnection. Bumps `attempt` so the connection effect re-runs
    * (resetting status, restarting the ping interval and timeout). */
   const reconnect = useCallback((): void => {
+    log("reconnect() called — bumping attempt to force re-handshake");
     setAttempt((a) => a + 1);
   }, []);
 
@@ -81,10 +97,21 @@ export function useFrameTree({
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const data = event.data as VisMessage | undefined;
+      const typeLabel = data && typeof data === "object" ? String(data.type) : "(non-object)";
+      log(
+        "message ← type:",
+        typeLabel,
+        "| origin:",
+        event.origin,
+        "| source is self:",
+        event.source === window,
+      );
+
       if (!data || typeof data !== "object") return;
 
       switch (data.type) {
         case MSG_PONG:
+          log("PONG received — status → connected, requesting tree");
           setStatus("connected");
           if (pingTimerRef.current) {
             clearInterval(pingTimerRef.current);
@@ -99,45 +126,57 @@ export function useFrameTree({
 
         case MSG_TREE:
           if (data.data) {
+            log("TREE received — totalFrames:", data.data.totalFrames);
             setTree(data.data);
           }
           break;
 
         case MSG_TREE_DELTA:
           if (data.data) {
+            log("TREE_DELTA received — totalFrames:", data.data.totalFrames);
             setTree(data.data);
           }
           break;
       }
     };
 
+    log("message listener installed on window");
     window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+    return () => {
+      log("message listener removed");
+      window.removeEventListener("message", handler);
+    };
   }, [sendMessage]);
 
   /** When targetUrl changes (or reconnect is called), reset state and start connection */
   useEffect(() => {
+    log("connection effect — targetUrl:", targetUrl, "| attempt:", attempt);
     setTree(null);
 
     if (!targetUrl) {
+      log("no targetUrl — status → disconnected");
       setStatus("disconnected");
       return;
     }
 
+    log("status → connecting; starting PING interval (1s) + timeout (10s)");
     setStatus("connecting");
 
     // Start ping interval to detect when iframe is ready
     if (pingTimerRef.current) clearInterval(pingTimerRef.current);
     pingTimerRef.current = setInterval(() => {
+      log("PING tick — calling sendMessage");
       sendMessage({ type: MSG_PING });
     }, 1000);
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
+      log("TIMEOUT — no PONG after 10s, status → error");
       setStatus((s) => (s === "connecting" ? "error" : s));
     }, 10_000);
 
     return () => {
+      log("connection effect cleanup — clearing ping interval + timeout");
       if (pingTimerRef.current) {
         clearInterval(pingTimerRef.current);
         pingTimerRef.current = null;
@@ -152,6 +191,8 @@ export function useFrameTree({
   /** When connected, start polling for tree updates */
   useEffect(() => {
     if (status !== "connected") return;
+
+    log("connected — starting tree polling every", pollInterval, "ms");
 
     // Initial request already sent on PONG
 
@@ -172,9 +213,11 @@ export function useFrameTree({
   /** Handle iframe load event */
   useEffect(() => {
     const iframe = iframeRef.current;
+    log("iframe load effect — iframeRef.current exists:", !!iframe, "| targetUrl:", targetUrl);
     if (!iframe) return;
 
     const onLoad = (): void => {
+      log("iframe 'load' event fired — waiting 500ms then PING");
       // Wait a moment for the Lark app to initialize, then ping
       setTimeout(() => {
         sendMessage({ type: MSG_PING });

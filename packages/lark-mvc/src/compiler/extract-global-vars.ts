@@ -66,7 +66,7 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
   let fn = fnParts.join("");
 
   // Wrap in a function body so it's valid JS
-  fn = `(function() {${fn}})`;
+  fn = `(function(){${fn}})`;
 
   // Step 3: Parse with @babel/parser
   let ast: t.File;

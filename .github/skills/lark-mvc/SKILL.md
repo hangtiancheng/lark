@@ -13,15 +13,16 @@ description: >
   with registerViewClass, integrating Module Federation with CrossSite,
   calling Service for API requests with caching/dedup/queue, or anything
   mentioning Frame trees, real-DOM diff, virtual-DOM diff with LIS
-  reconciliation, capture-phase event delegation, HMR (import.meta.hot,
-  View.accept, View.dispose, reloadViews), the v-lark attribute, or the
-  Frame Devtool Bridge. Also trigger on questions about Lark's three data
+  reconciliation, capture-phase event delegation, HMR (zero-config auto-injection,
+  hotSwapByTemplate, hotSwapByClass, hotSwapView, forceDigest, import.meta.hot,
+  module.hot, View.accept, View.dispose, reloadViews), the v-lark attribute, or
+  the Frame Devtool Bridge. Also trigger on questions about Lark's three data
   pipelines (Updater / State / Store) or migration patterns between them.
 ---
 
 # Lark MVC Framework
 
-`@lark.js/mvc` (v0.0.12) is a TypeScript MVC framework for single-page applications. It pairs a strict Model-View-Controller architecture with zustand-aligned state management, dual-mode routing (history + hash), dual rendering modes (real-DOM diff + virtual-DOM diff with LIS reconciliation), and first-class micro-frontend support via Webpack Module Federation. The framework ships build-time integrations for Vite, Webpack, and Rspack.
+`@lark.js/mvc` (v0.0.15) is a TypeScript MVC framework for single-page applications. It pairs a strict Model-View-Controller architecture with zustand-aligned state management, dual-mode routing (history + hash), dual rendering modes (real-DOM diff + virtual-DOM diff with LIS reconciliation), and first-class micro-frontend support via Webpack Module Federation. The framework ships build-time integrations for Vite, Webpack, and Rspack.
 
 This guide covers architecture, the full public API, project layout, the three data pipelines, both rendering modes, the template language, build-tool integrations, HMR, Module Federation, and common pitfalls. For exhaustive API signatures and template syntax, follow the pointers in [References](#references) at the end.
 
@@ -36,7 +37,7 @@ Any task that names or clearly implies Lark:
 - Configuring the Vite plugin (`larkMvcPlugin`), Webpack loader (`larkMvcLoader`), or Rspack loader (`larkMvcLoader` from `@lark.js/mvc/rspack`).
 - Embedding remote views via Module Federation (`CrossSite`, `FrameworkConfig.require`).
 - API request layers using `Service.extend`, `Service.add`, `service.all/one/save`, `cleanKeys`.
-- Hot module replacement: `View.accept(hot, viewPath)`, `View.dispose(hot, viewPath)`, `reloadViews(viewPath)`.
+- Hot module replacement: zero-config auto-injection via `larkMvcPlugin`/`larkMvcLoader` (like React Refresh / Vue HMR), state-preserving hot-swap (`hotSwapByTemplate`, `hotSwapByClass`, `hotSwapView`, `forceDigest`), or manual API (`View.accept`, `View.dispose`, `reloadViews`).
 - Debugging Frame trees, working with the Frame Devtool Bridge (`installFrameDevtoolBridge`, `serializeFrameTree`).
 - Choosing between the real-DOM diff renderer and the virtual-DOM diff renderer (`config.virtualDom`).
 
@@ -73,7 +74,7 @@ Lark exposes three ways to flow data to a view. Pick the simplest one that solve
 6. Install the Frame Devtool Bridge (`postMessage` listener for Devtool).
 7. Create the root Frame with `Frame.createRoot(config.rootId)` -- must precede step 8.
 8. Bind `Router._bind()` so hashchange/popstate/beforeunload fire and `Router.diff()` runs once initially.
-9. Mount the `defaultView` ONLY if Router did not already mount one (e.g., after a page reload with `#!/counter`).
+9. Mount the `defaultView` ONLY if Router did not already initiate a mount. The guard checks `!rootFrame.viewPath` (set synchronously at the start of `mountView`) rather than `!rootFrame.view` (the `viewInstance`, which is only assigned after async view-class loading completes). Checking `viewInstance` loses the race when views load via dynamic `import()` -- the Router triggers `mountView("counter")` during `_bind()`, but `viewInstance` is still `undefined` when the boot guard runs, so `defaultView` mounts in parallel and wins the signature race.
 
 The root must exist before `Router._bind()` because the initial `diff()` may immediately fire CHANGED, which triggers `dispatcherNotifyChange`, which calls `Frame.getRoot()`. If the root did not exist yet, `Frame.createRoot()` would default to `"root"` and the view would render into the wrong element.
 
@@ -979,7 +980,7 @@ registerViewClass("cross-site", CrossSite);
 ```
 
 ```html
-<div v-lark="cross-site?view=remote-app/views/home&bizCode=mybiz"></div>
+<div v-lark="cross-site?view=remote-app/views/home&bizCode=my_biz"></div>
 ```
 
 CrossSite renders a skeleton container `mf_${viewId}` first, then loads the remote project's `prepare` module via `loadRemoteView()`, then mounts the actual view. Race condition is guarded by `$sign`: if the user navigates away during the async load, the stale mount is aborted. When the remote view path matches the previous one and the existing view supports `assign()`, CrossSite updates in place instead of re-mounting.
@@ -1079,63 +1080,107 @@ The MF remote MUST explicitly import its CSS (`import "../index.css"`) -- Webpac
 
 ## Hot Module Replacement (HMR)
 
-Lark provides first-class HMR support compatible with both Vite's `import.meta.hot` and Webpack's `module.hot`.
+Lark ships zero-config HMR for Vite, Webpack, and Rspack. When you edit a `.html` template or a `.ts` view file, the framework hot-swaps the changed code in place without a full page reload. View-local state (counter values, form input, scroll-derived data) survives the update.
 
-### HotContext interface
+### Zero-config auto-injection
+
+The build plugins inject HMR code at compile time, similar to `@vitejs/plugin-react` (React Refresh) and `@vitejs/plugin-vue` (Vue HMR). You add the plugin to your config and HMR works. No per-file `import.meta.hot` boilerplate needed.
 
 ```ts
-interface HotContext {
-  accept(cb?: (newModule: unknown) => void): void;
-  dispose(cb: (data: unknown) => void): void;
-  invalidate(): void;
+// vite.config.ts — just add the plugin, HMR is automatic
+import { larkMvcPlugin } from "@lark.js/mvc/vite";
+export default { plugins: [larkMvcPlugin()] };
+```
+
+The Vite plugin uses two hooks: `load` appends a template HMR snippet to compiled `.html` modules, and `transform` injects a view class HMR snippet into `.ts` files that import `.html`. Webpack and Rspack loaders do the same for template modules.
+
+### Two HMR layers
+
+**Template layer** (`.html` changes): The compiled template module self-accepts. The accept callback calls `hotSwapByTemplate(oldTemplate, newTemplate)` to find every mounted view whose `template` property matches the old function reference, replace it, and force-render. Event handlers are NOT re-delegated because they live on the View prototype, not the template.
+
+**View class layer** (`.ts` changes): The plugin rewrites `export default View.extend(...)` to `const __larkViewDefault = View.extend(...)` and appends an HMR snippet. The accept callback calls `hotSwapByClass(oldClass, newClass)` which updates the registry and hot-swaps every mounted `instanceof oldClass` via `hotSwapView`.
+
+### State preservation: in-place prototype swap
+
+`hotSwapView(frame, NewViewClass)` performs six steps that preserve the view instance entirely:
+
+1. Unbind old events (using OLD prototype's event maps)
+2. `View.prepare(NewViewClass)` (scan event methods, wrap render)
+3. `Object.setPrototypeOf(oldView, NewViewClass.prototype)` — instance keeps `updater`, `updater.data`, `resources`, `_events`, `signature`
+4. Update `template` instance property to the new class's template
+5. Bind new events (using NEW prototype's event maps)
+6. `view.signature++; view.fire("render"); View.destroyAllResources(view, false); view.updater.forceDigest()`
+
+The user's `init()`, `ctor()`, and `render()` are NOT re-invoked, so state-initialization logic does not reset data. `forceDigest()` re-runs the new template against preserved `updater.data`.
+
+### `forceDigest()` on Updater
+
+Normal `digest()` only re-renders when data changed. After an HMR swap, the data is the same but the template changed. `forceDigest()` marks every current data key as changed before triggering the digest, forcing a full re-render:
+
+```ts
+forceDigest(): void {
+  this.hasChangedFlag = 1;
+  this.changedKeys = new Set(Object.keys(this.data));
+  this.digest();
 }
 ```
 
-### Setting up HMR in a View module
+### Cross-bundler HMR API differences
 
-Each View module that should hot-reload calls `View.accept` and `View.dispose`:
+| Bundler | HMR context       | Accept callback receives new module |
+| ------- | ----------------- | ----------------------------------- |
+| Vite    | `import.meta.hot` | Yes, via `newModule.default`        |
+| Webpack | `module.hot`      | No, module already re-executed      |
+| Rspack  | `module.hot`      | No, module already re-executed      |
+
+In Vite, the accept callback runs in the OLD module's scope (local vars = old values). In Webpack/Rspack, it runs in the NEW module's scope (local vars = new values). Both snippets use `dispose` → `hot.data` → `accept` to pass the old reference across the cycle.
+
+### Architecture: why `hmr-inject.ts` is separate from `hmr.ts`
+
+The injection code generator (`hmr-inject.ts`) has ZERO runtime imports — it only generates snippet strings. The runtime HMR functions (`hmr.ts`) import `./frame` → `./event-delegator` → `document`. The three bundler plugin entry points (`vite.ts`, `webpack.ts`, `rspack.ts`) are loaded in Node.js (to process build config), so they import from `hmr-inject.ts`, NOT `hmr.ts`. This prevents `ReferenceError: document is not defined` in Node.js.
+
+### The `__larkTemplate` naming contract
+
+`compileTemplate` emits `function __larkTemplate(data, viewId, refData) { ... }` + `export default __larkTemplate;` (named function, not anonymous) so the HMR snippet can reference it by name in the `dispose` callback: `__larkData.oldTemplate = __larkTemplate`. The name is defined as `const TEMPLATE_VAR = "__larkTemplate"` in `hmr-inject.ts`. See `naming-convention.md` in the package root for the full list of cross-layer naming contracts.
+
+### Manual HMR API (fallback)
+
+For cases where auto-injection does not cover your needs (e.g., a view file that does not import `.html`), use the manual API:
 
 ```ts
-// src/views/home.ts
-import View from "../view";
+import { defineView } from "@lark.js/mvc";
 import template from "./home.html";
 
-const HomeView = View.extend({
-  template,
-  init() {
-    // ...
-  },
-});
+const HomeView = defineView({ template /* ... */ });
 
-// HMR integration
 if (import.meta.hot) {
-  View.accept(import.meta.hot, "views/home");
-  View.dispose(import.meta.hot, "views/home");
+  HomeView.dispose(import.meta.hot, "home");
+  HomeView.accept(import.meta.hot, "home");
 }
 
 export default HomeView;
 ```
 
-### How HMR works internally
+`View.accept(hot, viewPath)` calls `hotSwapFrames(viewPath, newClass)` (state-preserving). `View.dispose(hot, viewPath)` calls `invalidateViewClass(viewPath)`. Both are no-ops when `hot` is `undefined`.
 
-1. **`View.accept(hot, viewPath)`**: Sets up `hot.accept` handler. When the module is updated:
-   - Extracts the new View class from `newModule.default`.
-   - Calls `registerViewClass(viewPath, NewViewClass)` to update the registry.
-   - Calls `reloadViews(viewPath)` to re-mount all frames using this view path.
+### HMR public API reference
 
-2. **`View.dispose(hot, viewPath)`**: Sets up `hot.dispose` handler. When the old module is disposed:
-   - Calls `invalidateViewClass(viewPath)` to remove the old class from the registry.
+All exported from `@lark.js/mvc`:
 
-3. **`reloadViews(viewPath)`**: Iterates `Frame.getAll()`, finds frames whose `viewPath` matches, and calls `frame.mountView(fullPath)` on each. The existing Frame is reused (no unmount/remount of the container), so parent-child relationships and frame state are preserved.
+- **`hotSwapByTemplate(oldTemplate, newTemplate)`**: template-only HMR, finds views by template reference
+- **`hotSwapByClass(oldClass, newClass)`**: view class HMR, finds frames by `instanceof`
+- **`hotSwapView(frame, newClass)`**: single-frame in-place prototype swap (building block)
+- **`hotSwapFrames(viewPath, newClass)`**: batch `hotSwapView` by viewPath
+- **`reloadViews(viewPath)`**: legacy full-remount (destroys instance, loses state)
+- **`acceptView(hot, viewPath)`** / **`disposeView(hot, viewPath)`**: manual API internals
+- **`injectTemplateHmr(source, bundler)`** / **`injectViewClassHmr(source, bundler)`**: snippet generators (from `hmr-inject.ts`)
+- **`forceDigest()`**: on `Updater` / `UpdaterInterface`, forces full re-render bypassing change detection
+- **`HotContext`** interface, **`Bundler`** type (`"vite" | "webpack" | "rspack"`)
 
-### Importing HMR utilities
+### What is NOT preserved across HMR
 
-```ts
-import { reloadViews } from "@lark.js/mvc";
-import type { HotContext } from "@lark.js/mvc";
-```
-
-The `View.accept` and `View.dispose` static methods are available directly on the `View` class (imported from `@lark.js/mvc`).
+- **`destroyOnRender` resources**: destroyed on every render including HMR force-render (by design)
+- **`ctor()` / `init()` side effects**: not re-invoked. If you modify `ctor` or `init` logic, do a full page refresh
 
 ## Three pipelines side-by-side
 
@@ -1292,7 +1337,7 @@ All three produce compiled `.html` modules that import their runtime helpers fro
 18. **State for simple, Store for complex** -- use `State.set` + `State.digest` for lightweight shared values. Reach for `create()` when you need actions, derived data via `computed(deps, fn)`, or fine-grained subscriptions. Always pair State writes with `State.clean(keys)` mixin on consumers so data does not leak globally.
 19. **MF view paths use the remote project prefix** -- `v-lark="remote-app/views/home"` triggers async loading through `FrameworkConfig.require` if the path is not yet registered. Ensure `require` is configured AND `ModuleFederationPlugin` shares `@lark.js/mvc` as a singleton.
 20. **`CrossSite` is the export name** -- register it as `registerViewClass("cross-site", CrossSite)`.
-21. **CrossSite uses `view=` not `xview=`** -- `v-lark="cross-site?view=remote-app/views/home"`.
+21. **CrossSite uses `view=`** -- `v-lark="cross-site?view=remote-app/views/home"`.
 22. **`Framework.use()` returns a Promise** -- without the optional callback, it resolves to `unknown[]`. Without a configured `require`, it falls back to dynamic `import()`.
 23. **`Updater.parse` is path-only, no eval** -- it accepts dotted paths and numeric literals. `updater.parse("1 + 2")` returns `undefined`. CSP-safe by design.
 24. **`LarkInnerKeys` for DOM short-circuits** -- `ldk` skips the entire diff for static elements; `lak` skips attribute diff but still diffs children; `lvk` is an assign-optimization marker.
@@ -1313,3 +1358,4 @@ For deeper detail than this guide:
 
 - `references/api-reference.md` -- Complete API signatures for every Lark module (Framework, Router, State, View, Updater, Frame, Store, Service, CrossSite, Cache, EventEmitter, EventDelegator, Devtool Bridge, Compiler, Template Runtime, Constants, Vite/Webpack/Rspack integrations).
 - `references/template-syntax.md` -- Full template language reference, including compilation pipeline, operators, control flow, event binding, sub-view embedding, special attributes, compiled function signature, built-in encoding functions, HTML comment handling, debug mode, and global variable extraction.
+- `naming-convention.md` (in the `@lark.js/mvc` package root) -- Every identifier that crosses a module or layer boundary: `__larkTemplate`, `__larkViewDefault`, `__lark*` import aliases, `hot.data` keys, `$`-prefixed compiled template variables, control characters, and the `__lark` / `$` prefix conventions. Read this when debugging compiled template output or HMR snippet generation.

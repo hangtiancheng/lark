@@ -564,6 +564,16 @@ updater.snapshot(): this
 updater.altered(): boolean | undefined  // undefined if snapshot was never called
 ```
 
+### updater.forceDigest()
+
+Force a full re-render, bypassing change detection. Marks every current data key as changed and triggers a digest cycle. Used by HMR (`hotSwapView`) to re-render a view after its template has been hot-swapped, ensuring the new template is fully applied even though the data itself has not changed.
+
+```ts
+updater.forceDigest(): void
+```
+
+Unlike `digest(data)` which only marks keys whose values differ, `forceDigest()` marks ALL keys, so the DOM/VDom diff re-evaluates every template region rather than skipping ones whose data is unchanged.
+
 ### updater.translate(value)
 
 Resolve a refData reference token (`SPLITTER + ascii digits`) to its original JS value. Non-ref strings are returned as-is. The protocol is strict: only `\x1e` followed by digits qualifies, so user-supplied strings that merely begin with `\x1e` are never accidentally resolved.
@@ -962,7 +972,7 @@ import { CrossSite, resetProjectsMap, registerViewClass } from "@lark.js/mvc";
 registerViewClass("cross-site", CrossSite);
 ```
 
-Then in templates: `v-lark="cross-site?view=remote-app/views/home&bizCode=mybiz"`.
+Then in templates: `v-lark="cross-site?view=remote-app/views/home&bizCode=my_biz"`.
 
 CrossSite reads:
 
@@ -1057,11 +1067,11 @@ EventDelegator.nextElementGuid(): number
 
 ## HMR
 
-Hot Module Replacement support compatible with Vite's `import.meta.hot` and Webpack's `module.hot`. Imported via `import { reloadViews, View } from '@lark.js/mvc'`.
+Lark ships zero-config HMR for Vite, Webpack, and Rspack. The build plugins auto-inject HMR snippets at compile time (like `@vitejs/plugin-react` and `@vitejs/plugin-vue`), so users never write `import.meta.hot` themselves. State is preserved across updates via in-place prototype swap.
 
 ### HotContext
 
-Interface compatible with both Vite and Webpack HMR APIs:
+Interface compatible with Vite's `import.meta.hot` and Webpack/Rspack's `module.hot`:
 
 ```ts
 interface HotContext {
@@ -1071,51 +1081,95 @@ interface HotContext {
 }
 ```
 
-### View.accept(hot, viewPath)
-
-Set up HMR accept handler for a View module. When the module is hot-updated:
-
-1. Extracts the new View class from `newModule.default`.
-2. Calls `registerViewClass(viewPath, NewViewClass)` to update the registry.
-3. Calls `reloadViews(viewPath)` to re-mount all frames using this view path.
+### Bundler type
 
 ```ts
-View.accept(hot: HotContext, viewPath: string): void
+type Bundler = "vite" | "webpack" | "rspack";
 ```
 
-### View.dispose(hot, viewPath)
+### hotSwapByTemplate(oldTemplate, newTemplate)
 
-Set up HMR dispose handler. When the old module is disposed, calls `invalidateViewClass(viewPath)` to remove the old class from the registry.
+Template-only HMR. Finds every mounted view whose `template` property matches `oldTemplate`, replaces it with `newTemplate`, and force-renders. Used by the auto-injected template HMR snippet. Does NOT re-delegate events (handlers live on the prototype, not the template).
 
 ```ts
-View.dispose(hot: HotContext, viewPath: string): void
+function hotSwapByTemplate(
+  oldTemplate: ViewTemplate,
+  newTemplate: ViewTemplate,
+): void;
+```
+
+### hotSwapByClass(oldClass, newClass)
+
+View class HMR. Updates the registry (replaces `oldClass` entries with `newClass`) and hot-swaps every mounted frame whose view is an `instanceof oldClass` via `hotSwapView`. Used by the auto-injected view class HMR snippet.
+
+```ts
+function hotSwapByClass(oldClass: typeof View, newClass: typeof View): void;
+```
+
+### hotSwapView(frame, NewViewClass)
+
+In-place prototype swap for a single frame. Preserves `updater.data`, `resources`, `_events`, `signature`. Performs six steps: unbind old events, prepare new class, swap prototype, update template, bind new events, force-render. The user's `init()` / `ctor()` / `render()` are NOT re-invoked.
+
+```ts
+function hotSwapView(frame: FrameInterface, NewViewClass: typeof View): void;
+```
+
+### hotSwapFrames(viewPath, NewViewClass)
+
+Batch `hotSwapView` by viewPath. Finds all frames matching `viewPath` and hot-swaps each. Used by `acceptView` (the manual API).
+
+```ts
+function hotSwapFrames(viewPath: string, NewViewClass: typeof View): void;
 ```
 
 ### reloadViews(viewPath)
 
-Iterate `Frame.getAll()`, find frames whose `viewPath` matches, and call `frame.mountView(fullPath)` on each. The existing Frame is reused (no unmount/remount of the container), preserving parent-child relationships and frame state.
+Legacy full-remount. Destroys the old view instance and creates a fresh one, losing all view-local state. Retained for backward compatibility. Prefer `hotSwapFrames` for state-preserving updates.
 
 ```ts
 function reloadViews(viewPath: string): void;
 ```
 
-### Usage pattern
+### View.accept(hot, viewPath) / View.dispose(hot, viewPath)
+
+Manual HMR API (fallback for files not covered by auto-injection). `View.accept` calls `hotSwapFrames` (state-preserving). `View.dispose` calls `invalidateViewClass`. Both are no-ops when `hot` is `undefined`.
 
 ```ts
-// src/views/home.ts
-import View from "../view";
+View.accept(hot: HotContext | undefined, viewPath: string): void
+View.dispose(hot: HotContext | undefined, viewPath: string): void
+```
+
+### injectTemplateHmr(source, bundler) / injectViewClassHmr(source, bundler)
+
+Snippet generators from `hmr-inject.ts` (zero runtime imports, safe in Node.js). Used by the Vite/Webpack/Rspack plugins to append HMR code to compiled output.
+
+```ts
+function injectTemplateHmr(source: string, bundler: Bundler): string;
+function injectViewClassHmr(source: string, bundler: Bundler): string;
+```
+
+### Cross-bundler HMR API differences
+
+| Bundler | HMR context       | Accept callback receives new module |
+| ------- | ----------------- | ----------------------------------- |
+| Vite    | `import.meta.hot` | Yes, via `newModule.default`        |
+| Webpack | `module.hot`      | No, module already re-executed      |
+| Rspack  | `module.hot`      | No, module already re-executed      |
+
+In Vite, the accept callback runs in the OLD module's scope. In Webpack/Rspack, it runs in the NEW module's scope. Both snippets use `dispose` to `hot.data` to `accept` to pass the old reference.
+
+### Manual usage pattern (fallback)
+
+```ts
+// src/views/home.ts — only needed if auto-injection doesn't cover this file
+import { defineView } from "@lark.js/mvc";
 import template from "./home.html";
 
-const HomeView = View.extend({
-  template,
-  init() {
-    /* ... */
-  },
-});
+const HomeView = defineView({ template /* ... */ });
 
 if (import.meta.hot) {
-  View.accept(import.meta.hot, "views/home");
-  View.dispose(import.meta.hot, "views/home");
+  HomeView.dispose(import.meta.hot, "home");
+  HomeView.accept(import.meta.hot, "home");
 }
 
 export default HomeView;

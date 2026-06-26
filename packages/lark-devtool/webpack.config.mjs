@@ -83,7 +83,8 @@ export default (env, argv) => {
         name: "lark_devtool",
         filename: "remoteEntry.js",
         remotes: {
-          lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
+          lark_demo: "lark_demo@http://localhost:3000/varRemoteEntry.js",
+          // lark_demo: "lark_demo@http://localhost:3300/cdn/lark-demo/varRemoteEntry.js",
         },
         shared: {
           "@lark.js/mvc": { singleton: true, requiredVersion: "*" },

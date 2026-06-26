@@ -92,7 +92,12 @@ The output is a JS module string that the bundler treats as a normal ES module.
 The generated module is imported by `boot.ts`:
 
 ```ts
-import { routes, docsConfig, loadContent, getSearchIndex } from "@lark-docs/generated";
+import {
+  routes,
+  docsConfig,
+  loadContent,
+  getSearchIndex,
+} from "@lark-docs/generated";
 ```
 
 At boot time:
@@ -152,7 +157,12 @@ my-docs-site/
 
 ```ts
 import { Framework, State } from ".js/mvc";
-import { routes, docsConfig, loadContent, getSearchIndex } from "@lark-docs/generated";
+import {
+  routes,
+  docsConfig,
+  loadContent,
+  getSearchIndex,
+} from "@lark-docs/generated";
 import { registerThemeViews } from "@lark.js/docs/theme";
 
 registerThemeViews();
@@ -426,7 +436,9 @@ let _searchIndex = null;
 export async function getSearchIndex() {
   if (_searchIndex) return _searchIndex;
   // Filter to canonical content paths (excludes virtual index routes)
-  const entries = Object.entries(loaders).filter(([k]) => _searchablePaths.has(k));
+  const entries = Object.entries(loaders).filter(([k]) =>
+    _searchablePaths.has(k),
+  );
   const mods = await Promise.all(entries.map(([, loader]) => loader()));
   _searchIndex = mods.map((mod, i) => ({
     title: mod.pageData?.title || "",

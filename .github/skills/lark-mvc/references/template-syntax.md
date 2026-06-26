@@ -93,7 +93,8 @@ Block validation enforces that every `{{if}}` has a matching `{{/if}}`. Mismatch
 Shorthand parentheses are also supported:
 
 ```html
-{{if(active)}}<span>Active</span>{{/if}} {{if(user.isAdmin)}}<span>Admin</span>{{/if}}
+{{if(active)}}<span>Active</span>{{/if}}
+{{if(user.isAdmin)}}<span>Admin</span>{{/if}}
 ```
 
 The compiler automatically normalizes `if(condition)` to `if (condition)` before processing. Outer parentheses are stripped using balanced-parentheses analysis, so `{{if((a > b))}}` becomes `if(a > b)`.
@@ -139,8 +140,8 @@ When the collection expression contains property access (`obj.list` or `arr[0]`)
 <!-- Template -->
 {{forOf obj.items as item}}
 <!-- Compiled internally -->
-<%let _art_obj_obj_items=obj.items;for(let _i=0,_l=_art_obj_obj_items.length;_i<_l;_i++){let
-item=_art_obj_obj_items[_i]}%>
+<%let _art_obj_obj_items=obj.items;for(let
+_i=0,_l=_art_obj_obj_items.length;_i<_l;_i++){let item=_art_obj_obj_items[_i]}%>
 ```
 
 ### Object Iteration (forIn)
@@ -370,7 +371,9 @@ When the DOM engine encounters two elements with matching `ldk` values, it skips
 Use `lak` when element structure is stable but attributes may change:
 
 ```html
-<button lak="submit-btn" class="{{=btnClass}}" disabled="{{=isDisabled}}">Submit</button>
+<button lak="submit-btn" class="{{=btnClass}}" disabled="{{=isDisabled}}">
+  Submit
+</button>
 ```
 
 When `lak` values match, the DOM engine skips attribute comparison but still diffs child nodes.

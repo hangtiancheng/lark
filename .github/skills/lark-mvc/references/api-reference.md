@@ -323,7 +323,11 @@ function useTimeout(fn: () => void, delay: number): void;
 Capture a resource with automatic cleanup.
 
 ```ts
-function useResource(key: string, resource: unknown, destroyOnRender?: boolean): void;
+function useResource(
+  key: string,
+  resource: unknown,
+  destroyOnRender?: boolean,
+): void;
 ```
 
 ### useEvent(event, handler)
@@ -785,7 +789,10 @@ function createUpdater(viewId: string): UpdaterApi;
 
 interface UpdaterApi {
   get<T = unknown>(key?: string): T;
-  set(data: Record<string, unknown>, excludes?: ReadonlySet<string>): UpdaterApi;
+  set(
+    data: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+  ): UpdaterApi;
   digest(data?, excludes?, callback?): void;
   forceDigest(): void;
   snapshot(): UpdaterApi;
@@ -840,7 +847,10 @@ Zero-config hot module replacement for Vite, Webpack, and Rspack. Import via `im
 | `disposeView(hot, viewPath)`        | Set up HMR dispose handler                                             |
 
 ```ts
-function hotSwapByTemplate(oldTemplate: ViewTemplate, newTemplate: ViewTemplate): void;
+function hotSwapByTemplate(
+  oldTemplate: ViewTemplate,
+  newTemplate: ViewTemplate,
+): void;
 function hotSwapByView(oldSetup: ViewSetup, newSetup: ViewSetup): void;
 function hotSwapView(frame: FrameObj, newSetup: ViewSetup): void;
 function hotSwapFrames(viewPath: string, newSetup: ViewSetup): void;
@@ -1027,7 +1037,13 @@ function extractGlobalVars(source: string): Promise<string[]>;
 Available at `@lark.js/mvc/runtime`. The compiler emits imports from this module in every compiled template.
 
 ```ts
-import { strSafe, encHtml, encUri, encQuote, refFn } from "@lark.js/mvc/runtime";
+import {
+  strSafe,
+  encHtml,
+  encUri,
+  encQuote,
+  refFn,
+} from "@lark.js/mvc/runtime";
 ```
 
 | Function            | Description                                                       |
@@ -1121,7 +1137,10 @@ interface FrameworkConfig {
     routes: Record<string, string>,
   ) => string;
   unmatchedView?: string;
-  require?: (names: string[], params?: Record<string, unknown>) => Promise<unknown[]> | undefined;
+  require?: (
+    names: string[],
+    params?: Record<string, unknown>,
+  ) => Promise<unknown[]> | undefined;
   skipViewRendered?: boolean;
   projectName?: string;
   crossSites?: CrossSiteConfig[];
@@ -1151,7 +1170,11 @@ type ViewTemplate = (
   refData: unknown,
   ...encoders: unknown[]
 ) => string;
-type VDomTemplate = (data: unknown, viewId: string, refData: unknown) => VDomNode;
+type VDomTemplate = (
+  data: unknown,
+  viewId: string,
+  refData: unknown,
+) => VDomNode;
 ```
 
 # API Reference
@@ -1228,7 +1251,10 @@ function useEffect(fn: () => (() => void) | void, deps?: unknown[]): void;
 ### `useStore(store, selector?)`
 
 ```ts
-function useStore<T>(store: StoreApi<T>, selector?: (s: T) => Record<string, unknown>): void;
+function useStore<T>(
+  store: StoreApi<T>,
+  selector?: (s: T) => Record<string, unknown>,
+): void;
 ```
 
 ### `useInterval(callback, delay)` / `useTimeout(callback, delay)` / `useResource(key, factory)` / `useEvent(name, handler)`
@@ -1439,7 +1465,10 @@ function createUpdater(viewId: string): UpdaterApi;
 
 interface UpdaterApi {
   get<T>(key?: string): T;
-  set(data: Record<string, unknown>, excludes?: ReadonlySet<string>): UpdaterApi;
+  set(
+    data: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+  ): UpdaterApi;
   digest(data?, excludes?, callback?): void;
   forceDigest(): void;
   snapshot(): UpdaterApi;
@@ -1842,7 +1871,7 @@ setState((prev) => ({ page: String(Number(prev.page) + 1) }));
 
 ## State
 
-Global singleton for cross-view observable data. Imported via `import { State } from '@lark.js/mvc'`. Best for simple shared values (counters, page title, session info). For complex reactive state with derived data, prefer store `create`.
+Global singleton for cross-view observable data. Imported via `import { State } from '@lark.js/mvc'`. Best for simple shared values (counters, page title, session info). For complex reactive state with derived data, prefer store `createStore`.
 
 ### State.get(key?)
 
@@ -1880,14 +1909,15 @@ State.diff(): ReadonlySet<string>
 
 ### State.clean(keys)
 
-Mixin factory. Decrements per-key reference counts on the view's destroy; keys with zero refs are removed from state. Use it to prevent State leaks.
+Cleanup function factory. Returns a function that, when called with a `ViewCtx`, registers a `destroy` listener that decrements per-key reference counts; keys with zero refs are removed from state. Use it to prevent State leaks.
 
 ```ts
-State.clean(keys: string): { ctor: AnyFunc }
+State.clean(keys: string): (ctx: { on: (event: string, handler: () => void) => void }) => void
 ```
 
 ```ts
-View.extend({ mixins: [State.clean("user,token")] });
+// Inside setup:
+State.clean("user,token")(ctx);
 ```
 
 ### State events
@@ -1900,126 +1930,106 @@ State is an `EventEmitter`, so `on/off/fire` are available.
 
 ---
 
-## View
+## View (Functional)
 
-Base view class. Imported via `import { View } from '@lark.js/mvc'`.
+The view system uses a functional API: `defineView(setup)` returns a `ViewSetup` function, and the framework calls it with a `ViewCtx` on mount. No `class`, no `this`, no `prototype`, no `mixin`.
 
-### View.extend(props, statics?)
-
-Create a View subclass. The `ctor` function from `props` (and from mixins) is collected into a `ctors` array invoked in the constructor. Event method names matching `name<eventType>` are scanned at class-prepare time and routed through the EventDelegator.
+### defineView(setup)
 
 ```ts
-View.extend(
-  props?: Record<string, unknown>,
-  statics?: Record<string, unknown>,
-): typeof View
+function defineView(setup: ViewSetup): ViewSetup;
+
+type ViewSetup = (
+  ctx: ViewCtx,
+  params?: unknown,
+) => {
+  template?: ViewTemplate | VDomTemplate;
+  events?: Record<string, AnyFunc>;
+  assign?: (options?: unknown) => boolean | undefined;
+};
 ```
-
-**Internals**: The returned class uses ES6 `extends` so `super()` chains correctly. Props are applied as **instance** properties after `super()` (so ES6 class fields don't shadow them) **except** for `render` — `render` stays wrapped on the prototype by `View.wrapMethod()` to manage signature checking, the `"render"` event, and `destroyAllResources()`.
-
-### View.merge(...mixins)
-
-Merge mixin objects into the View prototype. Conflicting event methods become an internal `handlerList` invoked in order. The `ctor` function from each mixin is appended to `ctors`.
 
 ```ts
-View.merge(...mixins: Record<string, unknown>[]): typeof View
+import { defineView } from "@lark.js/mvc";
+import template from "./home.html";
+
+export default defineView((ctx, params) => {
+  ctx.updater.set({ title: "Home" });
+  ctx.on("destroy", () => console.log("destroyed"));
+
+  return {
+    template,
+    events: {
+      "navigateTo<click>": (e) => Router.to(e.params.path),
+    },
+    assign: (options) => {
+      ctx.updater.snapshot();
+      ctx.updater.set({ ... });
+      return ctx.updater.altered();
+    },
+  };
+});
 ```
 
-### View.prepare(viewClass)
+### ViewCtx properties
 
-Internal — scans the prototype for event method patterns. Idempotent (guarded by `ctors`). Called from `Frame.mountView` before creating the view instance.
+| Property           | Type                                | Description                                           |
+| ------------------ | ----------------------------------- | ----------------------------------------------------- |
+| `id`               | `string`                            | Same as owner frame id                                |
+| `owner`            | `FrameObj`                          | Owner frame reference                                 |
+| `updater`          | `UpdaterApi`                        | Per-view data binder                                  |
+| `signature`        | `Ref<number>`                       | `>0` = active; incremented on render; `0` = destroyed |
+| `rendered`         | `Ref<boolean>`                      | Whether rendered at least once                        |
+| `resources`        | `Record<string, ViewResourceEntry>` | Captured resources                                    |
+| `cleanups`         | `Array<() => void>`                 | Cleanup functions (useEffect)                         |
+| `emitter`          | `EmitterApi`                        | Internal emitter for lifecycle events                 |
+| `locationObserved` | `ViewLocationObserved`              | Location observation config                           |
+| `renderMethod?`    | `AnyFunc`                           | Custom render function (replaces default digest)      |
+| `vdom?`            | `VDomNode`                          | Last rendered VDOM tree                               |
 
-### View instance properties
+Template and events are accessed via getter/setter functions: `getTemplate()` / `setTemplate()`, `getEvents()` / `setEvents()`, `getAssign()` / `setAssign()`, `getObservedStateKeys()` / `setObservedStateKeys()`, `getEndUpdatePending()` / `setEndUpdatePending()`.
 
-| Property            | Type                                             | Description                                           |
-| ------------------- | ------------------------------------------------ | ----------------------------------------------------- |
-| `id`                | `string`                                         | Same as owner frame id                                |
-| `owner`             | `FrameApi \| 0`                                  | Owner frame (`0` as placeholder before init)          |
-| `updater`           | `UpdaterApi`                                     | Per-view data binder                                  |
-| `signature`         | `number`                                         | `>0` = active; incremented on render; `0` = destroyed |
-| `rendered`          | `boolean \| undefined`                           | Whether rendered at least once                        |
-| `template`          | `ViewTemplate \| undefined`                      | Compiled template function (from `.html` import)      |
-| `mixins`            | `Record<string, unknown>[]` (optional)           | Mixin objects                                         |
-| `resources`         | `Record<string, ViewResourceEntry>`              | Captured resources                                    |
-| `locationObserved`  | `ViewLocationObserved`                           | Location observation config                           |
-| `observedStateKeys` | `string[] \| undefined`                          | State keys to observe                                 |
-| `endUpdatePending`  | `number \| undefined`                            | Internal flag                                         |
-| `eventObjectMap`    | `Record<string, number>` (via prototype getter)  | Event-type → bitmask                                  |
-| `eventSelectorMap`  | `Record<string, ViewEventSelectorEntry>` (proto) | Event-type → selector list                            |
-| `globalEventList`   | `ViewGlobalEventEntry[]` (proto)                 | window/document listeners                             |
+### ViewCtx lifecycle
 
-### View lifecycle hooks
+| Phase   | Description                                                                          |
+| ------- | ------------------------------------------------------------------------------------ |
+| setup   | Runs once on mount. Receives `(ctx, params)`. Returns `{ template, events, assign }` |
+| render  | Auto-called by framework after setup. Calls `updater.digest()` or `ctx.renderMethod` |
+| destroy | Runs `cleanups`, unregisters events, destroys resources, fires `"destroy"` event     |
 
-| Hook               | Description                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------ |
-| `ctor()`           | Constructor-like; called once per instance with `(initParams, { node, deep })`                         |
-| `init()`           | Initialization. May return a Promise; the framework waits for resolution before calling render         |
-| `render()`         | Default implementation calls `updater.digest()`. Wrapped to manage signature + resource cleanup        |
-| `assign(options?)` | Incremental update. Call `updater.snapshot()` first, return `updater.altered()` to skip when unchanged |
-
-### View event methods
-
-| Method                                      | Description                   |
-| ------------------------------------------- | ----------------------------- |
-| `on(event, handler)`                        | Bind an event listener        |
-| `off(event, handler?)`                      | Unbind a (or all) listener(s) |
-| `fire(event, data?, remove?, lastToFirst?)` | Fire an event                 |
-
-### View data observation
+### ViewCtx methods
 
 | Method                                      | Description                                                                                  |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `on(event, handler)`                        | Bind a lifecycle event listener; returns unsubscribe function                                |
+| `off(event, handler?)`                      | Unbind a (or all) listener(s)                                                                |
+| `fire(event, data?, remove?, lastToFirst?)` | Fire an event                                                                                |
 | `observeLocation(params, observePath?)`     | Watch URL params and/or path; accepts string / string[] / `{ path, params }`                 |
 | `observeState(keys)`                        | Watch State keys; comma-separated string or string array                                     |
 | `capture(key, resource?, destroyOnRender?)` | Register a resource for automatic cleanup. Resource's `destroy()` is invoked on cleanup      |
 | `release(key, destroy?)`                    | Manually release a captured resource                                                         |
 | `wrapAsync(fn, context?)`                   | Wrap an async callback with a signature check; callback no-ops if view re-rendered/destroyed |
+| `beginUpdate(id?)`                          | Notify that HTML for `id` is about to change — unmounts child frames in the zone             |
+| `endUpdate(id?, inner?)`                    | Notify update is done — re-mounts frames in the zone and flushes deferred invokes            |
+| `leaveTip(message, condition)`              | Set leave confirmation; hooks into Router `change` and `beforeunload`                        |
 
-### View update internals
+### Event handler naming
 
-| Method                   | Description                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `beginUpdate(id?)`       | Notify that HTML for `id` is about to change — unmounts child frames in the zone  |
-| `endUpdate(id?, inner?)` | Notify update is done — re-mounts frames in the zone and flushes deferred invokes |
+Event handlers are defined in the `events` map returned by setup. The key format is `"name<eventType>"`:
 
-### View leave-tip
-
-```ts
-view.leaveTip(message: string, condition: () => boolean): void
-```
-
-Hooks into Router `change` and window `beforeunload`. If `condition()` returns true, navigation/unload prompts the user.
-
----
-
-## defineView
-
-Type-safe factory that wraps `View.extend`. Threads the literal's own shape into `this` via `ThisType<P & ViewApi>`, so user fields and methods are properly typed inside hooks.
-
-```ts
-export function defineView<P extends Record<string, unknown>>(
-  props: P & ThisType<P & ViewApi>,
-  statics?: Record<string, unknown>,
-): typeof View;
-```
-
-Runtime semantics are identical to `View.extend(props, statics)`. The only difference is the call-site type inference.
-
-```ts
-const HomeView = defineView({
-  $title: "Home",
-  init() {
-    // `this.$title` typed as string; `this.updater` typed via ViewApi.
-    this.updater.set({ title: this.$title });
-  },
-});
-```
+| Pattern                 | Meaning                                           |
+| ----------------------- | ------------------------------------------------- |
+| `handler<click>`        | Root event on the view element                    |
+| `$selector<click>`      | Delegated event matching CSS selector `.selector` |
+| `$window<resize>`       | Global event on `window`                          |
+| `$document<keydown>`    | Global event on `document`                        |
+| `name<click,mousedown>` | Multi-event binding                               |
 
 ---
 
 ## Updater
 
-Per-view data binder. `View` instances expose it as `this.updater`. Imported standalone via `import { Updater } from '@lark.js/mvc'`.
+Per-view data binder. Accessed via `ctx.updater` inside setup. Created by `createUpdater(viewId)`.
 
 ### updater.get(key?)
 
@@ -2149,10 +2159,10 @@ Frame.fire(event: string, data?: Record<string, unknown>): void
 ### Constructor
 
 ```ts
-new Frame(id: string, parentId?: string)
+createFrame(id: string, parentId?: string): FrameObj
 ```
 
-Use `new Frame(containerId)` directly for **independent** root frames — Module Federation hosts that own multiple containers should each call `new Frame(...)` so each mount has its own tree, instead of relying on the global singleton.
+Use `createFrame(containerId)` directly for **independent** root frames — Module Federation hosts that own multiple containers should each call `createFrame(...)` so each mount has its own tree, instead of relying on the global singleton.
 
 ### frame.mountView(viewPath, viewInitParams?)
 
@@ -2255,7 +2265,11 @@ Destroyed Frame objects are pooled and reused (up to `MAX_FRAME_POOL = 64`). Don
 Global registry of `viewPath → ViewClass`. Exported via the main entry, but the underlying module is `view-registry.ts`.
 
 ```ts
-import { registerViewClass, invalidateViewClass, getViewClassRegistry } from "@lark.js/mvc";
+import {
+  registerViewClass,
+  invalidateViewClass,
+  getViewClassRegistry,
+} from "@lark.js/mvc";
 ```
 
 ```ts
@@ -2270,22 +2284,25 @@ The internal `getViewClass(path): typeof View | undefined` is not exported (used
 
 ## Store
 
-Zustand-aligned state management for Lark MVC. Simple, explicit, no Proxy magic. Imported via `import { create, computed, bindStore } from '@lark.js/mvc'`.
+Zustand-aligned state management for Lark MVC. Simple, explicit, no Proxy magic. Imported via `import { createStore, computed, bindStore } from '@lark.js/mvc'`.
 
-### create(name, creator)
+### createStore(name, creator)
 
 Define a store. The creator receives `set` and `get` and returns the initial state object. Functions in the return value become actions (attached to state, ignored by `setState`); `computed(deps, fn)` entries become derived state (read-only, auto-recomputed); everything else becomes plain state.
 
 ```ts
-function create<T>(name: string, creator: (set: SetFn<T>, get: () => T) => T): StoreApi<T>;
+function createStore<T extends object>(
+  name: string,
+  creator: (set: SetFn<T>, get: () => T) => T,
+): StoreApi<T>;
 
 type SetFn<T> = (partial: Partial<T> | ((prev: T) => Partial<T>)) => void;
 ```
 
-The store is registered in a global `storeRegistry` keyed by `name`. Calling `create` with the same name replaces the previous entry.
+The store is registered in a global `storeRegistry` keyed by `name`. Calling `createStore` with the same name replaces the previous entry.
 
 ```ts
-const useCountStore = create("counter", (set, get) => ({
+const useCountStore = createStore("counter", (set, get) => ({
   count: 0,
   doubled: computed(["count"], () => get().count * 2),
   increment() {
@@ -2299,7 +2316,7 @@ const useCountStore = create("counter", (set, get) => ({
 
 ### StoreApi
 
-The object returned by `create`. Four methods, no magic.
+The object returned by `createStore`. Four methods, no magic.
 
 ```ts
 interface StoreApi<T = Record<string, unknown>> {
@@ -2319,7 +2336,7 @@ interface StoreApi<T = Record<string, unknown>> {
 
 ### computed(deps, fn)
 
-Declare a derived property inside a `create` creator. `deps` lists the state keys that `fn` reads. Whenever any dep changes via `setState`, `fn` re-evaluates before listeners are notified.
+Declare a derived property inside a `createStore` creator. `deps` lists the state keys that `fn` reads. Whenever any dep changes via `setState`, `fn` re-evaluates before listeners are notified.
 
 ```ts
 function computed<T>(deps: readonly string[], fn: () => T): T;
@@ -2328,9 +2345,11 @@ function computed<T>(deps: readonly string[], fn: () => T): T;
 Writes to a computed key via `setState` are silently ignored (read-only by contract).
 
 ```ts
-const store = create("cart", (set, get) => ({
+const store = createStore("cart", (set, get) => ({
   items: [] as Item[],
-  total: computed(["items"], () => get().items.reduce((s, i) => s + i.price, 0)),
+  total: computed(["items"], () =>
+    get().items.reduce((s, i) => s + i.price, 0),
+  ),
   addItem(item: Item) {
     set({ items: [...get().items, item] });
   },
@@ -2370,14 +2389,14 @@ const MyView = defineView({
 
 ## Service & Payload
 
-API request layer with LFU cache, deduplication, and serial queue. Imported via `import { Service, Payload } from '@lark.js/mvc'`.
+API request layer with LFU cache, deduplication, and serial queue. Imported via `import { createService, createPayload } from '@lark.js/mvc'`.
 
-### Service.extend(syncFn, cacheMax?, cacheBuffer?)
+### createService(syncFn, cacheMax?, cacheBuffer?)
 
 Create a subclass with its OWN per-type static state (`_metaList`, `_payloadCache`, `_pendingCacheKeys`, `_syncFn`, `_staticEmitter`, `_cacheMax`, `_cacheBuffer`). This isolation is intentional — endpoints registered on one subclass never leak into another.
 
 ```ts
-Service.extend(
+createService(
   syncFn: (payload: Payload, callback: () => void) => void,
   cacheMax?: number,        // default 20
   cacheBuffer?: number,     // default 5
@@ -2442,7 +2461,10 @@ class Payload {
   data: Record<string, unknown>;
   cacheInfo?: ServiceCacheInfo;
   get<T = unknown>(key: string): T;
-  set(keyOrData: string | Record<string, unknown> | ServiceMetaEntry, value?: unknown): Payload;
+  set(
+    keyOrData: string | Record<string, unknown> | ServiceMetaEntry,
+    value?: unknown,
+  ): Payload;
 }
 ```
 
@@ -2483,9 +2505,9 @@ It uses a `$sign` counter to abort stale loads: if the user navigates away durin
 LFU cache with frequency + timestamp eviction. Single-pass partial-selection on overflow (O(n·k) instead of O(n log n) sort).
 
 ```ts
-import { Cache } from "@lark.js/mvc";
+import { createCache } from "@lark.js/mvc";
 
-const cache = new Cache<T>({
+const cache = createCache<T>({
   maxSize?: number;       // default 20
   bufferSize?: number;    // default 5  — number of entries evicted per cycle
   onRemove?: (key: string) => void;
@@ -2510,9 +2532,9 @@ const cache = new Cache<T>({
 Multi-cast emitter with re-entrant safety. Used as a base by Frame, View, Router, etc.
 
 ```ts
-import { EventEmitter } from "@lark.js/mvc";
+import { createEmitter } from "@lark.js/mvc";
 
-const e = new EventEmitter();
+const e = createEmitter();
 e.on("change", (data) => ...);
 e.fire("change", { value: 1 });
 e.off("change", handler);
@@ -2581,7 +2603,10 @@ type Bundler = "vite" | "webpack" | "rspack";
 Template-only HMR. Finds every mounted view whose `template` property matches `oldTemplate`, replaces it with `newTemplate`, and force-renders. Used by the auto-injected template HMR snippet. Does NOT re-delegate events (handlers live on the prototype, not the template).
 
 ```ts
-function hotSwapByTemplate(oldTemplate: ViewTemplate, newTemplate: ViewTemplate): void;
+function hotSwapByTemplate(
+  oldTemplate: ViewTemplate,
+  newTemplate: ViewTemplate,
+): void;
 ```
 
 ### hotSwapByView(oldClass, newClass)
@@ -2616,13 +2641,13 @@ Legacy full-remount. Destroys the old view instance and creates a fresh one, los
 function reloadViews(viewPath: string): void;
 ```
 
-### View.accept(hot, viewPath) / View.dispose(hot, viewPath)
+### acceptView(hot, viewPath) / disposeView(hot, viewPath)
 
-Manual HMR API (fallback for files not covered by auto-injection). `View.accept` calls `hotSwapFrames` (state-preserving). `View.dispose` calls `invalidateViewClass`. Both are no-ops when `hot` is `undefined`.
+Manual HMR API (fallback for files not covered by auto-injection). `acceptView` calls `hotSwapFrames` (state-preserving). `disposeView` calls `invalidateViewClass`. Both are no-ops when `hot` is `undefined`.
 
 ```ts
-View.accept(hot: HotContext | undefined, viewPath: string): void
-View.dispose(hot: HotContext | undefined, viewPath: string): void
+acceptView(hot: HotContext | undefined, viewPath: string): void
+disposeView(hot: HotContext | undefined, viewPath: string): void
 ```
 
 ### injectTemplateHmrSnippet(source, bundler) / injectViewHmr(source, bundler)
@@ -2654,8 +2679,8 @@ import template from "./home.html";
 const HomeView = defineView({ template /* ... */ });
 
 if (import.meta.hot) {
-  HomeView.dispose(import.meta.hot, "home");
-  HomeView.accept(import.meta.hot, "home");
+  HomedisposeView(import.meta.hot, "home");
+  HomeacceptView(import.meta.hot, "home");
 }
 
 export default HomeView;
@@ -2775,7 +2800,11 @@ export const strSafe: (v: unknown) => string;
 export const encHtml: (v: unknown) => string;
 export const encUri: (v: unknown) => string;
 export const encQuote: (v: unknown) => string;
-export const refFn: (ref: Record<string, unknown>, value: unknown, key: string) => string;
+export const refFn: (
+  ref: Record<string, unknown>,
+  value: unknown,
+  key: string,
+) => string;
 ```
 
 You normally don't import these directly — only the compiled template output does.
@@ -2856,7 +2885,10 @@ Internal utilities (`noop`, `hasOwnProperty`, `assign`, `keys`, `generateId`, `f
 ```ts
 import { larkMvcPlugin } from "@lark.js/mvc/vite";
 import { larkMvcLoader } from "@lark.js/mvc/webpack";
-import { larkMvcLoader as larkMvcLoaderRspack, LarkMvcPlugin } from "@lark.js/mvc/rspack";
+import {
+  larkMvcLoader as larkMvcLoaderRspack,
+  LarkMvcPlugin,
+} from "@lark.js/mvc/rspack";
 ```
 
 ### larkMvcPlugin(options?)

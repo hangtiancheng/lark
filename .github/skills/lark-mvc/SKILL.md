@@ -1,3 +1,34 @@
+---
+name: lark-mvc
+description: >
+  Comprehensive guide to the Lark MVC Framework (@lark.js/mvc) for building TypeScript
+  single-page applications using a functional programming style — no classes,
+  no this, no prototype, no mixin.
+  Use this skill any time the user works with Lark: creating Views with defineView()
+  and ViewCtx, defining zustand-aligned Stores with createStore() / getState() /
+  setState() / subscribe() / computed() / bindStore(), wiring State for cross-view
+  data, setting up Router (history or hash mode, Router.beforeEach async guards,
+  useUrlState), writing HTML templates with {{=}}/{{forOf}}/{{if}}/@event/v-lark
+  syntax, configuring the Vite plugin (larkMvcPlugin), Webpack loader
+  (larkMvcLoader), or Rspack loader, registering Views with registerViewClass,
+  integrating Module Federation with CrossSite, calling Service for API requests
+  with createService/createPayload, or anything mentioning Frame trees, real-DOM
+  diff, virtual-DOM diff with LIS reconciliation, capture-phase event delegation,
+  HMR (acceptView, disposeView, hotSwapByView, reloadViews), the v-lark attribute,
+  the Framework singleton, or the functional factory pattern (createEmitter,
+  createCache, createUpdater, createFrame).
+  Trigger eagerly on any of these symbols and concepts — defineView, ViewCtx,
+  ViewSetup, createStore, computed, bindStore, createService, createPayload,
+  createEmitter, createCache, createUpdater, createFrame, useState, useEffect,
+  useStore, useUrlState, acceptView, disposeView, hotSwapByView, hotSwapByTemplate,
+  hotSwapFrames, injectTemplateHmrSnippet, injectViewHmr, registerViewClass,
+  invalidateViewClass, Framework.boot, Framework.setConfig, Router.to,
+  Router.beforeEach, Router.parse, State.set, State.digest, State.clean,
+  EventDelegator.bind, Frame.createRoot, Frame.get, vdomCreate, v-lark,
+  larkMvcPlugin, larkMvcLoader, CrossSite, CrossSiteConfig, or any file that
+  imports from @lark.js/mvc.
+---
+
 # Lark MVC Framework
 
 `@lark.js/mvc` is a TypeScript MVC framework for single-page applications. It uses a **functional programming style** — no classes, no `this`, no `prototype`, no `mixin`. All objects are created via factory functions (`defineView`, `createEmitter`, `createCache`, `createService`, `createFrame`, `createStore`) or are module-level singletons (`State`, `Router`, `Frame`, `Framework`, `EventDelegator`).
@@ -492,7 +523,8 @@ export default defineView((ctx) => {
   return {
     template,
     events: {
-      "nextPage<click>": () => setState((prev) => ({ page: String(Number(prev.page) + 1) })),
+      "nextPage<click>": () =>
+        setState((prev) => ({ page: String(Number(prev.page) + 1) })),
     },
   };
 });

@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
-import { larkMvcPlugin } from "@lark.js/mvc/vite";
+import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "url";
 import { federation } from "@module-federation/vite";
 
@@ -9,15 +9,24 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [
-    larkMvcPlugin({ virtualDom: true }),
+    react(),
     federation({
-      name: "lark_demo",
-      filename: "remoteEntry.js",
-      exposes: {
-        "./counter-view": "./src/exposed/counter-view.ts",
+      name: "lark_devtool",
+      remotes: {
+        // "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
+        "lark-demo": {
+          type: "module",
+          name: "lark_demo",
+          entry: "http://localhost:3000/remoteEntry.js",
+          entryGlobalName: "lark_demo",
+          shareScope: "default",
+        },
       },
+      filename: "remoteEntry.js",
       shared: {
         "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
+        react: { singleton: true, requiredVersion: "*" },
+        "react-dom": { singleton: true, requiredVersion: "*" },
       },
     }),
   ],

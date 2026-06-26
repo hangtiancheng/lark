@@ -23,7 +23,7 @@ export default defineConfig({
   },
 
   html: {
-    template: "./index.html",
+    template: "./webpack-index.html",
     inject: "body",
   },
 
@@ -38,6 +38,7 @@ export default defineConfig({
       config.plugins.push(
         new rspack.container.ModuleFederationPlugin({
           name: "lark_devtool",
+          filename: "remoteEntry.js",
           remotes: {
             "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
           },

@@ -11,10 +11,13 @@
     "build:webpack": "webpack --mode production --config webpack.config.js",
     "build:rsbuild": "rsbuild build",
     "preview": "vite preview",
+    "preview:webpack": "webpack serve --mode production",
+    "preview:rsbuild": "rsbuild preview",
     "format": "prettier -w ./ --experimental-cli"
   },
   "dependencies": {
-    "@lark.js/mvc": "workspace:^"
+    "@lark.js/mvc": "workspace:^",
+    "@module-federation/vite": "^1.16.11"
   },
   "devDependencies": {
     "@module-federation/runtime-tools": "^2.6.0",

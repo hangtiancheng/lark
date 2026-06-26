@@ -1,16 +1,10 @@
 // @ts-check
 
 import path from "path";
-import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import CopyWebpackPlugin from "copy-webpack-plugin";
-
-// Resolve webpack from webpack-cli's location to avoid duplicate webpack instances
-// in pnpm monorepo (different peer dep hashes create separate node_modules directories).
-const require2 = createRequire(import.meta.resolve("webpack-cli/package.json"));
-const webpack = require2("webpack");
-const { ModuleFederationPlugin } = webpack.container;
+import webpack from 'webpack';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,7 +68,7 @@ export default (env, argv) => {
 
     plugins: [
       new HtmlWebpackPlugin({
-        template: "./index.html",
+        template: "./webpack-index.html",
         inject: "body",
         minify: false,
       }),
@@ -85,8 +79,9 @@ export default (env, argv) => {
       // ── Module Federation (Host) ──
       // Consumes remote Lark views from lark-demo running on port 3000.
       // At runtime: import('lark-demo/counter-view') loads the remote module.
-      new ModuleFederationPlugin({
+      new webpack.container.ModuleFederationPlugin({
         name: "lark_devtool",
+        filename: "remoteEntry.js",
         remotes: {
           "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
         },
@@ -120,17 +115,17 @@ export default (env, argv) => {
 
     optimization: isProd
       ? {
-          splitChunks: {
-            chunks: "all",
-            cacheGroups: {
-              vendor: {
-                test: /[\\/]node_modules[\\/]/,
-                name: "vendor",
-                chunks: "all",
-              },
+        splitChunks: {
+          chunks: "all",
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendor",
+              chunks: "all",
             },
           },
-        }
+        },
+      }
       : undefined,
 
     devtool: isProd ? "hidden-source-map" : "source-map",

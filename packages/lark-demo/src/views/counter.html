@@ -1,14 +1,17 @@
 <!-- Counter View Template -->
-<div class="min-h-screen bg-emerald-50/30 p-6">
-  <div class="mx-auto max-w-3xl">
-    <h1 class="mb-2 text-2xl font-normal tracking-tight text-emerald-800">
-      Counter Example
-    </h1>
-    <p class="mb-6 text-xs text-emerald-500">Data updates & event handling</p>
+<div class="{{=styles['counter-page']}}">
+  <div class="{{=styles['counter-page__container']}}">
+    <h1 class="{{=styles['counter-page__title']}}">Counter Example</h1>
+    <p class="{{=styles['counter-page__description']}}">
+      Data updates &amp; event handling
+    </p>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="{{=styles['counter-page__grid']}}">
       <!-- Sub-View: Counter Store Component -->
-      <div class="mb-6" v-lark="components/counter-store"></div>
+      <div
+        class="{{=styles['counter-page__store-slot']}}"
+        v-lark="components/counter-store"
+      ></div>
 
       <!-- Sub-View: Counter Updater Component -->
       <div v-lark="components/counter-updater"></div>
@@ -16,7 +19,7 @@
 
     <button
       @click="navigateTo({path: '/home'})"
-      class="rounded-md bg-emerald-500 px-5 py-2 text-xs font-normal text-white transition-colors hover:bg-emerald-600"
+      class="{{=styles['counter-page__button']}}"
     >
       Back to Home
     </button>

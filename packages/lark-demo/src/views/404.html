@@ -1,21 +1,15 @@
 <!-- 404 View Template -->
-<div class="flex min-h-screen items-center justify-center bg-emerald-50/30 p-6">
-  <div class="max-w-md text-center">
-    <div class="mb-4 text-7xl tracking-tight text-emerald-300">404</div>
-    <h1 class="mb-4 text-xl font-normal text-emerald-800">Page Not Found</h1>
-    <p class="mb-8 text-sm text-emerald-600/80">
+<div class="{{=styles['error-page']}}">
+  <div class="{{=styles['error-page__content']}}">
+    <div class="{{=styles['error-page__number']}}">404</div>
+    <h1 class="{{=styles['error-page__title']}}">Page Not Found</h1>
+    <p class="{{=styles['error-page__description']}}">
       The path
-      <code
-        class="rounded border border-emerald-200/60 bg-emerald-50 px-2 py-0.5 font-mono text-xs text-emerald-700"
-        >{{=path}}</code
-      >
+      <code class="{{=styles['error-page__code']}}">{{=path}}</code>
       does not exist
     </p>
 
-    <button
-      @click="goHome()"
-      class="rounded-md bg-emerald-500 px-6 py-2 text-xs font-normal text-white transition-colors hover:bg-emerald-600"
-    >
+    <button @click="goHome()" class="{{=styles['error-page__button']}}">
       Back to Home
     </button>
   </div>

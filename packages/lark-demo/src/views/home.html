@@ -1,66 +1,68 @@
 <!-- Home View Template -->
-<div class="min-h-screen bg-emerald-50/30 p-6">
-  <div class="mx-auto max-w-3xl">
-    <h1 class="mb-2 text-2xl font-normal tracking-tight text-emerald-800">
-      {{=title}}
-    </h1>
-    <p class="mb-6 text-xs text-emerald-500">{{=description}}</p>
+<div class="{{=styles['home-page']}}">
+  <div class="{{=styles['home-page__container']}}">
+    <h1 class="{{=styles['home-page__title']}}">{{=title}}</h1>
+    <p class="{{=styles['home-page__description']}}">{{=description}}</p>
 
-    <div class="mb-6 rounded-lg border border-emerald-100 bg-white p-5">
-      <h2 class="mb-3 text-base font-normal text-emerald-700">Navigation</h2>
-      <div class="flex gap-3">
+    <div class="{{=styles['home-page__card']}}">
+      <h2 class="{{=styles['home-page__card-title']}}">Navigation</h2>
+      <div class="{{=styles['home-page__actions']}}">
         <button
           @click="navigateTo({path: '/about'})"
-          class="rounded-md bg-emerald-500 px-5 py-2 text-xs font-normal text-white transition-colors hover:bg-emerald-600"
+          class="{{=styles['home-page__button']}} {{=styles['home-page__button--primary']}}"
         >
           About
         </button>
         <button
           @click="navigateTo({path: '/counter'})"
-          class="rounded-md bg-sky-500 px-5 py-2 text-xs font-normal text-white transition-colors hover:bg-sky-600"
+          class="{{=styles['home-page__button']}} {{=styles['home-page__button--sky']}}"
         >
           Counter
         </button>
       </div>
     </div>
 
-    <div class="mb-6 rounded-lg border border-emerald-100 bg-white p-5">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-base font-normal text-emerald-700">Store State</h2>
+    <div class="{{=styles['home-page__card']}}">
+      <div class="{{=styles['home-page__card-header']}}">
+        <h2 class="{{=styles['home-page__card-title']}}">Store State</h2>
         <a
           @click="navigateTo({path: '/counter'})"
-          class="cursor-pointer text-xs text-emerald-400 underline decoration-emerald-200 underline-offset-2 transition-colors hover:text-emerald-600"
+          class="{{=styles['home-page__link']}}"
         >
           modify
         </a>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="{{=styles['home-page__store-grid']}}">
         <div
-          class="flex-1 rounded-md bg-emerald-500 py-6 text-center text-white"
+          class="{{=styles['home-page__store-item']}} {{=styles['home-page__store-item--emerald']}}"
         >
-          <div class="text-3xl font-normal tracking-tight">{{=count}}</div>
-          <div class="text-[10px] opacity-60">count</div>
+          <div class="{{=styles['home-page__store-value']}}">{{=count}}</div>
+          <div class="{{=styles['home-page__store-label']}}">count</div>
         </div>
-        <div class="flex-1 rounded-md bg-sky-500 py-6 text-center text-white">
-          <div class="text-3xl font-normal tracking-tight">{{=step}}</div>
-          <div class="text-[10px] opacity-60">step</div>
+        <div
+          class="{{=styles['home-page__store-item']}} {{=styles['home-page__store-item--sky']}}"
+        >
+          <div class="{{=styles['home-page__store-value']}}">{{=step}}</div>
+          <div class="{{=styles['home-page__store-label']}}">step</div>
         </div>
       </div>
     </div>
 
-    <div class="mb-6 rounded-lg border border-emerald-100 bg-white p-5">
-      <h2 class="mb-3 text-base font-normal text-emerald-700">Interaction</h2>
+    <div class="{{=styles['home-page__card']}}">
+      <h2 class="{{=styles['home-page__card-title']}}">Interaction</h2>
       <button
         @click="showInfo({title: 'Notice', message: 'You clicked the button!'})"
-        class="rounded-md bg-emerald-500 px-5 py-2 text-xs font-normal text-white transition-colors hover:bg-emerald-600"
+        class="{{=styles['home-page__button']}} {{=styles['home-page__button--primary']}}"
       >
         Show Alert
       </button>
     </div>
 
-    <div class="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
-      <p class="mb-1 text-xs font-normal text-emerald-700">App: {{=appName}}</p>
-      <p class="text-xs text-emerald-500">Time: {{=currentTime}}</p>
+    <div class="{{=styles['home-page__footer']}}">
+      <p class="{{=styles['home-page__footer-app']}}">App: {{=appName}}</p>
+      <p class="{{=styles['home-page__footer-time']}}">
+        Time: {{=currentTime}}
+      </p>
     </div>
   </div>
 </div>

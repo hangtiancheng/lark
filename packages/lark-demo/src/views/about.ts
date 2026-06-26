@@ -2,13 +2,18 @@
  * About Page View
  * Demonstrates route navigation + shared store state
  */
-import { defineView, Router, bindStore } from "@lark.js/mvc";
+import { defineView, Router, bindStore, applyStyle } from "@lark.js/mvc";
 import { withBaseView } from "../view";
 import template from "./about.html";
+import styles from "./about.module.css";
 import useCountStore from "../store/count";
 
 export default defineView(
   withBaseView((ctx, initParams) => {
+    // ── Apply CSS module styles ──
+    applyStyle(styles);
+    ctx.updater.set({ styles });
+
     // ── init: bind store ──
     bindStore(ctx, useCountStore, (s) => ({ count: s.count, step: s.step }));
 

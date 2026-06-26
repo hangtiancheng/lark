@@ -1,65 +1,58 @@
 <!-- About View Template -->
-<div class="min-h-screen bg-emerald-50/30 p-6">
-  <div class="mx-auto max-w-2xl">
-    <h1 class="mb-5 text-2xl font-normal tracking-tight text-emerald-800/90">
-      {{=title}}
-    </h1>
+<div class="{{=styles['about-page']}}">
+  <div class="{{=styles['about-page__container']}}">
+    <h1 class="{{=styles['about-page__title']}}">{{=title}}</h1>
 
-    <div class="mb-5 rounded-lg border border-emerald-100/80 bg-white/70 p-5">
-      <h3 class="mb-3 text-sm font-normal text-emerald-700/80">
-        Shared Store State
-      </h3>
-      <div class="flex items-center gap-4">
+    <div class="{{=styles['about-page__card']}}">
+      <h3 class="{{=styles['about-page__card-title']}}">Shared Store State</h3>
+      <div class="{{=styles['about-page__store-grid']}}">
         <div
-          class="flex-1 rounded-md bg-emerald-500/90 py-5 text-center text-white/90"
+          class="{{=styles['about-page__store-item']}} {{=styles['about-page__store-item--emerald']}}"
         >
-          <div class="text-2xl font-normal">{{=count}}</div>
-          <div class="text-[10px] opacity-70">count</div>
+          <div class="{{=styles['about-page__store-value']}}">{{=count}}</div>
+          <div class="{{=styles['about-page__store-label']}}">count</div>
         </div>
         <div
-          class="flex-1 rounded-md bg-sky-500/80 py-5 text-center text-white/90"
+          class="{{=styles['about-page__store-item']}} {{=styles['about-page__store-item--sky']}}"
         >
-          <div class="text-2xl font-normal">{{=step}}</div>
-          <div class="text-[10px] opacity-70">step</div>
+          <div class="{{=styles['about-page__store-value']}}">{{=step}}</div>
+          <div class="{{=styles['about-page__store-label']}}">step</div>
         </div>
       </div>
     </div>
 
-    <div class="mb-5 rounded-lg border border-emerald-100/80 bg-white/70 p-5">
-      <p class="text-sm leading-relaxed text-emerald-600/70">{{=content}}</p>
+    <div class="{{=styles['about-page__card']}}">
+      <p class="{{=styles['about-page__content']}}">{{=content}}</p>
     </div>
 
-    <div class="mb-5 rounded-lg border border-emerald-100/80 bg-white/70 p-5">
-      <h3 class="mb-3 text-sm font-normal text-emerald-700/80">
-        Version Information
-      </h3>
-      <p class="mb-1.5 text-xs text-emerald-600/70">
-        Author: <span class="font-normal text-emerald-700/80">{{=author}}</span>
+    <div class="{{=styles['about-page__card']}}">
+      <h3 class="{{=styles['about-page__card-title']}}">Version Information</h3>
+      <p class="{{=styles['about-page__info-row']}}">
+        Author:
+        <span class="{{=styles['about-page__info-value']}}">{{=author}}</span>
       </p>
-      <p class="text-xs text-emerald-600/70">
+      <p class="{{=styles['about-page__info-row']}}">
         Version:
-        <span class="font-normal text-emerald-700/80">{{=version}}</span>
+        <span class="{{=styles['about-page__info-value']}}">{{=version}}</span>
       </p>
     </div>
 
-    <div class="mb-5 rounded-lg border border-emerald-100/80 bg-white/70 p-5">
-      <h3 class="mb-3 text-sm font-normal text-emerald-700/80">
+    <div class="{{=styles['about-page__card']}}">
+      <h3 class="{{=styles['about-page__card-title']}}">
         Route Parameter Demo
       </h3>
-      <p class="mb-2 text-xs text-emerald-600/70">Current URL Parameters:</p>
-      <code
-        class="block rounded border border-emerald-100/60 bg-emerald-50/40 p-3 font-mono text-[11px] text-emerald-700/80"
+      <p class="{{=styles['about-page__param-label']}}">
+        Current URL Parameters:
+      </p>
+      <code class="{{=styles['about-page__param-code']}}"
         >author={{=author}}, version={{=version}}</code
       >
-      <p class="mt-3 text-[10px] text-emerald-500/60 italic">
-        Tip: Visit #!/about?author=JohnDoe&version=1.0 to pass parameters
+      <p class="{{=styles['about-page__param-tip']}}">
+        Tip: Visit #!/about?author=JohnDoe&amp;version=1.0 to pass parameters
       </p>
     </div>
 
-    <button
-      @click="goHome()"
-      class="rounded-md bg-emerald-500/90 px-5 py-2 text-xs font-normal text-white/90 transition-colors hover:bg-emerald-600/90"
-    >
+    <button @click="goHome()" class="{{=styles['about-page__button']}}">
       Back to Home
     </button>
   </div>

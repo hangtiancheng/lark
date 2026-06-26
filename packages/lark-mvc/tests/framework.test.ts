@@ -426,7 +426,7 @@ describe("Framework", () => {
   });
 
   // ============================================================
-  // I. Additional coverage: mark/unmark, dispatch, guard, applyStyle
+  // I. Additional coverage: mark/unmark, dispatch, guard
   // ============================================================
 
   describe("mark and unmark", () => {
@@ -473,12 +473,6 @@ describe("Framework", () => {
       Framework.dispatchEvent(child, "bubble-test");
       expect(bubbled).toBe(true);
       parent.remove();
-    });
-  });
-
-  describe("applyStyle", () => {
-    it("is a function", () => {
-      expect(typeof Framework.applyStyle).toBe("function");
     });
   });
 

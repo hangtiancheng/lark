@@ -28,16 +28,13 @@ Considering we have a 404.html, `404[.module].css`, and 404.ts under a directory
  * 404 Page View
  * Displayed when route is not matched
  */
-import { defineView, Router, applyStyle } from "@lark.js/mvc";
+import { defineView, Router } from "@lark.js/mvc";
 import template from "./404.html";
 import styles from "./404.module.css";
 // import styles2 from "./xxx.module.css"
 
 export default defineView((ctx, params) => {
-  // Apply styles here.
-  applyStyle(styles);
   // Also supports multiple CSS imports
-  // applyStyle(styles, styles2)
 
   // ── assign: incremental DOM update ──
   const assign = (_options?: unknown): boolean | undefined => {

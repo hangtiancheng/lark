@@ -341,7 +341,7 @@ At event dispatch time, `EventDelegator` looks up handlers via `view.getEvents()
 
 ### `Framework` singleton
 
-Key methods: `boot(config)`, `getConfig(key?)`, `setConfig(patch)`, `isBooted()`, `toMap(list, key?)`, `toTry(fns, args?, context?, onError?)`, `toUrl(path, params?, keepEmpty?)`, `parseUrl(url)`, `mix(target, ...sources)`, `has(owner, prop)`, `keys(src)`, `inside(node, container)`, `node(id)`, `nodeId(element)`, `use(names, callback?)`, `applyStyle(idOrPairs, css?)`, `guid(prefix?)`, `mark(host, key)`, `unmark(host)`, `delay(time)`, `dispatch(target, type, init?)`, `task(fn, args?, context?)`, `waitZoneViewsRendered(viewId, timeout?)`
+Key methods: `boot(config)`, `getConfig(key?)`, `setConfig(patch)`, `isBooted()`, `toMap(list, key?)`, `toTry(fns, args?, context?, onError?)`, `toUrl(path, params?, keepEmpty?)`, `parseUrl(url)`, `mix(target, ...sources)`, `has(owner, prop)`, `keys(src)`, `inside(node, container)`, `node(id)`, `nodeId(element)`, `use(names, callback?)`, `generateId(prefix?)`, `mark(host, key)`, `unmark(host)`, `delay(time)`, `dispatch(target, type, init?)`, `task(fn, args?, context?)`, `waitZoneViewsRendered(viewId, timeout?)`
 
 Factory aliases: `createEmitter`, `defineView`, `createCache`
 
@@ -483,14 +483,6 @@ Wrap an object with a Safeguard Proxy that warns on direct mutation. No-op outsi
 
 ```ts
 Framework.guard<T extends object>(o: T): T
-```
-
-### Framework.applyStyle(idOrPairs, css?)
-
-Inject CSS into the document. Returns a cleanup function. Supports batch insertion via `[id1, css1, id2, css2, ...]`.
-
-```ts
-Framework.applyStyle(idOrPairs: string | string[], css?: string): () => void
 ```
 
 ### Framework.guid(prefix?)
@@ -1708,7 +1700,6 @@ Exported from the main entry.
 
 | Name              | Signature                                                   | Purpose                                                 |
 | ----------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
-| `applyStyle`      | `(idOrPairs, css?) => () => void`                           | Inject CSS into `<style>` tags; returns cleanup fn      |
 | `mark` / `unmark` | `mark(host, key) => () => boolean` / `unmark(host) => void` | Async callback validity tracking (module-level WeakMap) |
 | `useUrlState`     | `(view, config?) => void`                                   | Sync view state with URL search params                  |
 

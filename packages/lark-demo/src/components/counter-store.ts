@@ -2,7 +2,7 @@
  * Counter Store Component
  * Demonstrates zustand-style store state management
  */
-import { defineView, bindStore, applyStyle } from "@lark.js/mvc";
+import { defineView, bindStore } from "@lark.js/mvc";
 import { withBaseView } from "../view";
 import template from "./counter-store.html";
 import styles from "./counter-store.module.css";
@@ -10,8 +10,6 @@ import useCountStore from "../store/count";
 
 export default defineView(
   withBaseView((ctx) => {
-    // ── Apply CSS module styles ──
-    applyStyle(styles);
     ctx.updater.set({ styles });
 
     // ── init: bind store ──

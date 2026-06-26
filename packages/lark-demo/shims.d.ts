@@ -6,8 +6,7 @@ declare module "*.css" {
 }
 
 // CSS Module files (*.module.css) return a mapping of original class names
-// to scoped (hashed) class names. Used with `applyStyle(styles)` and
-// `{{=styles['bem-class-name']}}` in HTML templates.
+// to scoped (hashed) class names. Used `{{=styles['bem-class-name']}}` in HTML templates.
 declare module "*.module.css" {
   const classes: Record<string, string>;
   export default classes;

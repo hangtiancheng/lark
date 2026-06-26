@@ -2,7 +2,7 @@
  * Home View
  * Demonstrates basic Lark View + zustand-style store
  */
-import { defineView, Router, bindStore, applyStyle } from "@lark.js/mvc";
+import { defineView, Router, bindStore } from "@lark.js/mvc";
 import { withBaseView, showAlert } from "../view";
 import template from "./home.html";
 import styles from "./home.module.css";
@@ -10,8 +10,7 @@ import useCountStore from "../store/count";
 
 export default defineView(
   withBaseView((ctx, params) => {
-    // ── Apply CSS module styles ──
-    applyStyle(styles);
+    // CSS Module class names are available to the template via updater data.
     ctx.updater.set({ styles });
 
     // ── init: bind store + assign initial data ──

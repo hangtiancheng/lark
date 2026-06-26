@@ -2,7 +2,7 @@
  * Counter Updater Component
  * Demonstrates updater.set().digest() manual state management
  */
-import { defineView, applyStyle } from "@lark.js/mvc";
+import { defineView } from "@lark.js/mvc";
 import { withBaseView } from "../view";
 import template from "./counter-updater.html";
 import styles from "./counter-updater.module.css";
@@ -15,9 +15,6 @@ interface CounterState {
 
 export default defineView(
   withBaseView((ctx) => {
-    // ── Apply CSS module styles ──
-    applyStyle(styles);
-
     // ── init: set initial data (replaces async render()) ──
     ctx.updater.digest({
       count: 0,

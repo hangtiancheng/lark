@@ -966,7 +966,6 @@ The `lark-devtool` sub-project in this repository is the paired Devtool that loa
 - `Framework.task(fn, args?, ctx?)` — Chunked execution: prefers `scheduler.postTask` then `requestIdleCallback` then `setTimeout(0)`, with a fixed 48ms budget or adaptive time slicing.
 - `Framework.delay(ms)` — Promise-wrapped setTimeout.
 - `Framework.waitZoneViewsRendered(viewId, timeout?)` — Wait until all views in a zone have rendered.
-- `Framework.applyStyle(idOrPairs, css?)` — Dynamically inject CSS, returns cleanup function.
 
 ### Updater
 

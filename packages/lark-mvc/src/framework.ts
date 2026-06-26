@@ -6,7 +6,7 @@
  * - Router + State change notification to views
  * - Module loading (require/use)
  * - Utility methods: toUri, parseUri, assign, keys, nodeInside, ensureNodeId,
- *   generateId, applyStyle, mark/unmark, dispatchEvent, task, delay
+ *   generateId, mark/unmark, dispatchEvent, task, delay
  * - waitZoneViewsRendered
  * - Factory access: createEmitter, createCache, defineView
  * - Module access: Router, State, Frame
@@ -24,7 +24,6 @@ import {
   keys,
 } from "./utils";
 import { mark, unmark } from "./mark";
-import { applyStyle } from "./apply-style";
 import { createCache } from "./cache";
 import { createEmitter } from "./event-emitter";
 import { Router, markRouterBooted } from "./router";
@@ -548,11 +547,6 @@ export const Framework: FrameworkApi = {
    * Check if node A is inside node B.
    */
   nodeInside,
-
-  /**
-   * Apply CSS style.
-   */
-  applyStyle,
 
   /**
    * Generate globally unique ID.

@@ -936,18 +936,6 @@ export interface FrameworkApi {
     callback?: (...modules: unknown[]) => void,
   ): void;
   /**
-   * Inject CSS styles or accept a CSS module object.
-   * - `Framework.applyStyle(styles)` — CSS module object (no-op, bundler handles injection)
-   * - `Framework.applyStyle("my-style", "body { color: red; }")` — single `<style>` injection
-   * - `Framework.applyStyle(["s1", "css1", "s2", "css2"])` — batch injection
-   * @param input CSS module object, style ID, or [id, css, ...] batch array
-   * @param cssText CSS content string (only used when `input` is a style ID string)
-   */
-  applyStyle(
-    input: string | string[] | Record<string, string>,
-    cssText?: string,
-  ): () => void;
-  /**
    * Generate globally unique identifier (GUID).
    * @param prefix GUID prefix, defaults to "lark-"
    */

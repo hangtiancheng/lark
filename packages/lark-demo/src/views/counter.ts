@@ -2,15 +2,14 @@
  * Counter View
  * Demonstrates v-lark nested sub-components
  */
-import { defineView, Router, applyStyle } from "@lark.js/mvc";
+import { defineView, Router } from "@lark.js/mvc";
 import { withBaseView } from "../view";
 import template from "./counter.html";
 import styles from "./counter.module.css";
 
 export default defineView(
   withBaseView((ctx) => {
-    // ── Apply CSS module styles ──
-    applyStyle(styles);
+    // CSS Module class names are available to the template via updater data.
     ctx.updater.set({ styles });
 
     return {

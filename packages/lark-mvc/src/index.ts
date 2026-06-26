@@ -15,9 +15,6 @@ export {
   nextCounter,
 } from "./common";
 
-// Apply-style helper
-export { applyStyle } from "./apply-style";
-
 // Mark / Unmark (async callback validity tracking)
 export { mark, unmark } from "./mark";
 

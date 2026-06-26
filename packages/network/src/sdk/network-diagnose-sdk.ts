@@ -207,11 +207,6 @@ class NetworkDiagnoseSDK extends Bus<DiagnosticResult, DiagnosticCallback> {
       status: "running",
     });
 
-    console.log("effectiveType", navigator.connection?.effectiveType);
-    console.log("downlink", navigator.connection?.downlink);
-    console.log("rtt", navigator.connection?.rtt);
-    console.log("saveData", navigator.connection?.saveData);
-
     try {
       const online = navigator.onLine;
 

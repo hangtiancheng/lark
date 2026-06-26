@@ -1,6 +1,6 @@
 import { fakerZH_CN as faker } from '@faker-js/faker'
-import type { IRevenueList, IOrderList, IRobotList } from '../types/index.js'
-import { randArr } from '../utils/index.js'
+import type { IRevenueList, IOrderList, IRobotList } from '../types'
+import { randArr } from '../utils'
 
 type IRevenueListData = IRevenueList['data']
 const mockRevenueList = (

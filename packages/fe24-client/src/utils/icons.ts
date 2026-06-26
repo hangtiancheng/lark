@@ -13,10 +13,10 @@ import {
   GoogleAds,
   System,
   ExcelOne,
-} from '@icon-park/react'
-import React from 'react'
+} from '@icon-park/vue-next'
+import type { Component } from 'vue'
 
-export const name2icon = new Map<string, React.FC>([
+export const name2icon = new Map<string, Component>([
   ['DataScreen', DataScreen],
   ['Cooking', Cooking],
   ['SurveillanceCameras', SurveillanceCameras],

@@ -1,13 +1,13 @@
-import type { Request, Response } from 'express'
 import fs from 'node:fs'
-import { IRobotList } from '../types/index.js'
+import { IRobotList } from '../types'
+import { Connect } from 'vite'
 
 function readRobotList(): IRobotList['data'] {
   const jsonStr = fs.readFileSync('./plugins/assets/robot-list.json', 'utf8')
   return JSON.parse(jsonStr)
 }
 
-export const markerListFn = (_req: Request, res: Response) => {
+export const markerListFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const resData = readRobotList()
   // resData[0].lng = 31.251326

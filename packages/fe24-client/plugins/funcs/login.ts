@@ -1,9 +1,9 @@
-import type { Request, Response } from 'express'
-import { adminMenu, userMenu } from '../constants/index.js'
-import { ILoginResData, IResData } from '../types/index.js'
+import { Connect } from 'vite'
+import { adminMenu, userMenu } from '../constants'
+import { ILoginResData, IResData } from '../types'
 import url from 'node:url'
 
-const loginFn = (req: Request, res: Response) => {
+const loginFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const { username, password } = parseUrl

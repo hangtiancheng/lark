@@ -1,6 +1,6 @@
-import type { Request, Response } from 'express'
-import type { IOrderList } from '../types/index.js'
+import type { IOrderList } from '../types'
 import fs from 'node:fs'
+import { Connect } from 'vite'
 import url from 'node:url'
 
 function readOrderList(): IOrderList['data'] {
@@ -15,7 +15,7 @@ function writeOrderList(orderList: IOrderList['data']) {
   })
 }
 
-export const orderQueryFn = (req: Request, res: Response) => {
+export const orderQueryFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const {
@@ -104,7 +104,7 @@ export const orderQueryFn = (req: Request, res: Response) => {
   )
 }
 
-export const orderDeleteFn = (req: Request, res: Response) => {
+export const orderDeleteFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const { idList } = parseUrl

@@ -1,8 +1,8 @@
-import type { Request, Response } from 'express'
-import { IChartData, IChartData2, IChartData3, IResData } from '../types/index.js'
-import { randNum, randArr } from '../utils/index.js'
+import { IChartData, IChartData2, IChartData3, IResData } from '../types'
+import { Connect } from 'vite'
+import { randNum, randArr } from '../utils'
 
-const chartDataFn = (_req: Request, res: Response) => {
+const chartDataFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const resData: IChartData & IResData = {
     code: 200,
@@ -16,7 +16,7 @@ const chartDataFn = (_req: Request, res: Response) => {
   res.end(JSON.stringify(resData))
 }
 
-const chartDataFn2 = (_req: Request, res: Response) => {
+const chartDataFn2: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const resData: IChartData2 & IResData = {
     code: 200,
@@ -30,7 +30,7 @@ const chartDataFn2 = (_req: Request, res: Response) => {
   res.end(JSON.stringify(resData))
 }
 
-const chartDataFn3 = (_req: Request, res: Response) => {
+const chartDataFn3: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const resData: IChartData3 & IResData = {
     code: 200,

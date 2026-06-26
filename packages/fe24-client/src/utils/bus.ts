@@ -9,18 +9,17 @@ type ICallback = (...args: any[]) => void
 type IEventName2callbacks = Map<string, ICallback[]>
 
 class Bus implements IBus {
-  private static instance_: Bus
-  private eventName2callbacks: IEventName2callbacks
+  static #instance: Bus
 
-  constructor() {
-    this.eventName2callbacks = new Map<string, ICallback[]>()
-  }
+  private constructor(
+    private eventName2callbacks: IEventName2callbacks = new Map<string, ICallback[]>(),
+  ) {}
 
   public static get instance(): Bus {
-    if (!Bus.instance_) {
-      Bus.instance_ = new Bus()
+    if (!Bus.#instance) {
+      Bus.#instance = new Bus()
     }
-    return Bus.instance_
+    return Bus.#instance
   }
 
   publish(eventName: string, ...args: any[]): void {

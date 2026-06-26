@@ -1,9 +1,9 @@
-import type { Request, Response } from 'express'
-import { IRevenueList, IResData } from '../types/index.js'
-import { mockRevenueList } from '../mock/index.js'
-import { randNum } from '../utils/index.js'
+import { Connect } from 'vite'
+import { IRevenueList, IResData } from '../types'
+import { mockRevenueList } from '../mock'
+import { randNum } from '../utils'
 
-const revenueListFn = (_req: Request, res: Response) => {
+const revenueListFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const revenueListData = mockRevenueList(randNum(1000, 2000) /** amount */)
   const resData: IRevenueList & IResData = {

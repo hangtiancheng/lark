@@ -2,7 +2,7 @@
 
 // 防抖 debounce
 export const debounced = (fn: (...args: any) => void, delay: number): typeof fn => {
-  let timer: ReturnType<typeof setTimeout> | null = null
+  let timer: number | null = null
   const debouncedFn: typeof fn = (...args) => {
     if (timer) {
       clearTimeout(timer)
@@ -18,7 +18,7 @@ export const debounced = (fn: (...args: any) => void, delay: number): typeof fn 
 
 // 节流 throttle
 export const throttled = (fn: (...args: any) => void, delay: number): typeof fn => {
-  let timer: ReturnType<typeof setTimeout> | null = null
+  let timer: number | null = null
   const throttledFn: typeof fn = (...args) => {
     if (timer) {
       return

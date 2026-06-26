@@ -1,31 +1,32 @@
-import { create } from 'zustand'
 import type { IMenuItem } from '@/types/user'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
+// 省略 children 属性的 IMenuItem 类型
 type ITabItem = Omit<IMenuItem, 'children'>
 
-interface ITabStore {
-  tabList: ITabItem[]
-  addTab: (name: string, icon: string, url: string) => void
-  findTab: (url: string) => number
-  removeTab: (idx: number) => void
-}
+export const useTabStore = defineStore('tab', () => {
+  const tabList = ref<ITabItem[]>([])
 
-export const useTabStore = create<ITabStore>((set, get) => ({
-  tabList: [],
-  addTab: (name, icon, url) =>
-    set((state) => {
-      if (state.tabList.some((tab) => tab.url === url)) {
-        return state
-      }
-      return { tabList: [...state.tabList, { name, icon, url }] }
-    }),
-  findTab: (url) => {
-    return get().tabList.findIndex((tab) => tab.url === url)
-  },
-  removeTab: (idx) =>
-    set((state) => {
-      const newTabList = [...state.tabList]
-      newTabList.splice(idx, 1)
-      return { tabList: newTabList }
-    }),
-}))
+  const addTab = (name: string, icon: string, url: string) => {
+    if (tabList.value.some((tab) => tab.url === url)) {
+      return
+    }
+    tabList.value.push({ name, icon, url })
+  }
+
+  const findTab = (url: string) => {
+    return tabList.value.findIndex((tab) => tab.url === url)
+  }
+
+  const removeTab = (idx: number) => {
+    tabList.value.splice(idx, 1)
+  }
+
+  return {
+    tabList,
+    addTab,
+    findTab,
+    removeTab,
+  }
+})

@@ -1,7 +1,7 @@
-import type { Request, Response } from 'express'
+import { Connect } from 'vite'
 import url from 'node:url'
 import fs from 'node:fs'
-import type { IRobotList } from '../types/index.js'
+import type { IRobotList } from '../types'
 
 function readRobotList(): IRobotList['data'] {
   const jsonStr = fs.readFileSync('./plugins/assets/robot-list.json', 'utf8')
@@ -15,7 +15,7 @@ function writeRobotList(robotList: IRobotList['data']) {
   })
 }
 
-export const robotQueryFn = (req: Request, res: Response) => {
+export const robotQueryFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const {
@@ -76,7 +76,7 @@ export const robotQueryFn = (req: Request, res: Response) => {
   )
 }
 
-export const robotAddFn = (req: Request, res: Response) => {
+export const robotAddFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const { name, address, state, failureNum, admin, email, lat, lng } = parseUrl
@@ -105,7 +105,7 @@ export const robotAddFn = (req: Request, res: Response) => {
   )
 }
 
-export const robotDeleteFn = (req: Request, res: Response) => {
+export const robotDeleteFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const { id } = parseUrl
@@ -121,7 +121,7 @@ export const robotDeleteFn = (req: Request, res: Response) => {
   return
 }
 
-export const robotUpdateFn = (req: Request, res: Response) => {
+export const robotUpdateFn: Connect.NextHandleFunction = (req, res) => {
   res.setHeader('Content-Type', 'application/json')
   const parseUrl = url.parse(req.originalUrl!, true /* parseQueryString */).query
   const { id, address, state, failureNum, email } = parseUrl

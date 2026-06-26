@@ -1,7 +1,11 @@
 import axios, { type AxiosInstance } from 'axios'
-import { notification } from 'antd'
+import { ElNotification } from 'element-plus'
+import { h } from 'vue'
 import bus from './bus'
 import type { ITimeLineItem } from '@/types/dashboard'
+
+// const appInstance = getCurrentInstance()
+// const proxy = appInstance?.proxy
 
 // axios 实例
 const httpClient: AxiosInstance = axios.create({
@@ -11,13 +15,16 @@ const httpClient: AxiosInstance = axios.create({
 // axios 请求拦截器
 httpClient.interceptors.request.use(
   (config) => {
+    // 等价于 return config
     return Promise.resolve(config)
   },
   (reqErr) => {
-    notification.error({
+    ElNotification({
       title: '请求失败',
-      description: reqErr.message,
+      message: h('p', { class: 'text-red-500' }, reqErr.message),
+      type: 'error',
     })
+    // 等价于 throw reqErr
     return Promise.reject(reqErr)
   },
 )
@@ -31,18 +38,21 @@ httpClient.interceptors.response.use(
       message: msg,
     } as ITimeLineItem)
     if (code != 200) {
-      notification.error({
+      ElNotification({
         title: '请求失败',
-        description: msg,
+        message: h('p', { class: 'text-red-500' }, msg),
+        type: 'error',
       })
       throw msg
     }
+    // proxy?.$toast.success(msg)
     return res.data
   },
   (resErr) => {
-    notification.error({
+    ElNotification({
       title: 'HTTP 响应错误',
-      description: resErr.message,
+      message: h('p', { class: 'text-red-500' }, resErr.message),
+      type: 'error',
     })
     throw resErr.message
   },

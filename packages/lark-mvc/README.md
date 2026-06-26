@@ -34,7 +34,7 @@ A TypeScript MVC framework designed for back-office single-page applications and
 
 Lark's trade-offs center around one category of requirements: back-office business systems with deep route hierarchies, heavy forms and API calls, and the need to compose several independent applications into a single shell. The framework makes explicit choices along the following dimensions.
 
-First, explicit layering. The Model layer provides `State` / `Store` (zustand-style) / `Service`, the View layer provides `View` / `Updater`, and the Controller layer provides `Router` (history/hash dual mode) / `Frame`. These communicate through explicit interfaces and events, allowing new team members to locate code by layer.
+First, explicit layering. The Model layer provides `State` / `createStore()` (zustand-style) / `createService()`, the View layer provides `defineView()` / `Updater`, and the Controller layer provides `Router` (history/hash dual mode) / `Frame`. These communicate through explicit interfaces and events, allowing new team members to locate code by layer.
 
 Second, native micro-frontend support. The `CrossSite` bridge view + `FrameworkConfig.require` + Module Federation form a complete pipeline. Write `v-lark="remote-app/views/home"` in a template and the remote view loads and mounts automatically, eliminating the need for secondary containers like single-spa or qiankun.
 
@@ -42,7 +42,7 @@ Third, zero runtime dependencies. `@babel/parser` / `@babel/types` are used only
 
 Fourth, real DOM diff. Templates compile to functions that produce HTML strings, which are parsed into temporary DOM via `document.implementation.createHTMLDocument` and then diffed against the live DOM using keyed comparison. The advantage is that context-sensitive tags like `<table>` / `<select>` / `<svg>` are handled by the native parser. The trade-off is that large templates incur parse overhead, and SSR is not supported.
 
-Fifth, debug-friendly. `installFrameDevtoolBridge` exposes the Frame tree to Devtool via `postMessage`. A set of `window.__lark_*` global shortcuts cover Framework / State / Router / Frame / View and HMR helpers.
+Fifth, debug-friendly. `installFrameDevtoolBridge` exposes the Frame tree to Devtool via `postMessage`, enabling real-time inspection of the view hierarchy.
 
 Not suitable for: projects requiring SSR/streaming rendering, cross-platform needs like React Native, or projects needing off-the-shelf Chrome extension panels. For those, consider the React or Vue ecosystems.
 
@@ -741,35 +741,45 @@ Marking large static subtrees with `ldk` can completely skip rendering work. Thi
 
 ## Frame and the View Tree
 
-`Frame` manages view mounting and unmounting, maintains parent-child relationships, and provides cross-view method invocation. Each Frame corresponds to one DOM container and one View instance.
+`Frame` manages view mounting and unmounting, maintains parent-child relationships, and provides cross-view method invocation. Each Frame corresponds to one DOM container and one `ViewCtx`.
 
 ### Typed API
 
-| API                                               | Description                                                                                                                    |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Frame.get(id)`                                   | Look up Frame by DOM id                                                                                                        |
-| `Frame.getAll()`                                  | All Frames as `Map<string, Frame>`                                                                                             |
-| `Frame.getRoot()`                                 | Current root Frame; returns `undefined` if not created                                                                         |
-| `Frame.createRoot(id)`                            | Idempotent root creation (`Framework.boot` calls this)                                                                         |
-| `new Frame(containerId)`                          | Independent Frame instance for micro-frontend / embedded widget scenarios                                                      |
-| `frame.invoke(name, args?)`                       | Call the owning view's method; if view not mounted, pushes to `invokeList`, flushed by `View.runInvokes(frame)` after mounting |
-| `frame.children()`                                | Child Frame id array (order not guaranteed)                                                                                    |
-| `frame.parent(level?)`                            | Ancestor Frame, defaults to one level up                                                                                       |
-| `frame.mountFrame(id, viewPath, params?)`         | Explicitly create a child Frame                                                                                                |
-| `frame.unmountFrame(id)`                          | Unmount a specific child Frame                                                                                                 |
-| `frame.mountZone(id?)` / `frame.unmountZone(id?)` | Batch mount/unmount all `v-lark` child nodes in a zone                                                                         |
-| `Frame.on("add" \| "remove", handler)`            | Frame instance lifecycle events (static emitter)                                                                               |
-| `frame.on("created" \| "alter", handler)`         | All child Frames rendered / child content changed (instance emitter)                                                           |
+| API                                               | Description                                                                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `Frame.get(id)`                                   | Look up Frame by DOM id                                                                                                   |
+| `Frame.getAll()`                                  | All Frames as `Map<string, Frame>`                                                                                        |
+| `Frame.getRoot()`                                 | Current root Frame; returns `undefined` if not created                                                                    |
+| `Frame.createRoot(id)`                            | Idempotent root creation (`Framework.boot` calls this)                                                                    |
+| `createFrame(id, parentId?)`                      | Create an independent Frame instance for micro-frontend / embedded widget scenarios                                       |
+| `frame.invoke(name, args?)`                       | Call the owning view's method; if view not mounted, pushes to `invokeList`, flushed by `runInvokes(frame)` after mounting |
+| `frame.children()`                                | Child Frame id array (order not guaranteed)                                                                               |
+| `frame.parent(level?)`                            | Ancestor Frame, defaults to one level up                                                                                  |
+| `frame.mountFrame(id, viewPath, params?)`         | Explicitly create a child Frame                                                                                           |
+| `frame.unmountFrame(id)`                          | Unmount a specific child Frame                                                                                            |
+| `frame.mountZone(id?)` / `frame.unmountZone(id?)` | Batch mount/unmount all `v-lark` child nodes in a zone                                                                    |
+| `Frame.on("add" \| "remove", handler)`            | Frame instance lifecycle events (static emitter)                                                                          |
+| `frame.on("created" \| "alter", handler)`         | All child Frames rendered / child content changed (instance emitter)                                                      |
 
-Frame instances enter `frameCache` object pool upon destruction, caching up to `MAX_FRAME_POOL = 64`; beyond that threshold they are GC'd. Do not retain Frame references after unmounting as the object may be reused.
+Frame instances are plain objects created by `createFrame()`. There is no object pool — destroyed frames are removed from the registry and GC'd. Do not retain Frame references after `unmountFrame` as the frame may be stale.
 
 ## Module Federation Micro-Frontend
 
-Lark treats Module Federation as a first-class citizen, providing two integration modes.
+Lark provides first-class micro-frontend support through Webpack Module Federation (or Rspack's MF implementation). The integration centers on three pieces: `FrameworkConfig.require` (the bridge to MF container APIs), `use()` (Lark's module loader that delegates to `require`), and `CrossSite` (a skeleton-screen bridge view for remote loading).
 
-### Mode 1: Direct Async Loading
+### How it works: the loading pipeline
 
-Via `FrameworkConfig.require`, resolve unregistered view paths to remote modules:
+When a template contains `v-lark="remote-app/views/home"`, the following sequence executes:
+
+1. **`Frame.mountView(viewPath)`** parses the view path and checks the view registry (`getViewClass`). If the view setup is already registered (sync path), it mounts immediately. If not, it enters the async path.
+
+2. **`use(viewClassName, callback)`** is called. This function in `module-loader.ts` checks whether `FrameworkConfig.require` is configured:
+   - **MF mode**: delegates to `config.require(names)`, which calls `__webpack_init_sharing__` / `__webpack_share_scopes__` to initialize the shared scope, then resolves the remote container via `window[remoteName]`, calls `container.init(scope)`, and `container.get(modulePath)` to obtain the factory. The factory returns the module, and `use()` extracts the default export.
+   - **Fallback mode**: if `require` is not configured, `use()` falls back to dynamic `import()` for ESM-based loading.
+
+3. **Signature guard**: `mountView` captures `frame.signature` before the async load begins. When the callback fires, it checks `sign !== frame.signature` — if the frame was unmounted or re-mounted during the async wait, the callback silently returns, preventing stale mounts.
+
+4. **Registration and mount**: the loaded setup function is registered via `registerViewClass(viewClassName, setup)`, then `mountCtx(frame, setup, params)` creates the `ViewCtx`, runs the setup function, and renders.
 
 ```ts
 Framework.boot({
@@ -803,7 +813,7 @@ Framework.boot({
 
 Then write `v-lark="remote-app/views/home"` in templates to trigger async loading and mounting of the remote view.
 
-### Mode 2: CrossSite Bridge View
+### CrossSite bridge view
 
 For skeleton screens and remote `prepare` hooks, use `CrossSite`:
 
@@ -816,9 +826,17 @@ registerViewClass("cross-site", CrossSite);
 <div v-lark="cross-site?view=remote-app/views/home&bizCode=mybiz"></div>
 ```
 
-CrossSite first renders as a normal view showing a skeleton (default `Loading...`, overridable via `skeleton` parameter) and occupies a `<div id="mf_${viewId}">` sub-container. `updateView()` uses `++this.$sign` to get a sequence number, loads the remote prepare module via `use(projectName/prepare)` and executes it. Race guard: if after loading `this.$sign !== sign`, return immediately (user navigated away). If the same view path as last time and the remote view exposes an `assign` method, it calls `assign` + `render` in-place to reuse the existing view; otherwise it calls `owner.mountFrame('mf_' + this.id, this.$view, this.$params)` to actually mount.
+`CrossSite` is a `ViewSetup` function that:
 
-### Webpack Configuration
+1. Renders a skeleton placeholder (default `Loading…`, overridable via the `skeleton` parameter).
+2. Parses the `view` parameter to extract the project name (`remote-app`) and remote path (`views/home`).
+3. Loads the remote project's `prepare` module via `use("remote-app/prepare", callback)`. The `prepare` module can initialize shared state, register global services, or configure the remote project's API host.
+4. After `prepare` completes, loads the actual remote view via `use(viewPath, callback)`.
+5. Mounts the remote view in a sub-frame via `ctx.owner.mountFrame("mf_" + ctx.id, viewPath, { bizCode, project })`.
+6. Uses a signature counter (`state.sign`) for race condition guards: if the user navigates away during loading, `state.sign` is incremented on destroy, and the pending load callbacks check `currentSign !== state.sign` to bail out.
+7. Re-renders with a hidden container once the remote view is mounted, hiding the skeleton.
+
+### Webpack / Rspack configuration
 
 Host:
 
@@ -843,7 +861,7 @@ new ModuleFederationPlugin({
 });
 ```
 
-`@lark.js/mvc` must be `singleton: true`; otherwise host and remote hold different View/Frame class instances and all `instanceof` checks fail across boundaries.
+`@lark.js/mvc` must be `singleton: true` because the framework's module-level singletons (`State`, `Router`, `Frame`, `EventDelegator`, `config`) must be shared across host and remote. Without `singleton`, each bundle gets its own copy of these singletons, causing state divergence — e.g., `State.set()` in the host would not notify views in the remote, and `registerViewClass()` in the host would not be visible to the remote's `Frame.mountView()`.
 
 `splitChunks.chunks` must be `"async"`. Using `"all"` extracts `@lark.js/mvc` into a separate vendor chunk, breaking MF shared scope initialization (`ScriptExternalLoadError: Loading script failed`).
 
@@ -859,7 +877,7 @@ The Vite plugin uses two hooks: `load` appends a template HMR snippet to compile
 
 ### Two HMR layers
 
-**Template layer** (`.html` changes): The compiled template module self-accepts. The accept callback calls `hotSwapByTemplate(oldTemplate, newTemplate)` to find every mounted view whose `template` property matches the old function reference, replace it, and force-render. Event handlers are NOT re-delegated because they live on the View prototype, not the template.
+**Template layer** (`.html` changes): The compiled template module self-accepts. The accept callback calls `hotSwapByTemplate(oldTemplate, newTemplate)` to find every mounted view whose `ctx.getTemplate()` returns the old function reference, replace it via `ctx.setTemplate(newTemplate)`, and force-render. Event handlers are NOT re-delegated because they live in the `events` map returned by the setup function, not in the template.
 
 **View setup layer** (`.ts` changes): The plugin rewrites `export default defineView(...)` to `const __larkViewDefault = defineView(...)` and appends an HMR snippet. The accept callback calls `hotSwapByView(oldSetup, newSetup)` which updates the registry and hot-swaps every matching frame via `hotSwapView`.
 
@@ -928,21 +946,6 @@ export default HomeView;
 
 ## Debugging and Devtool Bridge
 
-### Global Objects
-
-After `Framework.boot` completes, the following are attached to `window`:
-
-| Global                               | Value            | Purpose                        |
-| ------------------------------------ | ---------------- | ------------------------------ |
-| `window.__lark_Framework`            | Framework object | Direct access                  |
-| `window.__lark_State`                | State object     | Direct access                  |
-| `window.__lark_Router`               | Router object    | Direct access                  |
-| `window.__lark_Frame`                | Frame class      | Direct access                  |
-| `window.__lark_View`                 | View class       | Direct access                  |
-| `window.__lark_registerViewClass`    | Function         | HMR: re-register View class    |
-| `window.__lark_invalidateViewClass`  | Function         | HMR: remove View from registry |
-| `window.__lark_getViewClassRegistry` | Function         | HMR: read registry             |
-
 ### Frame Devtool Bridge
 
 `installFrameDevtoolBridge()` is automatically installed during `Framework.boot`, listening for `window` message events and communicating with Devtool via postMessage:
@@ -962,7 +965,7 @@ The `lark-devtool` sub-project in this repository is the paired Devtool that loa
 - `Framework.setConfig(patch)` — Merge configuration, returns merged result.
 - `Framework.use(names, callback?)` — Async view loader; returns `Promise<unknown[]>` when no callback.
 - `Framework.mark(host, key)` / `Framework.unmark(host)` — Async callback validity tracking via module-level `WeakMap`.
-- `Framework.dispatch(target, type, init?)` — Trigger custom DOM event.
+- `Framework.dispatchEvent(target, type, init?)` — Trigger custom DOM event.
 - `Framework.task(fn, args?, ctx?)` — Chunked execution: prefers `scheduler.postTask` then `requestIdleCallback` then `setTimeout(0)`, with a fixed 48ms budget or adaptive time slicing.
 - `Framework.delay(ms)` — Promise-wrapped setTimeout.
 - `Framework.waitZoneViewsRendered(viewId, timeout?)` — Wait until all views in a zone have rendered.
@@ -1005,7 +1008,7 @@ The `lark-devtool` sub-project in this repository is the paired Devtool that loa
 ## Common Pitfalls
 
 1. `boot.ts` must be inside `src/`: HTML references `/src/boot.ts`; placing it at the project root causes runtime resolution failure.
-2. `registerViewClass` must precede `Framework.boot()`: all View classes (including sub-components) must either be pre-registered or loaded via `FrameworkConfig.require`.
+2. `registerViewClass` must precede `Framework.boot()`: all view setups (including sub-components) must either be pre-registered or loaded via `FrameworkConfig.require`.
 3. `.html` imports require build integration: only works in projects compiled by `larkMvcPlugin` / `larkMvcLoader`.
 4. Write State with `State.set` + `State.digest`, never mutate the returned object directly: Safeguard warns in debug mode, deduplicated by key.
 5. `bindStore` auto-unsubscribes on view destroy; manual `store.subscribe(listener)` calls need explicit cleanup (e.g., `ctx.on("destroy", off)`).
@@ -1018,7 +1021,7 @@ The `lark-devtool` sub-project in this repository is the paired Devtool that loa
 12. Store state is a plain object: `store.getState()` returns the actual state object; reads are direct access, writes must go through `setState()` or actions.
 13. `forOf` requires `as`: `{{forOf list item}}` is a compile error.
 14. `wrapAsync` validates by signature: callback only executes when `view.signature` matches the value at wrap time.
-15. Frame object pool caps at `MAX_FRAME_POOL = 64`: do not retain Frame references after `unmountFrame`.
+15. Do not retain Frame references after `unmountFrame`: destroyed frames are removed from the registry; stale references may point to reused or invalid objects.
 16. Updater supports digest re-entry: digest during digest enters `digestingQueue`; `null` is the boundary.
 17. Store creator runs once: state persists across view mount/unmount cycles; call `store.destroy()` to tear down.
 18. State is simple, Store is complex: lightweight shared values use State; use `createStore()` for actions, derived data, or fine-grained subscriptions; always pair State writes with `State.clean("keys")` to prevent leaks.

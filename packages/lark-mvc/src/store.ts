@@ -19,7 +19,7 @@ import type { AnyFunc } from "./types";
 
 type Listener<T> = (state: T, prevState: T) => void;
 
-export interface StoreApi<T = Record<string, unknown>> {
+export interface StoreApi<T = object> {
   getState(): T;
   setState(partial: Partial<T> | ((prev: T) => Partial<T>)): void;
   subscribe(listener: Listener<T>): () => void;
@@ -78,7 +78,7 @@ const storeRegistry = new Map<string, StoreApi>();
 
 // ---- create ----------------------------------------------------------------
 
-export function createStore<T extends Record<string, unknown>>(
+export function createStore<T extends object>(
   name: string,
   creator: StateCreator<T>,
 ): StoreApi<T> {
@@ -98,7 +98,7 @@ export function createStore<T extends Record<string, unknown>>(
     const resolved =
       typeof partial === "function" ? partial(prevState) : partial;
 
-    const nextState: Record<string, unknown> = { ...prevState };
+    const nextState = { ...prevState };
     let changed = false;
 
     for (const key in resolved) {
@@ -109,7 +109,8 @@ export function createStore<T extends Record<string, unknown>>(
       ) {
         const newVal = Reflect.get(resolved, key);
         if (!Object.is(Reflect.get(prevState, key), newVal)) {
-          nextState[key] = newVal;
+          // nextState[key] = newVal;
+          Reflect.set(nextState, key, newVal);
           changed = true;
         }
       }

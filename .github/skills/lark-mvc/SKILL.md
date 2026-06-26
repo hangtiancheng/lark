@@ -492,8 +492,7 @@ export default defineView((ctx) => {
   return {
     template,
     events: {
-      "nextPage<click>": () =>
-        setState((prev) => ({ page: String(Number(prev.page) + 1) })),
+      "nextPage<click>": () => setState((prev) => ({ page: String(Number(prev.page) + 1) })),
     },
   };
 });

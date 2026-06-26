@@ -24,6 +24,10 @@ export default defineConfig({
       js: "js/[name].[contenthash:8].js",
     },
     assetPrefix: "auto",
+    cssModules: {
+      localIdentName: "[name]__[local]--[hash:base64:5]",
+      exportLocalsConvention: "asIs",
+    },
   },
 
   html: {

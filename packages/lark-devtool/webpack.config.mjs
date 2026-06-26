@@ -86,6 +86,9 @@ export default (env, argv) => {
           lark_demo: "lark_demo@http://localhost:3000/varRemoteEntry.js",
           // lark_demo: "lark_demo@http://localhost:3300/cdn/lark-demo/varRemoteEntry.js",
         },
+        exposes: {
+          "./cdn-manager": "./src/exposed/cdn-manager.ts",
+        },
         shared: {
           "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
           react: { singleton: true, eager: true },

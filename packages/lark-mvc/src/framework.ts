@@ -448,7 +448,10 @@ export const Framework: FrameworkApi = {
     // Install the Frame Devtool Bridge for devtools support.
     // This adds a lightweight postMessage listener so that the
     // lark-devtool panel can inspect the frame tree.
-    installFrameDevtoolBridge();
+    // Skipped if devtool is explicitly set to false.
+    if (config.devtool) {
+      installFrameDevtoolBridge();
+    }
 
     // Create root frame BEFORE Router._bind(), so that when Router.diff()
     // fires CHANGED → dispatcherNotifyChange → Frame.getRoot(), the rootFrame

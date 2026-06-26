@@ -96,8 +96,22 @@ export default {
       exposes: {
         "./counter-view": "./src/exposed/counter-view.ts",
       },
+      remotes: {
+        lark_devtool: "lark_devtool@http://localhost:5173/remoteEntry.js",
+      },
       shared: {
-        "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
+        "@lark.js/mvc": {
+          singleton: true,
+          requiredVersion: "*",
+        },
+        react: {
+          singleton: true,
+          requiredVersion: "*",
+        },
+        "react-dom": {
+          singleton: true,
+          requiredVersion: "*",
+        },
       },
     }),
   ],

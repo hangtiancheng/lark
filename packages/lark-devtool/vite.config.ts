@@ -26,6 +26,9 @@ export default defineConfig({
         },
       },
       filename: "remoteEntry.js",
+      exposes: {
+        "./cdn-manager": "./src/exposed/cdn-manager.ts",
+      },
       shared: {
         "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
         react: { singleton: true, requiredVersion: "*" },

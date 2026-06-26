@@ -1118,6 +1118,14 @@ export interface FrameworkConfig {
   crossSites?: CrossSiteConfig[];
   /** Default false. */
   virtualDom?: boolean;
+  /**
+   * Enable Frame Devtool Bridge (default: true).
+   * When true, installs a postMessage listener so the Lark DevTool browser
+   * extension can inspect the frame tree. Set to false to suppress the bridge
+   * (and any extension-related errors) in environments where the extension
+   * is not available or causes issues.
+   */
+  devtool?: boolean;
 }
 
 export interface RouteViewConfig {

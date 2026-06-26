@@ -21,6 +21,7 @@ const VIEW_MODULES: Record<string, () => Promise<unknown>> = {
   home: () => import("./views/home"),
   about: () => import("./views/about"),
   counter: () => import("./views/counter"),
+  cdn: () => import("./views/cdn"),
   "404": () => import("./views/404"),
   "components/counter-store": () => import("./components/counter-store"),
   "components/counter-updater": () => import("./components/counter-updater"),
@@ -56,10 +57,12 @@ const config: FrameworkConfig = {
     "/home": "home",
     "/about": "about",
     "/counter": "counter",
+    "/cdn": "cdn",
   },
   unmatchedView: "404",
   rootId: "app",
   virtualDom: true,
+  devtool: true,
   error(e: Error) {
     console.error("Lark application error:", e);
   },

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
+import react from "@vitejs/plugin-react";
 import { larkMvcPlugin } from "@lark.js/mvc/vite";
 import { fileURLToPath } from "url";
 import { federation } from "@module-federation/vite";
@@ -9,6 +10,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [
+    react(),
     larkMvcPlugin({ virtualDom: true }),
     federation({
       name: "lark_demo", // Module federation name
@@ -19,8 +21,28 @@ export default defineConfig({
       exposes: {
         "./counter-view": "./src/exposed/counter-view.ts",
       },
+      remotes: {
+        lark_devtool: {
+          type: "module",
+          name: "lark_devtool",
+          entry: "http://localhost:5173/remoteEntry.js",
+          entryGlobalName: "lark_devtool",
+          shareScope: "default",
+        },
+      },
       shared: {
-        "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
+        "@lark.js/mvc": {
+          singleton: true,
+          requiredVersion: "*",
+        },
+        react: {
+          singleton: true,
+          requiredVersion: "*",
+        },
+        "react-dom": {
+          singleton: true,
+          requiredVersion: "*",
+        },
       },
     }),
   ],
@@ -36,6 +58,13 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+  },
+  // Prevent Vite from pre-bundling react/react-dom — they must go through
+  // MF shared scope so that host and remote use the same React instance.
+  // Without this, Vite creates a local pre-bundled copy that bypasses
+  // the shared scope, resulting in two React copies and "Invalid hook call".
+  optimizeDeps: {
+    exclude: ["react", "react-dom", "react/jsx-runtime", "react-dom/client"],
   },
   build: {
     sourcemap: true,

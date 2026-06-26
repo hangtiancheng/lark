@@ -47,7 +47,7 @@ export default defineConfig({
         new LarkMvcPlugin({ virtualDom: true, exclude: /index\.html$/ }),
       );
 
-      // Module Federation (Remote)
+      // Module Federation (Remote + Consumer)
       config.plugins.push(
         new rspack.container.ModuleFederationPlugin({
           name: "lark_demo",
@@ -55,8 +55,22 @@ export default defineConfig({
           exposes: {
             "./counter-view": "./src/exposed/counter-view.ts",
           },
+          remotes: {
+            lark_devtool: "lark_devtool@http://localhost:5173/remoteEntry.js",
+          },
           shared: {
-            "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
+            "@lark.js/mvc": {
+              singleton: true,
+              requiredVersion: "*",
+            },
+            react: {
+              singleton: true,
+              requiredVersion: "*",
+            },
+            "react-dom": {
+              singleton: true,
+              requiredVersion: "*",
+            },
           },
         }),
       );

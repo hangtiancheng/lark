@@ -42,6 +42,9 @@ export default defineConfig({
           remotes: {
             lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
           },
+          exposes: {
+            "./cdn-manager": "./src/exposed/cdn-manager.ts",
+          },
           shared: {
             "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
             react: { singleton: true, eager: true },

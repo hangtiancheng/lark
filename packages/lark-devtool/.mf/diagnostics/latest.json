@@ -1,0 +1,10 @@
+{
+  "latestErrorEvent": {
+    "code": "TYPE-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project /Users/hangtiancheng/github/lark/packages/lark-devtool/node_modules/.federation/tsconfig.291f158aa110748c69d0104ef504ac06.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "args": {
+      "cmd": "npx tsc --project /Users/hangtiancheng/github/lark/packages/lark-devtool/node_modules/.federation/tsconfig.291f158aa110748c69d0104ef504ac06.json"
+    },
+    "timestamp": 1782495094401
+  }
+}

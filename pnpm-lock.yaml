@@ -713,6 +713,12 @@ importers:
       '@module-federation/vite':
         specifier: ^1.16.11
         version: 1.16.11(typescript@5.9.3)(vite@8.1.0(@types/node@24.13.1)(esbuild@0.28.1)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))(vue-tsc@2.2.12(typescript@5.9.3))
+      react:
+        specifier: ^19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.7(react@19.2.7)
     devDependencies:
       '@module-federation/runtime-tools':
         specifier: ^2.6.0
@@ -726,6 +732,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.1
+      '@vitejs/plugin-react':
+        specifier: ^6.0.3
+        version: 6.0.3(vite@8.1.0(@types/node@24.13.1)(esbuild@0.28.1)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
       autoprefixer:
         specifier: ^10.5.1
         version: 10.5.1(postcss@8.5.15)
@@ -831,10 +840,10 @@ importers:
         version: 14.0.0(webpack@5.107.2)
       css-loader:
         specifier: ^7.1.4
-        version: 7.1.4(webpack@5.107.2)
+        version: 7.1.4(@rspack/core@1.7.12(@swc/helpers@0.5.23))(webpack@5.107.2)
       html-webpack-plugin:
         specifier: ^5.6.7
-        version: 5.6.7(webpack@5.107.2)
+        version: 5.6.7(@rspack/core@1.7.12(@swc/helpers@0.5.23))(webpack@5.107.2)
       postcss-loader:
         specifier: ^8.2.1
         version: 8.2.1(postcss@8.5.15)(typescript@6.0.3)(webpack@5.107.2)
@@ -18415,19 +18424,6 @@ snapshots:
       semver: 7.8.5
     optionalDependencies:
       '@rspack/core': 1.7.12(@swc/helpers@0.5.23)
-      webpack: 5.107.2(@swc/core@1.15.43(@swc/helpers@0.5.23))(esbuild@0.27.7)(postcss@8.5.15)(webpack-cli@7.0.3)
-
-  css-loader@7.1.4(webpack@5.107.2):
-    dependencies:
-      icss-utils: 5.1.0(postcss@8.5.15)
-      postcss: 8.5.15
-      postcss-modules-extract-imports: 3.1.0(postcss@8.5.15)
-      postcss-modules-local-by-default: 4.2.0(postcss@8.5.15)
-      postcss-modules-scope: 3.2.1(postcss@8.5.15)
-      postcss-modules-values: 4.0.0(postcss@8.5.15)
-      postcss-value-parser: 4.2.0
-      semver: 7.8.5
-    optionalDependencies:
       webpack: 5.107.2(esbuild@0.28.1)(postcss@8.5.15)(webpack-cli@7.0.3)
 
   css-select@4.3.0:
@@ -19957,16 +19953,6 @@ snapshots:
       tapable: 2.3.3
     optionalDependencies:
       '@rspack/core': 1.7.12(@swc/helpers@0.5.23)
-      webpack: 5.107.2(@swc/core@1.15.43(@swc/helpers@0.5.23))(esbuild@0.27.7)(postcss@8.5.15)(webpack-cli@7.0.3)
-
-  html-webpack-plugin@5.6.7(webpack@5.107.2):
-    dependencies:
-      '@types/html-minifier-terser': 6.1.0
-      html-minifier-terser: 6.1.0
-      lodash: 4.18.1
-      pretty-error: 4.0.0
-      tapable: 2.3.3
-    optionalDependencies:
       webpack: 5.107.2(esbuild@0.28.1)(postcss@8.5.15)(webpack-cli@7.0.3)
 
   htmlparser2@10.1.0:

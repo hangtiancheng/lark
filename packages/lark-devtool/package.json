@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@lark.js/mvc": "workspace:^",
+    "@module-federation/runtime": "^2.6.0",
     "@sentry/react": "^10.60.0",
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-virtual": "^3.14.3",

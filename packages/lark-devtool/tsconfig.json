@@ -16,7 +16,14 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    "types": ["./@mf-types"],
+
+    /* Path mappings for Module Federation remote modules */
+    "paths": {
+      "lark_demo/*": ["./@mf-types/lark_demo/*"]
+    }
   },
   "include": ["src"]
 }

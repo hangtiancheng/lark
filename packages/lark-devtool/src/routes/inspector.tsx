@@ -6,7 +6,7 @@
  * owned by the RootLayout (the hidden iframe + useFrameTree hook live there).
  */
 import { useState, useCallback, useMemo } from "react";
-import { VirtualFrameTree } from "../components/virtual-frame-tree";
+import { FrameTree } from "../components/frame-tree";
 import { DetailPanel } from "../components/detail-panel";
 import { EmptyState } from "../components/empty-state";
 import { useFrameTreeContext } from "../router-context";
@@ -20,7 +20,9 @@ export function InspectorRoute() {
   const findFrameNode = useCallback(
     (id: string | null): SerializedFrameNode | null => {
       if (!id || !tree?.root) return null;
-      const search = (node: SerializedFrameNode): SerializedFrameNode | null => {
+      const search = (
+        node: SerializedFrameNode,
+      ): SerializedFrameNode | null => {
         if (node.id === id) return node;
         for (const child of node.children) {
           const found = search(child);
@@ -58,11 +60,13 @@ export function InspectorRoute() {
                 <h2 className="text-[11px] font-semibold tracking-wider text-sky-600 uppercase">
                   Frame Tree
                 </h2>
-                <span className="text-[10px] text-slate-400">{tree?.rootId}</span>
+                <span className="text-[10px] text-slate-400">
+                  {tree?.rootId}
+                </span>
               </div>
             </div>
             {rootNode && (
-              <VirtualFrameTree
+              <FrameTree
                 root={rootNode}
                 selectedId={selectedFrameId}
                 onSelect={handleSelect}

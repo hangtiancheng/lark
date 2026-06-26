@@ -777,6 +777,9 @@ importers:
       '@lark.js/mvc':
         specifier: workspace:^
         version: link:../lark-mvc
+      '@module-federation/runtime':
+        specifier: ^2.6.0
+        version: 2.6.0
       '@sentry/react':
         specifier: ^10.60.0
         version: 10.60.0(react@19.2.7)

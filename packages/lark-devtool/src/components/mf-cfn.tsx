@@ -19,22 +19,22 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Globe, Plug } from "lucide-react";
 import { loadRemoteFromCdn, clearRemoteCache } from "../utils/dynamic-remote";
 
-type SfStatus = "idle" | "loading" | "mounted" | "error";
+type MfCdnStatus = "idle" | "loading" | "mounted" | "error";
 
 const DEFAULT_CDN_URL = "http://localhost:3300/cdn/lark-demo/remoteEntry.js";
 const MODULE_PATH = "./counter-view";
 
 /** Status dot style map */
-const STATUS_DOT: Record<SfStatus, string> = {
+const STATUS_DOT: Record<MfCdnStatus, string> = {
   mounted: "bg-green-400",
   error: "bg-red-400",
   loading: "animate-pulse bg-amber-400",
   idle: "bg-slate-300",
 };
 
-export function SfCdnDemo() {
+export function MfCdn() {
   const [cdnUrl, setCdnUrl] = useState(DEFAULT_CDN_URL);
-  const [status, setStatus] = useState<SfStatus>("idle");
+  const [status, setStatus] = useState<MfCdnStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -46,7 +46,10 @@ export function SfCdnDemo() {
     setErrorMsg(null);
 
     try {
-      const remoteModule = await loadRemoteFromCdn<Record<string, unknown>>(cdnUrl, MODULE_PATH);
+      const remoteModule = await loadRemoteFromCdn<Record<string, unknown>>(
+        cdnUrl,
+        MODULE_PATH,
+      );
 
       if (!containerRef.current) {
         setStatus("error");
@@ -72,7 +75,7 @@ export function SfCdnDemo() {
       const message = err instanceof Error ? err.message : String(err);
       setStatus("error");
       setErrorMsg(message);
-      console.error("[SF CDN Demo] Failed to load remote from CDN:", err);
+      console.error("[MF CDN] Failed to load remote from CDN:", err);
     }
   }, [cdnUrl, status]);
 
@@ -127,7 +130,9 @@ export function SfCdnDemo() {
                 Unmount
               </button>
             )}
-            <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[status]}`} />
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[status]}`}
+            />
           </div>
         </div>
       </div>
@@ -163,7 +168,9 @@ export function SfCdnDemo() {
             <br />
             <span className="text-sky-400">(Host)</span>
           </div>
-          <div className="ml-2 text-slate-400">Dynamic MF: runtime remote loading</div>
+          <div className="ml-2 text-slate-400">
+            Dynamic MF: runtime remote loading
+          </div>
         </div>
       </div>
 
@@ -171,11 +178,15 @@ export function SfCdnDemo() {
       <div className="flex-1 overflow-auto">
         {status === "error" && (
           <div className="m-4 rounded-lg border border-red-200 bg-red-50 p-3">
-            <p className="text-xs font-medium text-red-700">Failed to load remote from CDN</p>
-            <p className="mt-1 font-mono text-[10px] text-red-500">{errorMsg}</p>
+            <p className="text-xs font-medium text-red-700">
+              Failed to load remote from CDN
+            </p>
+            <p className="mt-1 font-mono text-[10px] text-red-500">
+              {errorMsg}
+            </p>
             <p className="mt-2 text-[10px] text-red-400">
               Make sure lark-cdn is running and the project is published:
-              <code className="ml-1 rounded bg-red-100 px-1">pnpm dev:lark-cdn</code>
+              <code className="ml-1 rounded bg-red-100 px-1">pnpm cdn</code>
             </p>
           </div>
         )}
@@ -197,7 +208,7 @@ export function SfCdnDemo() {
         {/* Remote Lark View container */}
         <div
           ref={containerRef}
-          id="sf-cdn-lark-container"
+          id="mf-cdn-lark-container"
           className={status === "mounted" ? "" : "hidden"}
         />
       </div>

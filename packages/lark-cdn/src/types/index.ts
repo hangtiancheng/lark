@@ -128,7 +128,15 @@ export interface DiscoveredDist {
   /** Absolute path to the dist directory */
   readonly distPath: string;
   /** Type of dist directory */
-  readonly type: "dist" | "dist-vite" | "dist-webpack";
+  readonly type:
+    | "dist"
+    | "dist-ssr"
+    | "dist-rsbuild"
+    | "dist-rollup"
+    | "dist-rspack"
+    | "dist-tsup"
+    | "dist-webpack"
+    | "dist-vite";
   /** Version read from dist/package.json, or "0.0.0" if unavailable */
   readonly version: string;
 }

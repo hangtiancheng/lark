@@ -26,7 +26,7 @@ import { useFrameTree } from "./hooks/use-frame-tree";
 import { Header } from "./components/header";
 import { MfDemo } from "./components/mf-demo";
 import { CdnManager } from "./components/cdn-manager";
-import { SfCdnDemo } from "./components/sf-cdn-demo";
+import { MfCdn } from "./components/mf-cfn";
 import { ErrorBoundary } from "./components/error-boundary";
 import { InspectorRoute } from "./routes/inspector";
 import { FrameTreeContext, type FrameTreeContextValue } from "./router-context";
@@ -175,7 +175,7 @@ function SfCdnWrapper() {
   return (
     <ErrorBoundary fallbackTitle="MF CDN module crashed">
       <div className="flex-1 overflow-hidden">
-        <SfCdnDemo />
+        <MfCdn />
       </div>
     </ErrorBoundary>
   );
@@ -187,7 +187,12 @@ const sfCdnRoute = createRoute({
   component: SfCdnWrapper,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, mfDemoRoute, cdnRoute, sfCdnRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  mfDemoRoute,
+  cdnRoute,
+  sfCdnRoute,
+]);
 
 export const router = createRouter({
   routeTree,

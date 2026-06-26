@@ -84,13 +84,12 @@ async function scanDir(dir: string, depth: number, results: DiscoveredDist[]): P
         const distStat = await fs.stat(distPath);
         if (distStat.isDirectory()) {
           results.push({
-            name: entry,
+            name: `${entry}${distName === "dist" ? "" : `:${distName}`}`,
             distPath,
-            type: distName as "dist" | "dist-vite" | "dist-webpack",
+            type: distName,
             version: await readDistVersion(distPath),
           });
           found = true;
-          break;
         }
       } catch {
         // dist directory doesn't exist

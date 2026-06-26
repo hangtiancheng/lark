@@ -10,63 +10,46 @@
  * button can toggle this sub-view without a direct reference.
  */
 import MiniSearch, { type SearchResult } from "minisearch";
-import {
-  State,
-  Router,
-  View as ViewClass,
-  type ViewInterface,
-} from "@lark.js/mvc";
+import { State, Router, defineView } from "@lark.js/mvc";
+import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
 import { icons as defaultIcons } from "./icons";
 import type { SearchEntry } from "../types";
 
-/**
- * Shape of `this` inside SearchView methods. Custom state (_mini) and helper
- * (_ensureMiniSearch) are not on ViewInterface, so they must be declared
- * explicitly via a `this:` parameter annotation.
- */
-interface SearchViewThis extends ViewInterface {
-  _mini: MiniSearch | null;
-  _ensureMiniSearch(): Promise<MiniSearch | null>;
-}
+export function createSearchView(
+  template: ViewTemplate | VDomTemplate,
+): ViewSetup {
+  return defineView((ctx) => {
+    // Closure state (replaces former this._mini)
+    let mini: MiniSearch | null = null;
 
-export function createSearchView(View: typeof ViewClass, template: unknown) {
-  return View.extend({
-    template,
+    ctx.updater.set({
+      icons: defaultIcons,
+      results: [],
+      hasSearched: false,
+      query: "",
+    });
+    // Re-render when the layout toggles searchOpen via State.
+    ctx.observeState("searchOpen");
 
-    init(this: SearchViewThis) {
-      this.updater.set({
-        icons: defaultIcons,
-        results: [],
-        hasSearched: false,
-        query: "",
-      });
-      this._mini = null;
-      // Re-render when the layout toggles searchOpen via State.
-      this.observeState("searchOpen");
-      this.assign?.();
-    },
-
-    /**
-     * Pull isOpen from State. Only updates isOpen — results/hasSearched/query
-     * are managed by onSearchInput so they survive open/close cycles.
-     */
-    assign() {
-      this.updater.snapshot();
+    const assign = (): boolean | undefined => {
+      ctx.updater.snapshot();
       const isOpen = !!State.get("searchOpen");
-      this.updater.set({
+      ctx.updater.set({
         isOpen,
         modalClass: isOpen ? "modal modal-open" : "modal",
       });
-      return this.updater.altered();
-    },
+      return ctx.updater.altered();
+    };
 
-    render() {
-      // observeState triggers render (not assign), so re-read State here
-      // to refresh isOpen before digesting.
-      this.assign?.();
-      this.updater.digest();
-      if (this.updater.get("isOpen")) {
-        // Focus the input after the modal opens.
+    // Initial assign
+    assign();
+
+    // Use renderMethod to hook into the framework's render cycle.
+    // observeState triggers render; we re-read State and focus input here.
+    ctx.renderMethod = () => {
+      assign();
+      ctx.updater.digest();
+      if (ctx.updater.get("isOpen")) {
         requestAnimationFrame(() => {
           const input = document.getElementById(
             "docs-search-input",
@@ -74,66 +57,7 @@ export function createSearchView(View: typeof ViewClass, template: unknown) {
           input?.focus();
         });
       }
-    },
-
-    "onModalClick<click>"(e: { eventTarget?: HTMLElement }) {
-      // Only close when the click lands on the modal backdrop itself,
-      // not on content inside the modal-box (input, results, etc.).
-      if (e.eventTarget?.id === "docs-search-modal") {
-        State.set({ searchOpen: false }).digest();
-      }
-    },
-
-    "noop<click>"() {
-      // Prevent click propagation from modal-box to modal overlay.
-    },
-
-    async "onSearchInput<input>"(this: SearchViewThis, e: Event) {
-      const input = e.target as HTMLInputElement;
-      const query = input?.value || "";
-
-      if (!query.trim()) {
-        this.updater
-          .set({ results: [], hasSearched: false, query: "" })
-          .digest();
-        return;
-      }
-
-      const mini = await this._ensureMiniSearch();
-
-      let raw: (SearchResult & Partial<SearchEntry>)[] = [];
-      if (mini) {
-        try {
-          raw = mini.search(query);
-        } catch {
-          raw = [];
-        }
-      }
-
-      const results = raw.map((r) => ({
-        title: r.title || "",
-        link: r.link || "",
-        excerpt: r.excerpt || "",
-        highlightedTitle: highlightMatch(r.title || "", query),
-        highlightedExcerpt: highlightMatch(r.excerpt || "", query),
-      }));
-
-      this.updater.set({ results, hasSearched: true, query }).digest();
-    },
-
-    "goToResult<click>"(e: Event) {
-      // The click may land on a child element (<p>, <mark>) inside the <a>,
-      // so walk up to find the element carrying data-href.
-      let target = e.target as HTMLElement | null;
-      while (target && !target.dataset["href"]) {
-        target = target.parentElement;
-      }
-      const href = target?.dataset["href"];
-      if (href) {
-        Router.to(href);
-        State.set({ searchOpen: false }).digest();
-      }
-    },
+    };
 
     /**
      * Lazily build the MiniSearch instance. The search index is built on
@@ -141,8 +65,8 @@ export function createSearchView(View: typeof ViewClass, template: unknown) {
      * and extracting pageData — no build-time searchIndex serialization.
      * MiniSearch requires a unique `id` field, synthesized from array index.
      */
-    async _ensureMiniSearch(this: SearchViewThis): Promise<MiniSearch | null> {
-      if (this._mini) return this._mini;
+    async function ensureMiniSearch(): Promise<MiniSearch | null> {
+      if (mini) return mini;
       const getSearchIndex = State.get("getSearchIndex") as
         | (() => Promise<
             {
@@ -161,7 +85,7 @@ export function createSearchView(View: typeof ViewClass, template: unknown) {
         ...entry,
         id: i,
       }));
-      this._mini = new MiniSearch({
+      mini = new MiniSearch({
         fields: ["title", "headings", "excerpt"],
         storeFields: ["title", "link", "headings", "excerpt"],
         searchOptions: {
@@ -170,9 +94,71 @@ export function createSearchView(View: typeof ViewClass, template: unknown) {
           boost: { title: 2, headings: 1.5 },
         },
       });
-      this._mini.addAll(docs);
-      return this._mini;
-    },
+      mini.addAll(docs);
+      return mini;
+    }
+
+    return {
+      template,
+      assign,
+      events: {
+        "onModalClick<click>": (e: { eventTarget?: HTMLElement }) => {
+          // Only close when the click lands on the modal backdrop itself,
+          // not on content inside the modal-box (input, results, etc.).
+          if (e.eventTarget?.id === "docs-search-modal") {
+            State.set({ searchOpen: false }).digest();
+          }
+        },
+        "noop<click>": () => {
+          // Prevent click propagation from modal-box to modal overlay.
+        },
+        "onSearchInput<input>": async (e: Event) => {
+          const input = e.target as HTMLInputElement;
+          const query = input?.value || "";
+
+          if (!query.trim()) {
+            ctx.updater
+              .set({ results: [], hasSearched: false, query: "" })
+              .digest();
+            return;
+          }
+
+          const m = await ensureMiniSearch();
+
+          let raw: (SearchResult & Partial<SearchEntry>)[] = [];
+          if (m) {
+            try {
+              raw = m.search(query);
+            } catch {
+              raw = [];
+            }
+          }
+
+          const results = raw.map((r) => ({
+            title: r.title || "",
+            link: r.link || "",
+            excerpt: r.excerpt || "",
+            highlightedTitle: highlightMatch(r.title || "", query),
+            highlightedExcerpt: highlightMatch(r.excerpt || "", query),
+          }));
+
+          ctx.updater.set({ results, hasSearched: true, query }).digest();
+        },
+        "goToResult<click>": (e: Event) => {
+          // The click may land on a child element (<p>, <mark>) inside the <a>,
+          // so walk up to find the element carrying data-href.
+          let target = e.target as HTMLElement | null;
+          while (target && !target.dataset["href"]) {
+            target = target.parentElement;
+          }
+          const href = target?.dataset["href"];
+          if (href) {
+            Router.to(href);
+            State.set({ searchOpen: false }).digest();
+          }
+        },
+      },
+    };
   });
 }
 

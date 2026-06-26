@@ -6,11 +6,9 @@
   "scripts": {
     "dev": "vite",
     "dev:webpack": "webpack serve --mode development",
-    "dev:rspack": "rspack serve",
     "dev:rsbuild": "rsbuild dev",
     "build": "vite build",
     "build:webpack": "webpack --mode production --config webpack.config.js",
-    "build:rspack": "rspack build",
     "build:rsbuild": "rsbuild build",
     "preview": "vite preview",
     "format": "prettier -w ./ --experimental-cli"
@@ -21,9 +19,6 @@
   "devDependencies": {
     "@module-federation/runtime-tools": "^2.6.0",
     "@rsbuild/core": "^2.0.15",
-    "@rspack/cli": "^2.0.8",
-    "@rspack/core": "^2.0.8",
-    "@rspack/dev-server": "^2.1.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "catalog:",
     "autoprefixer": "^10.5.1",

@@ -21,14 +21,14 @@ import type { FrameworkConfig as LarkMvcFrameworkConfig } from "@lark.js/mvc";
 
 export {
   Framework,
-  View,
+  defineView,
   State,
   Router,
   registerViewClass,
-  create,
+  createStore,
   computed,
   bindStore,
-  Service,
+  createService,
   useUrlState,
 } from "@lark.js/mvc";
 
@@ -36,7 +36,7 @@ export type FrameworkConfig = Omit<LarkMvcFrameworkConfig, "routeMode"> & {
   routeMode: "history";
 };
 
-export type { ViewInterface } from "@lark.js/mvc";
+export type { ViewCtx, ViewSetup } from "@lark.js/mvc";
 
 // ============================================================
 // @lark.js/docs types (browser-safe)

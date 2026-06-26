@@ -66,18 +66,27 @@ let callScheduled = false;
 //
 // In short: yield() = cooperative pause within a task (what we need);
 //           postTask() = schedule a new task (wrong abstraction for us).
-const schedulerYield: (() => Promise<void>) | undefined = (() => {
+
+function getSchedulerYield(): (() => Promise<void>) | undefined {
   try {
-    // @ts-ignore
-    if (typeof globalThis?.scheduler?.yield === "function") {
-      // @ts-ignore
-      return globalThis.scheduler.yield.bind(globalThis.scheduler);
+    const scheduler = Reflect.get(globalThis, "scheduler");
+    if (
+      scheduler &&
+      typeof scheduler === "object" &&
+      typeof Reflect.get(scheduler, "yield") === "function"
+    ) {
+      const yieldFn = Reflect.get(scheduler, "yield");
+      if (typeof yieldFn === "function") {
+        return yieldFn.bind(scheduler);
+      }
     }
   } catch {
     // scheduler API not available
   }
   return undefined;
-})();
+}
+
+const schedulerYield: (() => Promise<void>) | undefined = getSchedulerYield();
 
 /** Process queued tasks in time-sliced batches.
  *
@@ -163,7 +172,9 @@ export function callFunction<T extends unknown[]>(
   fn: (...args: T) => void,
   args: T,
 ): void {
-  callQueue.push(() => fn(...args));
+  callQueue.push(() => {
+    fn(...args);
+  });
   if (!callScheduled) {
     scheduleNextChunk();
   }
@@ -190,7 +201,7 @@ export function asRecord(value: unknown): Record<string, unknown> {
   if (isRecord(value)) {
     return value;
   }
-  console.error("fallback to Object.fromEntries, even an empty object {}.");
+  // Fallback for non-record values: convert arrays to objects, else empty
   if (Array.isArray(value)) {
     return Object.fromEntries(value.entries());
   }
@@ -215,11 +226,6 @@ export function isPrimitive(value: unknown): boolean {
 let _localCounter = 0;
 export function generateId(prefix?: string): string {
   return (prefix || "lark_") + _localCounter++;
-}
-
-/** Sync local counter with global counter */
-export function syncCounter(val: number): void {
-  _localCounter = val;
 }
 
 export function noop(): void {
@@ -258,7 +264,7 @@ export function assign<T extends object>(
     if (source) {
       for (const p in source) {
         if (hasOwnProperty(source, p)) {
-          target[p] = source[p] as T[Extract<keyof T, string>];
+          Reflect.set(target, p, source[p]);
         }
       }
     }
@@ -337,16 +343,16 @@ export function translateData(data: object, value: unknown): unknown {
   if (isPrimitive(value)) {
     const prop = String(value);
     if (isRefToken(prop) && hasOwnProperty(data, prop)) {
-      return (data as Record<string, unknown>)[prop];
+      return Reflect.get(data, prop);
     }
     return value;
   }
   if (isPlainObject(value) || Array.isArray(value)) {
     for (const p in value) {
       if (hasOwnProperty(value, p)) {
-        const val = value[p as keyof typeof value];
+        const val = Reflect.get(value, p);
         const newVal = translateData(data, val);
-        (value as Record<string, unknown>)[p] = newVal;
+        Reflect.set(value, p, newVal);
       }
     }
     return value;

@@ -42,18 +42,30 @@ export default {
         exclude: /node_modules/,
       },
       {
-        test: /\.css$/,
+        test: /\.module\.css$/,
         use: [
           "style-loader",
-          "css-loader",
           {
-            loader: "postcss-loader",
+            loader: "css-loader",
             options: {
-              postcssOptions: {
-                config: "./postcss.config.js",
+              importLoaders: 1,
+              modules: {
+                namedExport: false,
+                exportLocalsConvention: "asIs",
+                localIdentName: "[name]__[local]--[hash:base64:5]",
               },
             },
           },
+          "postcss-loader",
+        ],
+      },
+      {
+        test: /\.css$/,
+        exclude: /\.module\.css$/,
+        use: [
+          "style-loader",
+          "css-loader",
+          "postcss-loader",
         ],
       },
       // Lark template processing - compiles .html to template functions

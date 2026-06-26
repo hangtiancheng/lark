@@ -1,12 +1,13 @@
 /**
  * Lark framework type definitions.
- * All shared types are defined here to eliminate type cheats across modules.
+ * All shared types are defined here to provide a single source of truth
+ * for module interfaces and to enforce type safety across the framework.
  *
  * Lark is a lightweight MVC frontend framework that provides:
- * - View: base view class with extend/merge inheritance and mixin support
- * - Router: hash-based two-phase route confirmation
+ * - View: functional view system via defineView() + ViewCtx + Hooks
+ * - Router: history/hash two-phase route confirmation
  * - State: simple cross-view observable singleton (recommended for simple cases)
- * - Store: zustand-aligned state management with create/getState/setState/subscribe
+ * - Store: zustand-aligned state management with createStore/getState/setState/subscribe
  *   (recommended for complex cases)
  * - Service: API request management with caching, queuing, and deduplication
  * - Frame: view frame managing view mount/unmount lifecycle
@@ -54,49 +55,6 @@ export interface CacheOptions<T> {
   onRemove?: (key: string) => void;
   /** Comparator for sorting entries */
   sortComparator?: (a: CacheEntry<T>, b: CacheEntry<T>) => number;
-}
-
-/**
- * Cache interface providing LFU (Least Frequently Used) cache management.
- * Cache keys use a special prefix internally for namespace isolation.
- */
-export interface CacheInterface<T = unknown> {
-  /**
-   * Set a cache resource. If the key exists, updates the value and increments frequency.
-   * Triggers LFU eviction when cache entries exceed capacity (maxSize + bufferSize).
-   * @param key Unique identifier for the cached resource
-   * @param resource The resource to cache
-   */
-  set(key: string, resource: T): void;
-  /**
-   * Get a cached resource. Access increments frequency count and timestamp for LFU ranking.
-   * Returns undefined if the key does not exist.
-   * @param key Cache resource key
-   */
-  get(key: string): T | undefined;
-  /**
-   * Remove a resource from cache by key. Triggers onRemove callback on deletion.
-   * @param key Cache resource key to remove
-   */
-  del(key: string): void;
-  /**
-   * Check if cache contains a resource for the given key.
-   * @param key Cache resource key
-   */
-  has(key: string): boolean;
-  /**
-   * Iterate over all cached resource values.
-   * @param callback Iteration callback receiving the cached value (may be undefined)
-   */
-  forEach(callback: (value: T | undefined) => void): void;
-  /**
-   * Number of cache entries.
-   */
-  readonly size: number;
-  /**
-   * Clear all cache entries. Triggers onRemove callback for each deleted entry.
-   */
-  clear(): void;
 }
 
 // ============================================================
@@ -231,7 +189,7 @@ export interface DomRef {
   /** ID update list: [element, newId][] */
   idUpdates: [Element, string][];
   /** Views that need post-processing */
-  views: ViewInterface[];
+  views: ViewCtx[];
   /** DOM operation list: [opCode, parent, newChild?, oldChild?][] */
   domOps: DomOp[];
   /** Whether anything changed */
@@ -301,7 +259,7 @@ export interface VDomRef {
   /** View ID (for placeholder replacement) */
   viewId: string;
   /** Sub-views that need re-rendering after diff */
-  viewRenders: ViewInterface[];
+  viewRenders: ViewCtx[];
   /** Deferred DOM property assignments: [element, propName, value][] */
   nodeProps: [Element, string, unknown][];
   /** Pending async operation count */
@@ -334,7 +292,7 @@ export type VDomTemplate = (
 // ============================== VDOM ==============================
 
 // ============================================================
-// Frame internal types (replaces as-unknown-as-Record cheats)
+// Frame internal types
 // ============================================================
 
 export interface FrameInvokeEntry {
@@ -348,25 +306,7 @@ export interface FrameInvokeEntry {
   removed?: boolean;
 }
 
-// ============================================================
-// Mixin function types
-// ============================================================
-
-/** Mixin event handler with internal merge marker and handler list */
-export interface MixinEventHandler extends AnyFunc {
-  /** Merged handler list */
-  handlerList?: AnyFunc[];
-  /** Mixin marker: 1 = this is a mixin function */
-  marker?: number;
-}
-
-/** View event selector map entry: handler name list with selector presence tracking */
-export interface ViewEventSelectorEntry {
-  /** Selector name list */
-  selectors: string[];
-  /** Index signature for checking if selector is already registered */
-  [selector: string]: unknown;
-}
+// Event handler types are inline in the events map returned by ViewSetup
 
 // ============================================================
 // View instance types
@@ -400,18 +340,7 @@ export interface ViewResourceEntry {
   destroyOnRender: boolean;
 }
 
-export interface ViewGlobalEventEntry {
-  /** Handler function */
-  handler: AnyFunc;
-  /** Bound handler wrapper (for removeEventListener) */
-  boundHandler?: AnyFunc;
-  /** DOM element (window/document) */
-  element: EventTarget;
-  /** Event name */
-  eventName: string;
-  /** Modifiers */
-  modifiers: Record<string, boolean>;
-}
+// Global event listeners are managed via closures in registerGlobalEvent
 /**
  * View configuration for listening to URL changes.
  * Used as object parameter for `observeLocation()` method.
@@ -432,7 +361,18 @@ export interface ViewObserveLocation {
  * Supports two-phase route confirmation mechanism: change (can reject) → changed.
  * Hash-based implementation using #! as default hash prefix.
  */
-export interface RouterInterface extends EventEmitterInterface<RouterInterface> {
+export interface RouterApi {
+  /** Bind event listener */
+  on(event: string, handler: (e?: ChangeEvent) => void): this;
+  /** Unbind event listener */
+  off(event: string, handler?: AnyFunc): this;
+  /** Fire event */
+  fire(
+    event: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): this;
   /**
    * Parse href into Location object.
    * Parses query and hash sections of href, returns structured routing information.
@@ -506,7 +446,7 @@ export interface ServiceEvent extends ChangeEvent {
   /**
    * Data payload object carrying this request's data.
    */
-  readonly payload: PayloadInterface;
+  readonly payload: PayloadApi;
   /**
    * Error object, present if request throws an error, otherwise null.
    */
@@ -523,359 +463,219 @@ export interface ViewEvent extends ChangeEvent {
   readonly id: string;
 }
 /**
- * Frame static event interface carrying associated Frame instance.
+ * Frame static event interface carrying associated Frame object.
  * Carried in Frame's add/remove static events.
  */
 export interface FrameStaticEvent extends ChangeEvent {
   /**
-   * Associated Frame instance object.
+   * Associated Frame object.
    */
-  readonly frame: FrameInterface;
+  readonly frame: FrameObj;
 }
 
-export interface ViewInterface extends EventEmitterInterface<ViewInterface> {
-  /**
-   * View ID (same as owner frame ID),
-   * DOM node ID where current view resides.
-   */
-  id: string;
-  /**
-   * Owner frame,
-   * Frame instance holding current view.
-   * May be numeric placeholder 0 before view initialization completes.
-   * TODO: Migrate numeric placeholder 0 to undefined or null
-   */
-  owner: FrameInterface | number;
-  /**
-   * Updater instance managing view data binding and DOM rendering.
-   */
-  updater: UpdaterInterface;
-  /**
-   * Signature: > 0 means active, incremented on render, 0 = destroyed */
-  signature: number;
-  /** Whether rendered at least once */
-  rendered?: boolean;
-  /**
-   * View template function. Receives data + viewId + refData and a set of
-   * encoder helpers wired in by the Updater, and returns the rendered HTML.
-   */
-  template?: ViewTemplate | VDomTemplate;
-  /**
-   * Mixin object array for extending view functionality.
-   * Framework merges properties and methods from mixins into view prototype.
-   * Event method conflicts are automatically merged into sequential calls.
-   */
-  mixins?: Record<string, unknown>[];
-  /** Location observation config */
-  locationObserved: ViewLocationObserved;
-  /** Observed state keys */
-  observedStateKeys?: string[];
-  /** Resource map */
-  resources: Record<string, ViewResourceEntry>;
-  /** Selector event map: eventType -> selector list */
-  eventSelectorMap: Record<string, ViewEventSelectorEntry>;
-  /** Event object map: eventType -> bitmask */
-  eventObjectMap: Record<string, number>;
-  /** Global event list */
-  globalEventList: ViewGlobalEventEntry[];
-  /** Whether endUpdate has been called (1 = pending) */
-  endUpdatePending?: number;
-  /** Last rendered VDOM tree (only used when virtualDom is enabled) */
-  vdom?: VDomNode;
-  /** Render method (wrapped) */
-  render(): void;
-  /**
-   * Init method called after view is mounted.
-   * Used for initialization logic.
-   * Framework passes two arguments during actual invocation:
-   * - initParams: initialization parameter object
-   * - options: contains `node: Element` and `deep: boolean`
-   */
-  init(): void;
-  /** Wrapped render method */
-  renderMethod?: AnyFunc;
-  /** endUpdate pending flag */
-  endUpdatePendingFlag?: number;
-  // View lifecycle methods
-  /**
-   * Notify view that HTML update is about to begin for a specific region.
-   * Framework unmounts child Frames in that region to prevent DOM diff from operating on unmounted nodes.
-   * @param id Region node ID to update, defaults to current view
-   */
-  beginUpdate: (id?: string) => void;
-  /**
-   * Notify view that HTML update has completed for a specific region.
-   * Framework mounts child Frames in that region and executes deferred invoke queue.
-   * @param id Region node ID that finished updating, defaults to current view
-   * @param inner Whether this is an internal framework call
-   */
-  endUpdate: (id?: string, inner?: boolean) => void;
-  /**
-   * Wrap async callback to ensure it only executes if view is not destroyed.
-   * In SPAs, async callbacks (e.g., setTimeout, AJAX) may execute after view is destroyed,
-   * causing errors when manipulating DOM.
-   * After wrapping with `wrapAsync`, framework automatically checks view state and only executes callback if view is alive.
-   * @param fn Callback function to wrap
-   * @param context `this` binding for callback execution, defaults to view itself
-   */
-  wrapAsync: <Fn extends AnyFunc>(
-    fn: Fn,
-    context?: unknown,
-  ) => (...args: Parameters<Fn>) => ReturnType<Fn> | undefined;
-  /**
-   * Listen for URL bar changes, supports two calling modes:
-   * - `observeLocation("page,size", true)` pass parameter keys (comma-separated) and whether to observe path
-   * - `observeLocation({ params: ["page", "size"], path: true })` pass config object
-   * View automatically re-renders when observed parameters or path change.
-   * @param params Parameter keys to observe, supports comma-separated string, string array, or config object
-   * @param observePath Whether to observe path changes
-   */
-  observeLocation: (
-    params: string | string[] | Record<string, unknown>,
-    observePath?: boolean,
-  ) => void;
-  /**
-   * Observe data changes for specified keys in State.
-   * View automatically re-renders when observed keys are updated via `State.digest()`.
-   * @param keys Comma-separated key string or string array
-   */
-  observeState: (keys: string | string[]) => void;
-  /**
-   * Hand over resource to current view for lifecycle management.
-   * Framework automatically calls resource's destroy method at appropriate time when view unmounts or re-renders.
-   * @param key Unique key for managed resource; if key already manages different resource, old resource is auto-destroyed
-   * @param resource Resource object to manage
-   * @param destroyOnRender Whether to auto-destroy resource when render method is called; Service instances typically need auto-destroy on render
-   */
-  capture: (
-    key: string,
-    resource?: unknown,
-    destroyOnRender?: boolean,
-  ) => unknown;
-  /**
-   * Release managed resource, returns the resource object regardless of destruction state.
-   * @param key Managed resource key
-   * @param destroy Whether to destroy resource (call its destroy method), defaults to true
-   */
-  release: (key: string, destroy?: boolean) => unknown;
-  /**
-   * Set leave prompt, e.g., when form has unsaved changes.
-   * Can prompt user to choose between leaving directly or saving before leaving.
-   * Framework calls condition function during route changes (change phase) and page unloads (beforeunload).
-   * Navigation is prevented if condition returns true.
-   * @param message Leave prompt message
-   * @param condition Function to determine whether to show leave prompt; returns true to prevent navigation
-   */
-  leaveTip: (message: string, condition: () => boolean) => void;
-  /**
-   * Assign method for incremental DOM updates.
-   * Framework uses DOM diff (in-memory real DOM diff) to update only changed portions,
-   * automatically handling child view mounting and unmounting.
-   * Returns true if DOM changed, undefined if no change.
-   * @param options Incremental update config, used internally by framework
-   */
-  assign?: (options?: unknown) => boolean | undefined;
-  /**
-   * Triggered when view is destroyed.
-   */
-  onDestroy?: (e?: ChangeEvent) => void;
-  /**
-   * Triggered when render method is called.
-   */
-  onRender?: (e?: ChangeEvent) => void;
-  /**
-   * Inherit View to create new view subclass.
-   * Supports props.ctor constructor, props.mixins, and event methods (e.g., `'name<click>'`).
-   * @param props Prototype object containing init, render, and other methods
-   * @param statics Object of static methods or properties
-   */
-  extend?<TProps = object, TStatics = object>(
-    props?: ExtendThisType<TProps & ViewInterface>,
-    statics?: TStatics,
-  ): ViewInterface & TStatics;
-  /**
-   * Merge multiple mixin objects into View prototype.
-   * Existing properties are not overwritten; event method conflicts are automatically merged into sequential calls.
-   * @param args Mixin object list
-   */
-  merge?(...args: ExtendThisType<ViewInterface>[]): ViewInterface;
-
-  navigate?: (path: string, params?: Record<string, unknown>) => void;
-}
-
-type ExtendThisType<T> = Record<string, unknown> & ThisType<T>;
+// ============================================================
+// Functional API interfaces (replace class-based interfaces above)
+// ============================================================
 
 /**
- * Minimal Frame interface needed by View.
- * Frame (View Frame) is a view container managing view mount, unmount, and parent-child hierarchy.
- * Each Frame corresponds to one DOM node, associated with view via v-lark attribute.
+ * Functional emitter API.
+ *
+ * Returned by `createEmitter()`. No `this` binding — handlers are called
+ * with `null` context. Methods return the API object for chaining.
  */
-export interface FrameInterface extends EventEmitterInterface<FrameInterface> {
-  /**
-   * DOM node ID where Frame resides.
-   */
-  id: string;
-  /**
-   * View module path currently rendered by this Frame, e.g., "app/views/default".
-   */
-  readonly viewPath?: string;
-  /**
-   * Parent Frame ID, undefined if this is a top-level Frame.
-   */
-  readonly parentId: string | undefined;
-  /**
-   * Mount view to current Frame.
-   * Framework loads view class, creates instance, and renders view.
-   * @param viewPath View module path, e.g., "app/views/default"
-   * @param viewInitParams Parameters passed during view initialization, accessible in view's init method
-   */
-  mountView(viewPath: string, viewInitParams?: Record<string, unknown>): void;
-  /**
-   * Unmount view from current Frame, triggers view's destroy event and cleans up resources.
-   */
-  unmountView(): void;
-  /**
-   * Mount child Frame on specified DOM node and render view.
-   * @param frameId DOM node ID for rendering
-   * @param viewPath View path
-   * @param viewInitParams Parameters passed during view initialization
-   */
-  mountFrame: (
-    frameId: string,
-    viewPath: string,
-    viewInitParams?: Record<string, unknown>,
-  ) => FrameInterface;
-  /**
-   * Unmount child Frame from specified DOM node.
-   * @param id DOM node ID, defaults to current Frame if omitted
-   */
-  unmountFrame: (id?: string) => void;
-  /**
-   * Render all child views under specified node (scans v-lark attributes and mounts).
-   * @param zoneId DOM node ID, defaults to current Frame
-   */
-  mountZone: (zoneId?: string) => void;
-  /**
-   * Unmount all child views under specified node.
-   * @param zoneId DOM node ID, defaults to current Frame
-   */
-  unmountZone: (zoneId?: string) => void;
-  /**
-   * Get ancestor Frame, defaults to parent Frame (level=1).
-   * @param level Levels to traverse upward, defaults to 1
-   */
-  parent(level?: number): FrameInterface | undefined;
-  /**
-   * Invoke specified method on view in current Frame.
-   * If view is not rendered yet, invocation is deferred until render completes.
-   * @param name Method name
-   * @param args Arguments array passed to method
-   */
-  invoke: (name: string, args?: unknown[]) => unknown;
-  /**
-   * Triggered when all descendant views have been created.
-   */
-  onCreated?: (e?: ChangeEvent) => void;
-  /**
-   * Triggered when descendant views change.
-   */
-  onAlter?: (e?: ChangeEvent) => void;
-  /**
-   * Get Frame instance by ID, returns undefined if not exists.
-   * @param id Frame's DOM node ID
-   */
-  get?(id: string): FrameInterface | undefined;
-  /**
-   * Get all Frame instances map for current page.
-   */
-  getAll?(): Map<string, FrameInterface>;
-  /**
-   * Triggered when Frame is created and registered.
-   */
-  onAdd?: (e?: FrameStaticEvent) => void;
-  /**
-   * Triggered when Frame is destroyed and unregistered.
-   */
-  onRemove?: (e?: FrameStaticEvent) => void;
-  view: ViewInterface | undefined;
-  /**
-   * Get ID array of all child Frames for current Frame.
-   * Note: ID positions in array are not fixed.
-   */
-  children: () => string[];
-  invokeList: FrameInvokeEntry[];
+export interface EmitterApi<T = unknown> {
+  on(name: string, fn: (e?: ChangeEvent) => void): EmitterApi<T>;
+  off(name: string, fn?: AnyFunc): EmitterApi<T>;
+  fire(
+    name: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): EmitterApi<T>;
 }
 
 /**
- * Minimal Updater interface needed by View.
- * View updater responsible for view data binding and data/page updates.
- * Each View instance has an Updater, triggering data/page updates via set/digest.
- * Internally executes complete pipeline: template rendering → DOM diff (in-memory real DOM diff) → DOM operations.
+ * Functional cache API.
+ *
+ * Returned by `createCache()`.
  */
-export interface UpdaterInterface {
-  /**
-   * Get data that has been set.
-   * Returns complete data object if key is omitted, otherwise returns value for specified key.
-   * @param key Data key name, omitted returns complete data object
-   */
+export interface CacheApi<T = unknown> {
+  set(key: string, resource: T): void;
+  get(key: string): T | undefined;
+  del(key: string): void;
+  has(key: string): boolean;
+  clear(): void;
+  forEach(callback: (value: T | undefined) => void): void;
+  getSize(): number;
+}
+
+/**
+ * Functional updater API.
+ *
+ * Returned by `createUpdater()`. `refData` is a property.
+ * `set()` returns the API object for chaining.
+ */
+export interface UpdaterApi {
   get: <T = unknown>(key?: string) => T;
-  /**
-   * Set data and track changed keys.
-   * After set, must explicitly call `digest()` to commit changes to page.
-   * Returns this for chaining.
-   * @param data Data object, e.g., `{ a: 1, b: 2 }`
-   * @param excludes Set of keys to exclude from change tracking
-   */
   set: (
     data: Record<string, unknown>,
     excludes?: ReadonlySet<string>,
-  ) => UpdaterInterface;
-  /**
-   * Trigger page re-render.
-   * After set, must explicitly call `digest()` to commit changes to page.
-   * Internally executes complete pipeline: template rendering → DOM diff (in-memory real DOM diff) → DOM operations.
-   * @param data Optional data object, if provided calls `set()` first to set data
-   * @param excludes Set of keys to exclude from change tracking
-   * @param callback Callback executed after render completes
-   */
+  ) => UpdaterApi;
   digest: (
     data?: Record<string, unknown>,
     excludes?: ReadonlySet<string>,
     callback?: () => void,
   ) => void;
-  /**
-   * Save a snapshot of current data for altered() detection.
-   * Works with `altered()` method to detect whether data has changed.
-   */
-  snapshot: () => UpdaterInterface;
-  /**
-   * Check if data has changed since last snapshot.
-   * Returns undefined if `snapshot()` has not been called.
-   */
+  forceDigest: () => void;
+  snapshot: () => UpdaterApi;
   altered: () => boolean | undefined;
-  /** Ref data for template rendering */
   refData: Record<string, unknown>;
-  /**
-   * Translate raw reference data starting with @ symbol in template.
-   * Replaces `{{@refData}}` with actual value from refData.
-   * @param data Reference data to translate
-   */
-  translate(data: unknown): unknown;
-  /**
-   * Parse expression string.
-   * @param expr Expression string to parse
-   */
-  parse(expr: string): unknown;
-  /**
-   * Force a full re-render, bypassing change detection.
-   *
-   * Marks all current data keys as changed and triggers a digest cycle.
-   * Used by HMR to re-render a view after its template has been hot-swapped,
-   * ensuring the new template is fully applied even though the data hasn't
-   * changed.
-   */
-  forceDigest(): void;
+  translate: (data: unknown) => unknown;
+  parse: (expr: string) => unknown;
+  getChangedKeys: () => ReadonlySet<string>;
 }
+
+/**
+ * Mutable reference cell — used for `signature` and `rendered` on `ViewCtx`.
+ * Wraps mutable state in a `Ref<T>` to avoid getter/setter syntax.
+ */
+export interface Ref<T> {
+  value: T;
+}
+
+/**
+ * Functional view context.
+ *
+ * Passed as the first argument to every view setup function. Provides
+ * framework APIs without `this` binding.
+ */
+export interface ViewCtx {
+  /** View ID (same as owner frame ID) */
+  id: string;
+  /** Owner frame reference */
+  owner: FrameObj;
+  /** Updater API for data binding */
+  updater: UpdaterApi;
+  /** Signature: >0 means active, incremented on render, 0 = destroyed */
+  signature: Ref<number>;
+  /** Whether rendered at least once */
+  rendered: Ref<boolean>;
+  /** View template function (accessed via getTemplate/setTemplate) */
+  getTemplate(): ViewTemplate | VDomTemplate | undefined;
+  setTemplate(v: ViewTemplate | VDomTemplate | undefined): void;
+  /** Location observation config */
+  locationObserved: ViewLocationObserved;
+  /** Observed state keys (accessed via getObservedStateKeys/setObservedStateKeys) */
+  getObservedStateKeys(): string[] | undefined;
+  setObservedStateKeys(v: string[] | undefined): void;
+  /** Resource map */
+  resources: Record<string, ViewResourceEntry>;
+  /** Internal emitter for lifecycle events ("destroy", "render", etc.) */
+  emitter: EmitterApi;
+  /** EndUpdate pending flag (accessed via getEndUpdatePending/setEndUpdatePending) */
+  getEndUpdatePending(): number | undefined;
+  setEndUpdatePending(v: number | undefined): void;
+  /** Last rendered VDOM tree (only used when virtualDom is enabled) */
+  vdom?: VDomNode;
+  /** Wrapped render method */
+  renderMethod?: AnyFunc;
+  /** Event handlers returned by setup (accessed via getEvents/setEvents) */
+  getEvents(): Record<string, AnyFunc> | undefined;
+  setEvents(v: Record<string, AnyFunc> | undefined): void;
+  /** Cleanup functions registered by useEffect */
+  cleanups: Array<() => void>;
+  /** assign function returned by setup (accessed via getAssign/setAssign) */
+  getAssign(): ((options?: unknown) => boolean | undefined) | undefined;
+  setAssign(v: ((options?: unknown) => boolean | undefined) | undefined): void;
+
+  // Lifecycle / framework API methods
+  render(): void;
+  init(params?: unknown): void;
+  beginUpdate(id?: string): void;
+  endUpdate(id?: string, inner?: boolean): void;
+  wrapAsync<Fn extends AnyFunc>(
+    fn: Fn,
+    context?: unknown,
+  ): (...args: Parameters<Fn>) => ReturnType<Fn> | undefined;
+  observeLocation(
+    params: string | string[] | Record<string, unknown>,
+    observePath?: boolean,
+  ): void;
+  observeState(keys: string | string[]): void;
+  capture(key: string, resource?: unknown, destroyOnRender?: boolean): unknown;
+  release(key: string, destroy?: boolean): unknown;
+  leaveTip(message: string, condition: () => boolean): void;
+  fire(
+    event: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): void;
+  on(event: string, handler: AnyFunc): () => void;
+  off(event: string, handler?: AnyFunc): void;
+}
+
+/**
+ * Functional frame object.
+ *
+ * Created by `createFrame()`. Uses `ViewCtx` for its view reference.
+ */
+export interface FrameObj {
+  id: string;
+  /** View path (accessed via getViewPath) */
+  getViewPath(): string | undefined;
+  readonly parentId: string | undefined;
+  view: ViewCtx | undefined;
+  invokeList: FrameInvokeEntry[];
+  signature: number;
+  destroyed: number;
+  hasAltered: number;
+  originalTemplate?: string;
+  holdFireCreated: number;
+  childrenCreated: number;
+  childrenAlter: number;
+  childrenMap: Record<string, string>;
+  childrenCount: number;
+  readyCount: number;
+  readyMap: Set<string>;
+  emitter: EmitterApi;
+  /** Dispatcher visit tag (set during dispatcherUpdate walk) */
+  dispatcherUpdateTag?: number;
+
+  mountView(viewPath: string, viewInitParams?: Record<string, unknown>): void;
+  unmountView(): void;
+  mountFrame(
+    frameId: string,
+    viewPath: string,
+    viewInitParams?: Record<string, unknown>,
+  ): FrameObj;
+  unmountFrame(id?: string): void;
+  mountZone(zoneId?: string): void;
+  unmountZone(zoneId?: string): void;
+  parent(level?: number): FrameObj | undefined;
+  invoke(name: string, args?: unknown[]): unknown;
+  children(): string[];
+  on(event: string, handler: AnyFunc): FrameObj;
+  off(event: string, handler?: AnyFunc): FrameObj;
+  fire(event: string, data?: Record<string, unknown>): FrameObj;
+}
+
+/**
+ * View setup function — the functional API for defining views.
+ *
+ * Called once on mount with a `ViewCtx` and optional init params.
+ * Returns a descriptor with `template`, `events`, and optional `assign`.
+ */
+export type ViewSetup = (
+  ctx: ViewCtx,
+  params?: unknown,
+) => {
+  template?: ViewTemplate | VDomTemplate;
+  events?: Record<string, AnyFunc>;
+  assign?: (options?: unknown) => boolean | undefined;
+};
+
+// defineView returns a ViewSetup function directly — no wrapper class needed
 
 // ============================================================
 // Service types
@@ -885,7 +685,7 @@ export interface UpdaterInterface {
  * Data payload interface wrapping API request response data, providing read/write methods.
  * Payload instances are created internally by Service, developers access via all/one/save callbacks.
  */
-export interface PayloadInterface {
+export interface PayloadApi {
   /**
    * Get data from Payload by key.
    * @param key Data key name
@@ -903,7 +703,7 @@ export interface PayloadInterface {
   set(
     keyOrData: string | Record<string, unknown> | ServiceMetaEntry,
     value?: unknown,
-  ): PayloadInterface;
+  ): PayloadApi;
   data: Record<string, unknown>;
   cacheInfo?: ServiceCacheInfo;
 }
@@ -924,51 +724,26 @@ export interface ChangeEvent {
 }
 
 /**
- * Event emitter interface providing on/off/fire methods for publish-subscribe pattern.
- */
-export interface EventEmitterInterface<T = unknown> {
-  /**
-   * Bind event listener, calls handler when event is triggered.
-   * @param name Event name
-   * @param fn Event handler function
-   */
-  on(
-    name: string,
-    fn: (this: T, e?: ChangeEvent) => void,
-  ): EventEmitterInterface<T>;
-  /**
-   * Unbind event listener, removes all handlers for event if no handler function is provided.
-   * @param name Event name
-   * @param fn Optional event handler function, if omitted removes all handlers
-   */
-  off(name: string, fn?: AnyFunc): EventEmitterInterface<T>;
-  /**
-   * Fire event, executes all bound handlers, automatically adds type property to event data.
-   * Supports removing all handlers after firing.
-   * Supports executing handler list in reverse order.
-   * @param name Event name
-   * @param data Event data object
-   * @param remove Whether to remove all handlers after firing
-   * @param lastToFirst Whether to execute handler list in reverse order
-   */
-  fire(
-    name: string,
-    data?: Record<string, unknown>,
-    remove?: boolean,
-    lastToFirst?: boolean,
-  ): EventEmitterInterface<T>;
-}
-
-/**
  * Global state interface providing cross-view data sharing and data change notification capabilities.
  * State is a singleton object managing app-level state data via get/set/digest.
- * Supports `clean()` method to create a mixin for automatic cleanup on view destruction.
+ * Supports `clean()` method for automatic cleanup on view destruction.
  *
  * Use State for SIMPLE cross-view data (lightweight shared values: counters,
  * toggles, page title, session info, etc.). For COMPLEX reactive state —
- * handlers, derived data, or fine-grained subscriptions — use `create` instead.
+ * handlers, derived data, or fine-grained subscriptions — use `createStore` instead.
  */
-export interface StateInterface extends EventEmitterInterface<StateInterface> {
+export interface StateApi {
+  /** Bind event listener */
+  on(event: string, handler: (e?: ChangeEvent) => void): this;
+  /** Unbind event listener */
+  off(event: string, handler?: AnyFunc): this;
+  /** Fire event */
+  fire(
+    event: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): this;
   /**
    * Get data from global state, returns complete state object if key is omitted.
    * @param key Data key name, omitted returns complete state object
@@ -982,14 +757,14 @@ export interface StateInterface extends EventEmitterInterface<StateInterface> {
    */
   set(data: Record<string, unknown>, excludes?: ReadonlySet<string>): this;
   /**
-   * Clean data for specified keys in State, can only be used in view's mixins.
-   * For example `mixins: [State.clean("a,b")]`.
-   * Keys registered via this method are automatically cleaned when view is destroyed,
-   * and corresponding key reference counts are decremented; data is auto-deleted when count reaches zero.
+   * Create a cleanup function for state keys on view destroy.
+   * Call inside setup: `State.clean("keys")(ctx)`
    * @param keys Comma-separated key string
-   * @returns Object with ctor method, called by mixins mechanism
+   * @returns Function that registers destroy cleanup on a ctx
    */
-  clean(keys: string): { ctor: AnyFunc };
+  clean(
+    keys: string,
+  ): (ctx: { on: (event: string, handler: () => void) => void }) => void;
   /**
    * Detect data changes and dispatch changed event.
    * After set, must explicitly call `digest()` to dispatch changed event and notify views to update.
@@ -1043,20 +818,18 @@ export interface ServiceMetaEntry {
    */
   cache?: number;
   /**
-   * Before-fetch hook,
+   * Before-fetch hook.
    * Hook function called before request is sent, can process request data.
-   * `this` points to current Payload instance.
    * @param payload Data carrier for current request
    */
-  before?: (this: PayloadInterface, payload: PayloadInterface) => void;
+  before?: (payload: PayloadApi) => void;
   /**
    * After-fetch hook.
    * Hook function called after request succeeds, before data is passed to view.
    * Can process response data in this method.
-   * `this` points to current Payload instance.
    * @param payload Data carrier for current request
    */
-  after?: (this: PayloadInterface, payload: PayloadInterface) => void;
+  after?: (payload: PayloadApi) => void;
   /** Clean keys on destroy,
    * Comma-separated endpoint name string for clearing other endpoints' cache.
    * For example, if an endpoint creates new data,
@@ -1082,7 +855,7 @@ export interface ServiceCacheInfo {
   time: number;
 }
 
-export interface FrameworkInterface {
+export interface FrameworkApi {
   /**
    * Read framework configuration.
    * - Without arguments: returns the complete config object.
@@ -1108,63 +881,30 @@ export interface FrameworkInterface {
    */
   boot(cfg: FrameworkConfig): void;
   /**
-   * Convert array to hash map object.
-   * - Simple array: `Framework.toMap([1,2,3])` => `{1:1, 2:1, 3:1}`
-   * - Object array: `Framework.toMap([{id:20},{id:30}], 'id')` => `{20:{id:20}, 30:{id:30}}`
-   * @param list Source array
-   * @param key Use object's key value from array as map key
-   */
-  toMap<T>(
-    list: T[] | null | undefined,
-    key?: keyof T,
-  ): Record<string, T | number>;
-  /**
-   * Execute methods in try-catch manner, catches exceptions.
-   * Returns return value of last successfully executed method.
-   * @param fns Function or function array
-   * @param args Arguments array passed to functions
-   * @param context `this` binding during function execution
-   * @param configError Optional error callback, receives the caught exception
-   */
-  toTry(
-    fns: AnyFunc | AnyFunc[],
-    args?: unknown[],
-    context?: unknown,
-    configError?: (e: unknown) => void,
-  ): unknown;
-  /**
    * Convert path and params to URL string.
-   * Example: `Framework.toUrl('/xxx/', {a:'b',c:'d'})` => `/xxx/?a=b&c=d`
+   * Example: `Framework.toUri('/xxx/', {a:'b',c:'d'})` => `/xxx/?a=b&c=d`
    * @param path Path string
    * @param params Params object
    * @param keepEmpty Set of keys whose empty values should be preserved
    */
-  toUrl(
+  toUri(
     path: string,
     params?: Record<string, unknown>,
     keepEmpty?: Set<string>,
   ): string;
   /**
    * Parse URL string to path and params object.
-   * Example: `Framework.parseUrl('/xxx/?a=b&c=d')` => `{path:'/xxx/', params:{a:'b',c:'d'}}`
+   * Example: `Framework.parseUri('/xxx/?a=b&c=d')` => `{path:'/xxx/', params:{a:'b',c:'d'}}`
    * @param url URL string
    */
-  parseUrl(url: string): ParsedUri;
+  parseUri(url: string): ParsedUri;
   /**
    * Merge source object properties into target object.
    * @param target Target object
    * @param sources One or more source objects
    */
-  mix<T extends object>(target: T, ...sources: Record<string, unknown>[]): T;
-  /**
-   * Check if object has specified own property (safe hasOwnProperty).
-   * @param owner Object to check, supports undefined/null
-   * @param prop Property key name
-   */
-  has<T extends object>(
-    owner: T | undefined | null,
-    prop: PropertyKey,
-  ): boolean;
+  assign<T extends object>(target: T, ...sources: Record<string, unknown>[]): T;
+
   /**
    * Get enumerable property keys of object as array.
    * @param src Source object
@@ -1176,19 +916,16 @@ export interface FrameworkInterface {
    * @param node Node or node ID
    * @param container Container node or node ID
    */
-  inside(node: HTMLElement | string, container: HTMLElement | string): boolean;
-  /**
-   * Shorthand for document.getElementById.
-   * Returns directly if Element is passed.
-   * @param id Node ID or Element object
-   */
-  node(id: string | Element | null): Element | null;
+  nodeInside(
+    node: HTMLElement | string,
+    container: HTMLElement | string,
+  ): boolean;
   /**
    * Ensure DOM element has an ID, auto-generates one if missing.
    * Returns element's ID.
    * @param node DOM element object
    */
-  nodeId(node: HTMLElement): string;
+  ensureNodeId(node: HTMLElement): string;
   /**
    * Load modules using configured module loader.
    * @param names Module names, supports string or string array
@@ -1199,19 +936,10 @@ export interface FrameworkInterface {
     callback?: (...modules: unknown[]) => void,
   ): void;
   /**
-   * Dynamically inject CSS styles into page. Returns cleanup function to remove injected styles.
-   * Supports single and batch injection.
-   * - `Framework.applyStyle("my-style", "body { color: red; }")` single injection
-   * - `Framework.applyStyle(["style1", "css1", "style2", "css2"])` batch injection
-   * @param styleIdOrPairs Style unique key or [id1, css1, id2, css2, ...] batch array
-   * @param cssText CSS style string (only used when first param is string)
-   */
-  applyStyle(styleIdOrPairs: string | string[], cssText?: string): () => void;
-  /**
    * Generate globally unique identifier (GUID).
    * @param prefix GUID prefix, defaults to "lark-"
    */
-  guid(prefix?: string): string;
+  generateId(prefix?: string): string;
   /**
    * Create async callback validity marker.
    * Returns a check function; if host object is unmarked (e.g., view re-rendered), check function returns false, preventing expired async callbacks from executing.
@@ -1241,7 +969,7 @@ export interface FrameworkInterface {
    * @param eventType Event type string
    * @param eventInit CustomEvent init options
    */
-  dispatch(
+  dispatchEvent(
     target: EventTarget,
     eventType: string,
     eventInit?: CustomEventInit,
@@ -1265,31 +993,31 @@ export interface FrameworkInterface {
   /** Wait result: timeout or view not found */
   WAIT_TIMEOUT_OR_NOT_FOUND: number;
   /**
-   * Base class with EventEmitter.
-   * Inherits EventEmitter for use as a base class in the framework.
+   * Emitter factory function.
+   * Use `createEmitter()` to create emitter instances.
    */
-  Base: typeof import("./event-emitter").EventEmitter;
+  createEmitter: typeof import("./event-emitter").createEmitter;
   /**
-   * View class.
-   * Use `View.extend()` to create subclasses.
+   * View factory function.
+   * Use `defineView()` to create view setups.
    */
-  View: typeof import("./view").View;
+  defineView: typeof import("./view").defineView;
   /**
-   * Cache class.
-   * Use `new Cache()` to create cache instances.
+   * Cache factory function.
+   * Use `createCache()` to create cache instances.
    */
-  Cache: typeof import("./cache").Cache;
+  createCache: typeof import("./cache").createCache;
   /**
    * Global state object.
    */
-  State: StateInterface;
+  State: StateApi;
   /**
    * Router object.
    */
-  Router: RouterInterface;
+  Router: RouterApi;
   /**
-   * Frame class.
-   * Frame tree for view lifecycle management. Do not extend or instantiate directly.
+   * Frame singleton.
+   * Frame tree for view lifecycle management. Use createFrame() to create frames.
    */
   Frame: typeof import("./frame").Frame;
 }
@@ -1437,8 +1165,8 @@ export interface DomElement extends Element {
 
 /** Element with frame binding */
 export interface FrameBoundElement extends HTMLElement {
-  /** Frame instance bound to this element */
-  frame?: FrameInterface;
+  /** Frame object bound to this element */
+  frame?: FrameObj;
   /** Whether frame is bound (1 = bound) */
   frameBound?: number;
   /** View rendered flag */

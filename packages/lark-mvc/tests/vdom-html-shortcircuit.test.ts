@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { vdomCreate, vdomSetChildNodes, createVDomRef } from "../src/vdom";
-import { Frame } from "../src/frame";
-import type { FrameInterface } from "../src/types";
+import { Frame, createFrame } from "../src/frame";
+import type { FrameObj } from "../src/types";
 
-function makeFrame(id: string): FrameInterface {
+function makeFrame(id: string): FrameObj {
   const el = document.createElement("div");
   el.id = id;
   document.body.appendChild(el);
-  return new Frame(id);
+  return createFrame(id);
 }
 
 function cleanup(id: string): void {
   const el = document.getElementById(id);
   if (el) el.remove();
-  (Frame.getAll() as Map<string, Frame>).delete(id);
+  (Frame.getAll() as Map<string, FrameObj>).delete(id);
 }
 
 describe("VDOM html short-circuit optimization", () => {
@@ -216,7 +216,7 @@ describe("VDOM html short-circuit optimization", () => {
     const el = document.createElement("div");
     el.innerHTML = '<span class="same">old text</span>';
     const spanBefore = el.querySelector("span")!;
-    const textBefore = spanBefore.firstChild;
+    void spanBefore.firstChild;
 
     const frame = makeFrame("html-sc-no-skip");
     const view = { rendered: true, endUpdate: () => {} } as any;

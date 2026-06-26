@@ -7,20 +7,20 @@ import {
   createVDomRef,
 } from "../src/vdom";
 import { V_TEXT_NODE, SPLITTER } from "../src/common";
-import { Frame } from "../src/frame";
-import type { VDomNode, FrameInterface } from "../src/types";
+import { Frame, createFrame } from "../src/frame";
+import type { VDomNode, FrameObj } from "../src/types";
 
-function makeFrame(id: string): FrameInterface {
+function makeFrame(id: string): FrameObj {
   const el = document.createElement("div");
   el.id = id;
   document.body.appendChild(el);
-  return new Frame(id);
+  return createFrame(id);
 }
 
 function cleanup(id: string): void {
   const el = document.getElementById(id);
   if (el) el.remove();
-  (Frame.getAll() as Map<string, Frame>).delete(id);
+  (Frame.getAll() as Map<string, FrameObj>).delete(id);
 }
 
 describe("VDOM Engine", () => {

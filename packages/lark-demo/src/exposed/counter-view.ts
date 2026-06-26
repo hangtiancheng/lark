@@ -12,6 +12,7 @@
 import {
   Framework,
   Frame,
+  createFrame,
   registerViewClass,
   EventDelegator,
   Router,
@@ -86,7 +87,7 @@ export function mountCounter(container: HTMLElement): () => void {
   // Do NOT use Frame.createRoot() — it is a singleton that always returns the
   // first-created rootFrame, making all subsequent mounts render into the
   // first container instead of their own.
-  const frame = new Frame(containerId);
+  const frame = createFrame(containerId);
   frame.mountView(MF_COUNTER);
 
   // Return cleanup function

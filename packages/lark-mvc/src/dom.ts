@@ -6,7 +6,7 @@
  */
 import { SVG_NS, MATH_NS, TAG_NAME_REGEXP, LARK_VIEW } from "./common";
 import { parseUri } from "./utils";
-import type { DomRef, DomOp, DomElement, FrameInterface } from "./types";
+import type { DomRef, DomOp, DomElement, FrameObj } from "./types";
 
 // ============================================================
 // Wrap meta for special HTML elements
@@ -59,7 +59,7 @@ const DomSpecials: Record<string, string[]> = {
 /**
  * Unmount frames within a DOM node.
  */
-export function domUnmountFrames(frame: FrameInterface, node: ChildNode): void {
+export function domUnmountFrames(frame: FrameObj, node: ChildNode): void {
   if (!(node instanceof Element)) return;
   const id = node.getAttribute("id");
   if (!id) return;
@@ -203,7 +203,7 @@ export function domSetChildNodes(
   oldParent: Element,
   newParent: Element,
   ref: DomRef,
-  frame: FrameInterface,
+  frame: FrameObj,
   keys_?: ReadonlySet<string>,
 ): void {
   let oldNode: ChildNode | null = oldParent.lastChild;
@@ -302,7 +302,7 @@ export function domSetNode(
   newNode: ChildNode,
   oldParent: Element,
   ref: DomRef,
-  frame: FrameInterface,
+  frame: FrameObj,
   keys_?: ReadonlySet<string>,
 ): void {
   // Narrow once and reuse: when both nodes are Elements, use the Element-typed

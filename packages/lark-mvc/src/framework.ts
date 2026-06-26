@@ -5,10 +5,11 @@
  * - boot() with config
  * - Router + State change notification to views
  * - Module loading (require/use)
- * - Global utility proxies: toMap, toTry, toUrl, parseUrl, mix, has, keys, inside, node, guid, guard
- * - dispatch, task, delay, Base
+ * - Utility methods: toUri, parseUri, assign, keys, nodeInside, ensureNodeId,
+ *   generateId, mark/unmark, dispatchEvent, task, delay
  * - waitZoneViewsRendered
- * - beforeunload support
+ * - Factory access: createEmitter, createCache, defineView
+ * - Module access: Router, State, Frame
  */
 import { CALL_BREAK_TIME, RouterEvents } from "./common";
 import {
@@ -18,30 +19,27 @@ import {
   noop,
   parseUri,
   toUri,
-  toMap,
   generateId,
-  getById,
   nodeInside,
   keys,
 } from "./utils";
 import { mark, unmark } from "./mark";
-import { applyStyle } from "./apply-style";
-import { Cache } from "./cache";
-import { EventEmitter } from "./event-emitter";
+import { createCache } from "./cache";
+import { createEmitter } from "./event-emitter";
 import { Router, markRouterBooted } from "./router";
 import { State, markBooted as markStateBooted } from "./state";
 import { Frame } from "./frame";
+import type { FrameObj } from "./types";
 import { EventDelegator } from "./event-delegator";
-import { View } from "./view";
+import { defineView } from "./view";
 import { installFrameDevtoolBridge } from "./devtool";
 import type {
   AnyFunc,
   FrameworkConfig,
-  FrameInterface,
-  ViewInterface,
+  ViewCtx,
   ChangeEvent,
-  RouteChangedEvent,
-  FrameworkInterface,
+  // RouteChangedEvent,
+  FrameworkApi,
 } from "./types";
 
 // ============================================================
@@ -70,6 +68,11 @@ let booted = false;
 //   consumed in batches to minimize scheduling overhead
 // ============================================================
 
+/** Type guard: narrow unknown to AnyFunc */
+function isAnyFunc(v: unknown): v is AnyFunc {
+  return typeof v === "function";
+}
+
 /** Flat task queue: [fn, context, args, fn, context, args, ...] */
 const taskList: unknown[] = [];
 /** Current read position in taskList */
@@ -87,9 +90,9 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
   const startTime = Date.now();
 
   while (true) {
-    const fn = taskList[taskIndex] as AnyFunc | undefined;
-    if (!fn) {
-      // All tasks consumed — reset queue
+    const fn = taskList[taskIndex];
+    if (!isAnyFunc(fn)) {
+      // All tasks consumed (or invalid entry) — reset queue
       taskList.length = 0;
       taskIndex = 0;
       taskScheduled = false;
@@ -114,7 +117,8 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
 
     // Execute one task
     const context = taskList[taskIndex + 1];
-    const args = taskList[taskIndex + 2] as unknown[];
+    const rawArgs = taskList[taskIndex + 2];
+    const args = Array.isArray(rawArgs) ? rawArgs : [];
     funcWithTry(fn, args, context, noop);
     taskIndex += 3;
   }
@@ -162,18 +166,19 @@ function isThenable(value: unknown): value is PromiseLike<void> {
   return (
     !!value &&
     (typeof value === "object" || typeof value === "function") &&
-    typeof (value as { then?: unknown }).then === "function"
+    "then" in value &&
+    typeof Reflect.get(value, "then") === "function"
   );
 }
 
 // ============================================================
-// View_IsObserveChanged / State_IsObserveChanged
+// Location / State observation change detection
 // ============================================================
 
 /**
  * Check if a view's observed location keys have changed.
  */
-function viewIsObserveChanged(view: ViewInterface): boolean {
+function viewIsObserveChanged(view: ViewCtx): boolean {
   const loc = view.locationObserved;
   let result = false;
 
@@ -200,29 +205,15 @@ function viewIsObserveChanged(view: ViewInterface): boolean {
  * Check if a view's observed state keys have changed.
  */
 function stateIsObserveChanged(
-  view: ViewInterface,
+  view: ViewCtx,
   stateKeys: ReadonlySet<string>,
 ): boolean {
-  const observedKeys = view.observedStateKeys;
+  const observedKeys = view.getObservedStateKeys();
   if (!observedKeys) return false;
   for (const key of observedKeys) {
     if (stateKeys.has(key)) return true;
   }
   return false;
-}
-
-/**
- * Notify a frame's view of location/state changes.
- *
- * Key features:
- * - $a tag
- * - View_IsObserveChanged for location changes
- * - State_IsObserveChanged for state changes
- * - Async render Promise support
- */
-/** A frame may carry a per-cycle visit tag set by the dispatcher. */
-interface FrameWithDispatcherTag extends FrameInterface {
-  dispatcherUpdateTag?: number;
 }
 
 /**
@@ -235,25 +226,25 @@ interface FrameWithDispatcherTag extends FrameInterface {
  * draining the stack synchronously meanwhile.
  */
 function dispatcherUpdate(
-  frame: FrameInterface,
+  frame: FrameObj,
   stateKeys?: ReadonlySet<string>,
 ): void {
-  const stack: FrameInterface[] = [frame];
+  const stack: FrameObj[] = [frame];
 
-  const drain = (s: FrameInterface[]): void => {
+  const drain = (s: FrameObj[]): void => {
     while (s.length > 0) {
-      const current = s.pop() as FrameInterface;
-      const tagged = current as FrameWithDispatcherTag;
+      const current = s.pop();
+      if (!current) continue;
       const view = current.view;
 
       if (
         !view ||
-        tagged.dispatcherUpdateTag === dispatcherUpdateTag ||
-        view.signature <= 1
+        current.dispatcherUpdateTag === dispatcherUpdateTag ||
+        view.signature.value <= 1
       ) {
         continue;
       }
-      tagged.dispatcherUpdateTag = dispatcherUpdateTag;
+      current.dispatcherUpdateTag = dispatcherUpdateTag;
 
       const isChanged = stateKeys
         ? stateIsObserveChanged(view, stateKeys)
@@ -276,7 +267,7 @@ function dispatcherUpdate(
       if (renderPromise) {
         // Defer this subtree until render settles; keep draining siblings now.
         renderPromise.then(() => {
-          const subStack: FrameInterface[] = [];
+          const subStack: FrameObj[] = [];
           for (let i = children.length - 1; i >= 0; i--) {
             const child = Frame.get(children[i]);
             if (child) subStack.push(child);
@@ -306,13 +297,14 @@ function dispatcherNotifyChange(e: ChangeEvent): void {
   const rootFrame = Frame.getRoot();
   if (!rootFrame) return;
 
-  const routeEvent = e as RouteChangedEvent;
-  const view = routeEvent.view;
-  if (view) {
+  // RouteChangedEvent extends ChangeEvent with LocationDiff fields
+  // (path, view, params, etc.). Use "view" in e to narrow.
+  if ("view" in e && e.view !== undefined) {
+    const view = e.view;
     // View changed, mount new view
     const viewPath =
       typeof view === "object" && view !== null
-        ? String(view.to || "")
+        ? String(Reflect.get(view, "to") || "")
         : String(view);
     rootFrame.mountView(viewPath);
   } else {
@@ -342,7 +334,7 @@ function dispatchEvent(
   target.dispatchEvent(event);
 }
 
-// use is re-exported from module-loader.ts (see top of file)
+// use is imported from module-loader.ts (see top of file)
 
 // ============================================================
 // waitZoneViewsRendered
@@ -384,7 +376,7 @@ function waitZoneViewsRendered(
 // ============================================================
 
 /**
- * Public `Framework.getConfig` overload set (see `FrameworkInterface.getConfig`).
+ * Public `Framework.getConfig` overload set (see `FrameworkApi.getConfig`).
  * Declared as a free function with explicit overloads so it can satisfy the
  * interface's two-overload shape from inside an object literal.
  */
@@ -394,6 +386,7 @@ function getConfigImpl<T = unknown>(
   key?: string,
 ): FrameworkConfig | T | undefined {
   if (key === undefined) return config;
+  // Generic retrieval from config — cast is unavoidable
   return Reflect.get(config, key) as T | undefined;
 }
 
@@ -401,16 +394,16 @@ function getConfigImpl<T = unknown>(
  * Main framework object.
  * Provides boot, config, and all global utility methods.
  */
-export const Framework: FrameworkInterface = {
+export const Framework: FrameworkApi = {
   // ============================================================
   // Lifecycle
   // ============================================================
 
-  /** Read framework configuration. See `FrameworkInterface.getConfig`. */
+  /** Read framework configuration. See `FrameworkApi.getConfig`. */
   getConfig: getConfigImpl,
 
   /**
-   * Merge a patch into framework configuration. See `FrameworkInterface.setConfig`.
+   * Merge a patch into framework configuration. See `FrameworkApi.setConfig`.
    */
   setConfig<T extends object = Partial<FrameworkConfig>>(
     patch: Partial<FrameworkConfig> & T,
@@ -418,6 +411,7 @@ export const Framework: FrameworkInterface = {
     if (patch && typeof patch === "object") {
       assign(config, patch);
     }
+    // Generic merge — cast is unavoidable since T is caller-specified
     return config as FrameworkConfig & T;
   },
 
@@ -489,7 +483,7 @@ export const Framework: FrameworkInterface = {
     // branch), so it reliably indicates "a mount has been initiated for
     // this frame" — which is exactly the condition we want to guard on.
     const defaultView = config.defaultView || "";
-    if (defaultView && !rootFrame.viewPath) {
+    if (defaultView && !rootFrame.getViewPath()) {
       rootFrame.mountView(defaultView);
     }
   },
@@ -510,7 +504,7 @@ export const Framework: FrameworkInterface = {
   unmark,
 
   /** Fire a custom DOM event on a target */
-  dispatch: dispatchEvent,
+  dispatchEvent,
 
   /** Execute function in try-catch, ignoring errors */
   task,
@@ -526,38 +520,23 @@ export const Framework: FrameworkInterface = {
   /** Wait for zone views to be rendered */
   waitZoneViewsRendered,
 
-  WAIT_OK,
-  WAIT_TIMEOUT_OR_NOT_FOUND,
-
-  /**
-   * Convert array to hash map.
-   */
-  toMap,
-
-  /**
-   * Execute function in try-catch.
-   */
-  toTry: funcWithTry,
-
   /**
    * Convert path + params to URL string.
    */
-  toUrl: toUri,
+  toUri,
 
   /**
    * Parse URI string into path and params.
    */
-  parseUrl: parseUri,
+  parseUri,
+
+  WAIT_OK,
+  WAIT_TIMEOUT_OR_NOT_FOUND,
 
   /**
    * Mix properties from source to target.
    */
-  mix: assign,
-
-  /**
-   * Check if object has own property.
-   */
-  has: hasOwnProperty,
+  assign,
 
   /**
    * Get object keys.
@@ -567,32 +546,22 @@ export const Framework: FrameworkInterface = {
   /**
    * Check if node A is inside node B.
    */
-  inside: nodeInside,
-
-  /**
-   * Get element by ID (shorthand for document.getElementById).
-   */
-  node: getById,
-
-  /**
-   * Apply CSS style.
-   */
-  applyStyle,
+  nodeInside,
 
   /**
    * Generate globally unique ID.
    */
-  guid: generateId,
+  generateId,
 
   /**
-   * Cache class.
+   * Cache factory (functional).
    */
-  Cache,
+  createCache,
 
   /**
    * Ensure element has an ID.
    */
-  nodeId(element: HTMLElement): string {
+  ensureNodeId(element: HTMLElement): string {
     if (!element.id) {
       element.id = generateId("l_");
     }
@@ -602,7 +571,7 @@ export const Framework: FrameworkInterface = {
   /**
    * Base class with EventEmitter.
    */
-  Base: EventEmitter,
+  createEmitter,
 
   // ============================================================
   // Module access
@@ -614,21 +583,9 @@ export const Framework: FrameworkInterface = {
   /** State module */
   State,
 
-  /** View class */
-  View,
+  /** View factory (functional) */
+  defineView,
 
   /** Frame class */
   Frame,
 };
-
-// // Attach to window for global access
-// if (typeof window !== "undefined") {
-//   window.__lark_Framework = Framework;
-//   window.__lark_State = State;
-//   window.__lark_Router = Router;
-//   window.__lark_Frame = Frame;
-//   window.__lark_View = View;
-//   window.__lark_invalidateViewClass = invalidateViewClass;
-//   window.__lark_getViewClassRegistry = getViewClassRegistry;
-//   window.__lark_registerViewClass = registerViewClass;
-// }

@@ -8,8 +8,8 @@
  * Sub-components of "counter" are preloaded in parallel with the parent
  * view so they're available when mountZone processes v-lark elements.
  */
-import { Framework, registerViewClass, View } from "@lark.js/mvc";
-import type { FrameworkConfig } from "@lark.js/mvc";
+import { Framework, registerViewClass } from "@lark.js/mvc";
+import type { FrameworkConfig, ViewSetup } from "@lark.js/mvc";
 import "./index.css";
 
 console.log("Initializing Lark application...");
@@ -101,8 +101,8 @@ const config: FrameworkConfig = {
         // Requested views are registered by mountView's use() callback.
         if (preloadNames.includes(name) && typeof ViewClass === "function") {
           // Type assertion: dynamically loaded module shape is unknown at compile time,
-          // but at runtime it's a Lark View class.
-          registerViewClass(name, ViewClass as typeof View);
+          // but at runtime it's a Lark View setup function (returned by defineView).
+          registerViewClass(name, ViewClass as ViewSetup);
         }
 
         return { name, ViewClass };

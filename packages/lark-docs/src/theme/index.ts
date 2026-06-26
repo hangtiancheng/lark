@@ -9,7 +9,7 @@
  * lib build. registerThemeViews selects the correct version based on
  * the consumer's FrameworkConfig.virtualDom setting.
  */
-import { Framework, type View } from "@lark.js/mvc";
+import { Framework } from "@lark.js/mvc";
 import { registerViewClass } from "@lark.js/mvc";
 
 // Dual-mode template imports — each virtual module exports __str (string-mode)
@@ -66,10 +66,7 @@ interface RegisterThemeViewsOptions {
  * Templates are pre-compiled in both string and VDOM modes during the
  * lib build, so this function simply selects the correct version.
  */
-export function registerThemeViews(
-  ViewClass: typeof View,
-  options?: RegisterThemeViewsOptions,
-): void {
+export function registerThemeViews(options?: RegisterThemeViewsOptions): void {
   // Determine rendering mode: explicit option > Framework config > default
   const virtualDom =
     options?.virtualDom ??
@@ -83,13 +80,10 @@ export function registerThemeViews(
   const toc = virtualDom ? tocVdom : tocStr;
   const search = virtualDom ? searchVdom : searchStr;
 
-  registerViewClass(
-    "theme/docs-layout",
-    createDocsLayoutView(ViewClass, docLayout),
-  );
-  registerViewClass("theme/sidebar", createSidebarView(ViewClass, sidebar));
-  registerViewClass("theme/toc", createTocView(ViewClass, toc));
-  registerViewClass("theme/search", createSearchView(ViewClass, search));
+  registerViewClass("theme/docs-layout", createDocsLayoutView(docLayout));
+  registerViewClass("theme/sidebar", createSidebarView(sidebar));
+  registerViewClass("theme/toc", createTocView(toc));
+  registerViewClass("theme/search", createSearchView(search));
 }
 
 // Re-export factories and helpers for advanced users who want custom

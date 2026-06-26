@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { Updater } from "../src/updater";
+import { createUpdater } from "../src/updater";
 
 describe("Updater", () => {
   it("constructor - initial state", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
 
     // get() without parameters returns entire data object
     const data = updater.get<Record<string, unknown>>();
@@ -14,7 +14,7 @@ describe("Updater", () => {
   });
 
   it("set / get - data binding and reading", () => {
-    const updater = new Updater("viewId2");
+    const updater = createUpdater("viewId2");
 
     // set returns this for method chaining
     const result = updater.set({ a: 1, b: 2 });
@@ -30,7 +30,7 @@ describe("Updater", () => {
   });
 
   it("set - updates existing key", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     updater.set({ x: 1 });
     expect(updater.get("x")).toBe(1);
 
@@ -39,7 +39,7 @@ describe("Updater", () => {
   });
 
   it("snapshot / altered - snapshot and change detection", () => {
-    const updater = new Updater("viewId2");
+    const updater = createUpdater("viewId2");
     const setObj = { key: "value" };
 
     updater.set({ a: 1, b: setObj });
@@ -57,7 +57,7 @@ describe("Updater", () => {
   });
 
   it("snapshot / altered - altered is false when value unchanged", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
 
     updater.set({ a: 1 });
     updater.snapshot();
@@ -68,7 +68,7 @@ describe("Updater", () => {
   });
 
   it("snapshot / altered - works with self-referential data (no JSON.stringify)", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     type Node = { name: string; self?: Node };
     const node: Node = { name: "root" };
     node.self = node; // cyclic — would throw under JSON.stringify
@@ -82,12 +82,12 @@ describe("Updater", () => {
   });
 
   it("get - returns undefined for non-existent key", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     expect(updater.get("nonexistent")).toBeUndefined();
   });
 
   it("translate - converts data references with SPLITTER prefix", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
 
     // strings without SPLITTER prefix returned as-is
     expect(updater.translate("normalString")).toBe("normalString");
@@ -95,7 +95,7 @@ describe("Updater", () => {
   });
 
   it("translate - resolves a SPLITTER+digits ref token", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     const SPLITTER = "\x1e";
     const target = { hello: "world" };
     updater.refData[`${SPLITTER}9`] = target;
@@ -103,7 +103,7 @@ describe("Updater", () => {
   });
 
   it("translate - ignores SPLITTER-prefixed string that is not a ref token", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     const SPLITTER = "\x1e";
     // not all-digits after SPLITTER → not a ref, returned as-is
     expect(updater.translate(`${SPLITTER}user-input`)).toBe(
@@ -114,7 +114,7 @@ describe("Updater", () => {
   });
 
   it("parse - resolves dotted property paths against refData", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     updater.refData["user"] = { profile: { name: "alice" } };
 
     expect(updater.parse("user.profile.name")).toBe("alice");
@@ -123,13 +123,13 @@ describe("Updater", () => {
   });
 
   it("parse - returns numbers for numeric literals", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     expect(updater.parse("42")).toBe(42);
     expect(updater.parse("-1.5")).toBe(-1.5);
   });
 
   it("parse - rejects arbitrary expressions (no eval)", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     // Anything that isn't a numeric literal or a dotted path is rejected
     expect(updater.parse("1 + 2")).toBeUndefined();
     expect(updater.parse("alert(1)")).toBeUndefined();
@@ -137,14 +137,14 @@ describe("Updater", () => {
   });
 
   it("getChangedKeys - initially empty", () => {
-    const updater = new Updater("viewId1");
+    const updater = createUpdater("viewId1");
     const keys = updater.getChangedKeys();
     expect(keys).toBeInstanceOf(Set);
     expect(keys.size).toBe(0);
   });
 
   it("forceDigest - marks all keys as changed and triggers digest", () => {
-    const updater = new Updater("force-test");
+    const updater = createUpdater("force-test");
     updater.set({ a: 1, b: 2, c: 3 });
     // Run a normal digest first to clear the changed flags
     updater.digest();

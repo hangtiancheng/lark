@@ -2,53 +2,59 @@
  * Home View
  * Demonstrates basic Lark View + zustand-style store
  */
-import { Router, bindStore } from "@lark.js/mvc";
-import View from "../view";
+import { defineView, Router, bindStore } from "@lark.js/mvc";
+import { withBaseView, showAlert } from "../view";
 import template from "./home.html";
+import styles from "./home.module.css";
 import useCountStore from "../store/count";
 
-export default View.extend({
-  template,
+export default defineView(
+  withBaseView((ctx, params) => {
+    // CSS Module class names are available to the template via updater data.
+    ctx.updater.set({ styles });
 
-  init(options: unknown) {
-    this.assign?.(options);
+    // ── init: bind store + assign initial data ──
+    bindStore(ctx, useCountStore, (s) => ({ count: s.count, step: s.step }));
 
-    bindStore(this, useCountStore, (s) => ({ count: s.count, step: s.step }));
-  },
+    // ── assign: incremental DOM update ──
+    const assign = (_options?: unknown): boolean | undefined => {
+      ctx.updater.snapshot();
 
-  assign(options: unknown) {
-    this.updater.snapshot();
+      const { count, step } = useCountStore.getState();
 
-    const { count, step } = useCountStore.getState();
+      ctx.updater.set({
+        title: "Welcome to Lark Framework",
+        description: "This is a minimal @lark.js/mvc example",
+        appName: "Lark MVC Demo",
+        currentTime: new Date().toLocaleString(),
+        count,
+        step,
+      });
 
-    this.updater.set({
-      title: "Welcome to Lark Framework",
-      description: "This is a minimal @lark.js/mvc example",
-      appName: "Lark MVC Demo",
-      currentTime: new Date().toLocaleString(),
-      count,
-      step,
-    });
+      return ctx.updater.altered();
+    };
 
-    return this.updater.altered();
-  },
+    // Call assign for initial render (replaces old init's this.assign?.(options))
+    assign(params);
 
-  render() {
-    this.updater.digest();
-  },
-
-  "navigateTo<click>"(e: Record<string, unknown>) {
-    const params = e["params"] as Record<string, string> | undefined;
-    const path = params?.path;
-    if (path) {
-      Router.to(path);
-    }
-  },
-
-  "showInfo<click>"(e: Record<string, unknown>) {
-    const params = e["params"] as Record<string, string> | undefined;
-    if (params) {
-      alert(`${params.title}\n\n${params.message}`);
-    }
-  },
-});
+    return {
+      template,
+      assign,
+      events: {
+        "navigateTo<click>": (e: Record<string, unknown>) => {
+          const p = e["params"] as Record<string, string> | undefined;
+          const path = p?.path;
+          if (path) {
+            Router.to(path);
+          }
+        },
+        "showInfo<click>": (e: Record<string, unknown>) => {
+          const p = e["params"] as Record<string, string> | undefined;
+          if (p) {
+            showAlert(p.title ?? "", p.message ?? "");
+          }
+        },
+      },
+    };
+  }),
+);

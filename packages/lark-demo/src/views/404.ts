@@ -2,34 +2,38 @@
  * 404 Page View
  * Displayed when route is not matched
  */
-import { Router } from "@lark.js/mvc";
-import View from "../view";
+import { defineView, Router } from "@lark.js/mvc";
 import template from "./404.html";
+import styles from "./404.module.css";
 
-export default View.extend({
-  template,
+export default defineView((ctx, params) => {
+  // CSS Module class names are available to the template via updater data.
+  // The bundler handles CSS injection at import time
+  ctx.updater.set({ styles });
 
-  init(options: unknown) {
-    this.assign?.(options);
-  },
-
-  assign(options: unknown) {
-    this.updater.snapshot();
+  // ── assign: incremental DOM update ──
+  const assign = (_options?: unknown): boolean | undefined => {
+    ctx.updater.snapshot();
 
     const loc = Router.parse();
 
-    this.updater.set({
+    ctx.updater.set({
       path: loc.path || "Unknown path",
     });
 
-    return this.updater.altered();
-  },
+    return ctx.updater.altered();
+  };
 
-  render() {
-    this.updater.digest();
-  },
+  // Call assign for initial render
+  assign(params);
 
-  "goHome<click>"() {
-    Router.to("/home");
-  },
+  return {
+    template,
+    assign,
+    events: {
+      "goHome<click>": () => {
+        Router.to("/home");
+      },
+    },
+  };
 });

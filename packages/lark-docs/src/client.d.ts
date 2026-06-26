@@ -1,15 +1,33 @@
 /// <reference types="vite/client" />
-/**
- * Lark .html template files — compiled by larkMvcPlugin into
- * (data, viewId, refData) => string functions at build time.
- *
- * Note: the built-in theme templates in src/theme/ are NOT imported as
- * .html by consumers. They use virtual modules (virtual:lark-docs/*)
- * resolved by the themeDualMode plugin — see virtual-modules.d.ts.
- */
+// HTML template module declarations
+// Lark's Vite/Webpack/Rspack plugin compiles .html files into template
+// functions at build time. The default export is a function, not a string.
+//
+// The return type is `any` because the same template function returns:
+// - `string` when virtualDom is disabled (HTML string rendering path)
+// - `VDomNode` when virtualDom is enabled (VDOM rendering path)
+//
+// Using `any` here avoids the union-type incompatibility with ViewSetup's
+// `template?: ViewTemplate | VDomTemplate` — the two function signatures
+// have incompatible return types (`string` vs `VDomNode`), so a union
+// return type would not be assignable to either.
+
+// import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
+type ViewTemplate = (
+  data: unknown,
+  viewId: string,
+  refData: unknown,
+  ...encoders: unknown[]
+) => string;
+type VDomTemplate = (
+  data: unknown,
+  viewId: string,
+  refData: unknown,
+) => VDomNode;
+
 declare module "*.html" {
-  const content: string;
-  export default content;
+  const template: ViewTemplate | VDomTemplate;
+  export default template;
 }
 
 /**
@@ -32,26 +50,26 @@ declare module "*.html" {
  */
 
 declare module "virtual:lark-docs/docs-layout" {
-  const __str: (...args: unknown[]) => string;
-  const __vdom: (data: unknown, viewId: string, refData: unknown) => unknown;
+  const __str: ViewTemplate;
+  const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 
 declare module "virtual:lark-docs/sidebar" {
-  const __str: (...args: unknown[]) => string;
-  const __vdom: (data: unknown, viewId: string, refData: unknown) => unknown;
+  const __str: ViewTemplate;
+  const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 
 declare module "virtual:lark-docs/toc" {
-  const __str: (...args: unknown[]) => string;
-  const __vdom: (data: unknown, viewId: string, refData: unknown) => unknown;
+  const __str: ViewTemplate;
+  const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 
 declare module "virtual:lark-docs/search" {
-  const __str: (...args: unknown[]) => string;
-  const __vdom: (data: unknown, viewId: string, refData: unknown) => unknown;
+  const __str: ViewTemplate;
+  const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 

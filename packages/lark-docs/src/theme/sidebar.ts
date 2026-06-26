@@ -5,20 +5,18 @@
  * Reads sidebar data from State or passed via init params.
  */
 
-import { State, Router, View as ViewClass } from "@lark.js/mvc";
+import { State, Router, defineView } from "@lark.js/mvc";
+import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
 import type { DocsConfig, SidebarItem } from "../types";
 
-export function createSidebarView(View: typeof ViewClass, template: unknown) {
-  return View.extend({
-    template,
+export function createSidebarView(
+  template: ViewTemplate | VDomTemplate,
+): ViewSetup {
+  return defineView((ctx) => {
+    ctx.observeLocation([], true);
 
-    init() {
-      this.observeLocation([], true);
-      this.assign?.();
-    },
-
-    assign() {
-      this.updater.snapshot();
+    const assign = (): boolean | undefined => {
+      ctx.updater.snapshot();
 
       const docsConfig: DocsConfig = (State.get("docsConfig") ||
         {}) as DocsConfig;
@@ -44,21 +42,26 @@ export function createSidebarView(View: typeof ViewClass, template: unknown) {
         }
       }
 
-      this.updater.set({ sidebarGroups });
-      return this.updater.altered();
-    },
+      ctx.updater.set({ sidebarGroups });
+      return ctx.updater.altered();
+    };
 
-    render() {
-      this.updater.digest();
-    },
+    // Initial assign
+    assign();
 
-    "navigateTo<click>"(e: Event) {
-      const target = e.target as HTMLElement;
-      const href = target.dataset["href"];
-      if (href) {
-        Router.to(href);
-      }
-    },
+    return {
+      template,
+      assign,
+      events: {
+        "navigateTo<click>": (e: Event) => {
+          const target = e.target as HTMLElement;
+          const href = target.dataset["href"];
+          if (href) {
+            Router.to(href);
+          }
+        },
+      },
+    };
   });
 }
 

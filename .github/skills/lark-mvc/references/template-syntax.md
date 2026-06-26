@@ -93,8 +93,7 @@ Block validation enforces that every `{{if}}` has a matching `{{/if}}`. Mismatch
 Shorthand parentheses are also supported:
 
 ```html
-{{if(active)}}<span>Active</span>{{/if}}
-{{if(user.isAdmin)}}<span>Admin</span>{{/if}}
+{{if(active)}}<span>Active</span>{{/if}} {{if(user.isAdmin)}}<span>Admin</span>{{/if}}
 ```
 
 The compiler automatically normalizes `if(condition)` to `if (condition)` before processing. Outer parentheses are stripped using balanced-parentheses analysis, so `{{if((a > b))}}` becomes `if(a > b)`.
@@ -140,8 +139,8 @@ When the collection expression contains property access (`obj.list` or `arr[0]`)
 <!-- Template -->
 {{forOf obj.items as item}}
 <!-- Compiled internally -->
-<%let _art_obj_obj_items=obj.items;for(let
-_i=0,_l=_art_obj_obj_items.length;_i<_l;_i++){let item=_art_obj_obj_items[_i]}%>
+<%let _art_obj_obj_items=obj.items;for(let _i=0,_l=_art_obj_obj_items.length;_i<_l;_i++){let
+item=_art_obj_obj_items[_i]}%>
 ```
 
 ### Object Iteration (forIn)
@@ -250,7 +249,7 @@ If the attribute value does not match the `handlerName(params)` pattern (e.g., n
 
 ### Selector Events ($-prefix)
 
-Selector events are defined in the View class using the `$` prefix pattern in method names. They do not require `@event` attributes in the template.
+Selector events are defined in the `events` map returned by the view setup function using the `$` prefix pattern in key names. They do not require `@event` attributes in the template.
 
 ```html
 <!-- No @event needed; selector binding is automatic -->
@@ -258,7 +257,7 @@ Selector events are defined in the View class using the `$` prefix pattern in me
 ```
 
 ```typescript
-// In the View class:
+// In the view setup:
 "$btn<click>"(e: Event) {
   // Triggered when any element matching CSS selector .btn is clicked
 }
@@ -316,7 +315,7 @@ All DOM events are delegated to `document.body` using capture-phase listeners fo
 3. At each element, checks for `@<eventType>` attributes and parses them using the EVENT_METHOD_REGEXP.
 4. If the attribute has a View ID prefix (from the `\x1f` placeholder), looks up the corresponding Frame and View.
 5. If no View ID is present, walks up the Frame tree to find the nearest View that handles the event.
-6. For selector events, checks the View's `eventSelectorMap` to find matching CSS selectors.
+6. For selector events, checks the view's `events` map for `$selector<eventType>` patterns to find matching CSS selectors.
 7. Attaches metadata to the event object: `eventTarget` (actual clicked element) and `params` (parsed URL parameters).
 8. Calls the handler function via `funcWithTry()` for error safety.
 9. Stops propagation at view boundaries when range events are configured.
@@ -332,7 +331,7 @@ Child views are embedded using the `v-lark` attribute on a container element. Th
 The framework automatically:
 
 1. Creates a child Frame for each `v-lark` element.
-2. Mounts the registered View class into the Frame.
+2. Mounts the registered view setup into the Frame.
 3. Manages the child View lifecycle (mount, render, unmount).
 
 During DOM diff, if both old and new elements have the same `v-lark` path, the existing child View is preserved (children are not re-rendered). Only when the view path changes is the old View unmounted and a new one mounted.
@@ -371,9 +370,7 @@ When the DOM engine encounters two elements with matching `ldk` values, it skips
 Use `lak` when element structure is stable but attributes may change:
 
 ```html
-<button lak="submit-btn" class="{{=btnClass}}" disabled="{{=isDisabled}}">
-  Submit
-</button>
+<button lak="submit-btn" class="{{=btnClass}}" disabled="{{=isDisabled}}">Submit</button>
 ```
 
 When `lak` values match, the DOM engine skips attribute comparison but still diffs child nodes.

@@ -2,43 +2,50 @@
  * About Page View
  * Demonstrates route navigation + shared store state
  */
-import { Router, bindStore } from "@lark.js/mvc";
-import View from "../view";
+import { defineView, Router, bindStore } from "@lark.js/mvc";
+import { withBaseView } from "../view";
 import template from "./about.html";
+import styles from "./about.module.css";
 import useCountStore from "../store/count";
 
-export default View.extend({
-  template,
+export default defineView(
+  withBaseView((ctx, initParams) => {
+    // CSS Module class names are available to the template via updater data.
+    ctx.updater.set({ styles });
 
-  init(options: unknown) {
-    this.assign?.(options);
+    // ── init: bind store ──
+    bindStore(ctx, useCountStore, (s) => ({ count: s.count, step: s.step }));
 
-    bindStore(this, useCountStore, (s) => ({ count: s.count, step: s.step }));
-  },
+    // ── assign: incremental DOM update ──
+    const assign = (_options?: unknown): boolean | undefined => {
+      ctx.updater.snapshot();
 
-  assign(options: unknown) {
-    this.updater.snapshot();
+      const urlParams = Router.parse().params;
+      const { count, step } = useCountStore.getState();
 
-    const params = Router.parse().params;
-    const { count, step } = useCountStore.getState();
+      ctx.updater.set({
+        title: "About Lark",
+        content: "Lark is a TypeScript MVC framework",
+        author: urlParams["author"] || "Anonymous",
+        version: urlParams["version"] || "1.0",
+        count,
+        step,
+      });
 
-    this.updater.set({
-      title: "About Lark",
-      content: "Lark is a TypeScript MVC framework",
-      author: (params as Record<string, string>)["author"] || "Anonymous",
-      version: (params as Record<string, string>)["version"] || "1.0",
-      count,
-      step,
-    });
+      return ctx.updater.altered();
+    };
 
-    return this.updater.altered();
-  },
+    // Call assign for initial render
+    assign(initParams);
 
-  render() {
-    this.updater.digest();
-  },
-
-  "goHome<click>"() {
-    Router.to("/home");
-  },
-});
+    return {
+      template,
+      assign,
+      events: {
+        "goHome<click>": () => {
+          Router.to("/home");
+        },
+      },
+    };
+  }),
+);

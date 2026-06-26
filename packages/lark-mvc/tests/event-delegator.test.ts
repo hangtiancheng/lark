@@ -88,7 +88,9 @@ describe("EventDelegator", () => {
   describe("setFrameGetter", () => {
     it("accepts a getter function", () => {
       expect(() => {
-        EventDelegator.setFrameGetter((id: string) => undefined);
+        EventDelegator.setFrameGetter(
+          (_id: string, _unused: void) => undefined,
+        );
       }).not.toThrow();
     });
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { create, computed } from "../src/store";
+import { createStore, computed } from "../src/store";
 import type { StoreApi } from "../src/store";
 
 interface CountState {
@@ -15,7 +15,7 @@ function nextName(): string {
 }
 
 function makeCountStore(name: string): StoreApi<CountState> {
-  return create<CountState>(name, (set, get) => ({
+  return createStore<CountState>(name, (set, get) => ({
     count: 1,
     doubled: computed(["count"], () => get().count * 2),
     countPlusTen: computed(["count"], () => get().count + 10),
@@ -25,7 +25,7 @@ function makeCountStore(name: string): StoreApi<CountState> {
   }));
 }
 
-describe("create - computed", () => {
+describe("createStore - computed", () => {
   it("computes an initial value from its deps", () => {
     const store = makeCountStore(nextName());
     const state = store.getState();

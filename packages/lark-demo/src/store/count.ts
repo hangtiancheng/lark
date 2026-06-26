@@ -1,4 +1,4 @@
-import { create } from "@lark.js/mvc";
+import { createStore } from "@lark.js/mvc";
 
 export interface CountStore {
   // state
@@ -13,7 +13,7 @@ export interface CountStore {
   clearHistory: () => void;
 }
 
-const useCountStore = create<CountStore>("count", (set, get) => ({
+const useCountStore = createStore<CountStore>("count", (set, get) => ({
   // ── state ──
   count: 0,
   step: 1,

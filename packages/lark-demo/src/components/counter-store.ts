@@ -2,37 +2,40 @@
  * Counter Store Component
  * Demonstrates zustand-style store state management
  */
-import { bindStore } from "@lark.js/mvc";
-import View from "../view";
+import { defineView, bindStore } from "@lark.js/mvc";
+import { withBaseView } from "../view";
 import template from "./counter-store.html";
+import styles from "./counter-store.module.css";
 import useCountStore from "../store/count";
 
-export default View.extend({
-  template,
+export default defineView(
+  withBaseView((ctx) => {
+    ctx.updater.set({ styles });
 
-  init() {
-    bindStore(this, useCountStore);
-  },
+    // ── init: bind store ──
+    bindStore(ctx, useCountStore);
 
-  "increment<click>"() {
-    useCountStore.getState().increment();
-  },
-
-  "decrement<click>"() {
-    useCountStore.getState().decrement();
-  },
-
-  "reset<click>"() {
-    useCountStore.getState().reset();
-  },
-
-  "stepChange<change>"(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const newStep = parseInt(target.value) || 1;
-    useCountStore.getState().setStep(newStep);
-  },
-
-  "clearHistory<click>"() {
-    useCountStore.getState().clearHistory();
-  },
-});
+    return {
+      template,
+      events: {
+        "increment<click>": () => {
+          useCountStore.getState().increment();
+        },
+        "decrement<click>": () => {
+          useCountStore.getState().decrement();
+        },
+        "reset<click>": () => {
+          useCountStore.getState().reset();
+        },
+        "stepChange<change>": (e: Event) => {
+          const target = e.target as HTMLInputElement;
+          const newStep = parseInt(target.value) || 1;
+          useCountStore.getState().setStep(newStep);
+        },
+        "clearHistory<click>": () => {
+          useCountStore.getState().clearHistory();
+        },
+      },
+    };
+  }),
+);

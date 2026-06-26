@@ -2,8 +2,10 @@
  * Counter Updater Component
  * Demonstrates updater.set().digest() manual state management
  */
-import View from "../view";
+import { defineView } from "@lark.js/mvc";
+import { withBaseView } from "../view";
 import template from "./counter-updater.html";
+import styles from "./counter-updater.module.css";
 
 interface CounterState {
   count: number;
@@ -11,55 +13,56 @@ interface CounterState {
   history: string[];
 }
 
-export default View.extend({
-  template,
-
-  async render() {
-    this.updater.digest({
+export default defineView(
+  withBaseView((ctx) => {
+    // ── init: set initial data (replaces async render()) ──
+    ctx.updater.digest({
       count: 0,
       step: 1,
       history: [],
+      styles,
     });
-  },
 
-  "increment<click>"() {
-    const { count, step, history } = this.updater.get<CounterState>();
-    const newCount = count + step;
-    this.updater
-      .set({
-        count: newCount,
-        history: [`+${step} → ${newCount}`, ...history],
-      })
-      .digest();
-  },
-
-  "decrement<click>"() {
-    const { count, step, history } = this.updater.get<CounterState>();
-    const newCount = count - step;
-    this.updater
-      .set({
-        count: newCount,
-        history: [`-${step} → ${newCount}`, ...history],
-      })
-      .digest();
-  },
-
-  "reset<click>"() {
-    this.updater
-      .set({
-        count: 0,
-        history: ["Reset → 0", ...this.updater.get<string[]>("history")],
-      })
-      .digest();
-  },
-
-  "stepChange<change>"(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const newStep = parseInt(target?.value) || 1;
-    this.updater.set({ step: newStep }).digest();
-  },
-
-  "clearHistory<click>"() {
-    this.updater.set({ history: [] }).digest();
-  },
-});
+    return {
+      template,
+      events: {
+        "increment<click>": () => {
+          const { count, step, history } = ctx.updater.get<CounterState>();
+          const newCount = count + step;
+          ctx.updater
+            .set({
+              count: newCount,
+              history: [`+${step} → ${newCount}`, ...history],
+            })
+            .digest();
+        },
+        "decrement<click>": () => {
+          const { count, step, history } = ctx.updater.get<CounterState>();
+          const newCount = count - step;
+          ctx.updater
+            .set({
+              count: newCount,
+              history: [`-${step} → ${newCount}`, ...history],
+            })
+            .digest();
+        },
+        "reset<click>": () => {
+          ctx.updater
+            .set({
+              count: 0,
+              history: ["Reset → 0", ...ctx.updater.get<string[]>("history")],
+            })
+            .digest();
+        },
+        "stepChange<change>": (e: Event) => {
+          const target = e.target as HTMLInputElement;
+          const newStep = parseInt(target?.value) || 1;
+          ctx.updater.set({ step: newStep }).digest();
+        },
+        "clearHistory<click>": () => {
+          ctx.updater.set({ history: [] }).digest();
+        },
+      },
+    };
+  }),
+);

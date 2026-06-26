@@ -1,24 +1,27 @@
 <!-- Counter View Template -->
-<div class="min-h-screen bg-white p-6">
-  <div class="mx-auto max-w-3xl">
-    <button
-      @click="navigateTo({path: '/home'})"
-      class="mb-8 inline-flex cursor-pointer items-center justify-center rounded-full px-3 py-1 text-xs text-neutral-400 transition-colors hover:text-neutral-900"
-    >
-      Back
-    </button>
+<div class="{{=styles['counter-page']}}">
+  <div class="{{=styles['counter-page__container']}}">
+    <h1 class="{{=styles['counter-page__title']}}">Counter Example</h1>
+    <p class="{{=styles['counter-page__description']}}">
+      Data updates &amp; event handling
+    </p>
 
-    <h1 class="mb-2 text-3xl font-semibold tracking-tight text-neutral-900">
-      Counter Example
-    </h1>
-    <p class="mb-8 text-sm text-neutral-500">Data updates & event handling</p>
-
-    <div class="grid grid-cols-2 gap-4">
+    <div class="{{=styles['counter-page__grid']}}">
       <!-- Sub-View: Counter Store Component -->
-      <div v-lark="components/counter-store"></div>
+      <div
+        class="{{=styles['counter-page__store-slot']}}"
+        v-lark="components/counter-store"
+      ></div>
 
       <!-- Sub-View: Counter Updater Component -->
       <div v-lark="components/counter-updater"></div>
     </div>
+
+    <button
+      @click="navigateTo({path: '/home'})"
+      class="{{=styles['counter-page__button']}}"
+    >
+      Back to Home
+    </button>
   </div>
 </div>

@@ -50,7 +50,7 @@
  */
 import type { Compiler, RspackPluginInstance } from "@rspack/core";
 import { compileTemplate, extractGlobalVars } from "./compiler";
-import { injectTemplateHmr } from "./hmr-inject";
+import { injectTemplateHmrSnippet } from "./hmr-inject";
 import type {
   LarkMvcWebpackLoaderOptions,
   LarkMvcWebpackPluginOptions,
@@ -94,7 +94,7 @@ export async function larkMvcLoader(
     // Auto-inject HMR: the compiled template module self-accepts, so
     // .html changes hot-swap the template on all mounted views without
     // a full page reload — no user-side code required (like React/Vue).
-    return injectTemplateHmr(compiled, "rspack");
+    return injectTemplateHmrSnippet(compiled, "rspack");
   } catch (err) {
     console.error(err);
     return "";

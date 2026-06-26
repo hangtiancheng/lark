@@ -1,41 +1,104 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useUrlState } from "../src/url-state";
 import { Router } from "../src/router";
-import type { ViewInterface, FrameworkConfig } from "../src/types";
+import type {
+  ViewCtx,
+  FrameworkConfig,
+  UpdaterApi,
+  EmitterApi,
+  FrameObj,
+  ViewLocationObserved,
+  ViewResourceEntry,
+  Ref,
+} from "../src/types";
 
-function createMockView(): ViewInterface {
-  return {
-    id: "test-view",
-    owner: 0,
-    updater: {
-      get: vi.fn(),
-      set: vi.fn().mockReturnThis(),
-      digest: vi.fn(),
-      snapshot: vi.fn().mockReturnThis(),
-      altered: vi.fn(),
-      refData: {},
-      translate: vi.fn(),
-      parse: vi.fn(),
-      forceDigest: vi.fn(),
-    },
+function createMockView(): ViewCtx {
+  const signature: Ref<number> = { value: 1 };
+  const rendered: Ref<boolean> = { value: false };
+  const locationObserved: ViewLocationObserved = {
+    flag: 0,
+    keys: [],
+    observePath: false,
+  };
+  const resources: Record<string, ViewResourceEntry> = {};
+
+  const updater: UpdaterApi = {
+    get: vi.fn(),
+    set: vi.fn().mockReturnThis(),
+    digest: vi.fn(),
+    snapshot: vi.fn().mockReturnThis(),
+    altered: vi.fn(),
+    refData: {},
+    translate: vi.fn(),
+    parse: vi.fn(),
+    forceDigest: vi.fn(),
+    getChangedKeys: vi.fn().mockReturnValue(new Set()),
+  };
+
+  const emitter: EmitterApi = vi.fn() as unknown as EmitterApi;
+
+  const frame: FrameObj = {
+    id: "test-frame",
+    getViewPath: () => undefined,
+    parentId: undefined,
+    view: undefined,
+    invokeList: [],
     signature: 1,
-    locationObserved: { flag: 0, keys: [], observePath: false },
-    resources: {},
-    eventSelectorMap: {},
-    eventObjectMap: {},
-    globalEventList: [],
+    destroyed: 0,
+    hasAltered: 0,
+    holdFireCreated: 0,
+    childrenCreated: 0,
+    childrenAlter: 0,
+    childrenMap: {},
+    childrenCount: 0,
+    readyCount: 0,
+    readyMap: new Set(),
+    emitter,
+    mountView: vi.fn(),
+    unmountView: vi.fn(),
+    mountFrame: vi.fn(),
+    unmountFrame: vi.fn(),
+    mountZone: vi.fn(),
+    unmountZone: vi.fn(),
+    parent: vi.fn(),
+    invoke: vi.fn(),
+    children: vi.fn().mockReturnValue([]),
+    on: vi.fn(),
+    off: vi.fn(),
+    fire: vi.fn(),
+  } as FrameObj;
+
+  const ctx: ViewCtx = {
+    id: "test-view",
+    owner: frame,
+    updater,
+    signature,
+    rendered,
+    getTemplate: vi.fn(),
+    setTemplate: vi.fn(),
+    locationObserved,
+    getObservedStateKeys: vi.fn(),
+    setObservedStateKeys: vi.fn(),
+    resources,
+    emitter,
+    getEndUpdatePending: vi.fn(),
+    setEndUpdatePending: vi.fn(),
+    getEvents: vi.fn(),
+    setEvents: vi.fn(),
+    cleanups: [],
+    getAssign: vi.fn(),
+    setAssign: vi.fn(),
     render: vi.fn(),
     init: vi.fn(),
     beginUpdate: vi.fn(),
     endUpdate: vi.fn(),
     wrapAsync: vi.fn((fn) => fn),
     observeLocation: vi.fn((params) => {
-      const view = createMockView();
-      view.locationObserved.flag = 1;
+      locationObserved.flag = 1;
       if (typeof params === "string") {
-        view.locationObserved.keys = params.split(",");
+        locationObserved.keys = params.split(",");
       } else if (Array.isArray(params)) {
-        view.locationObserved.keys = params;
+        locationObserved.keys = params;
       }
     }),
     observeState: vi.fn(),
@@ -45,7 +108,9 @@ function createMockView(): ViewInterface {
     on: vi.fn().mockReturnThis(),
     off: vi.fn().mockReturnThis(),
     fire: vi.fn().mockReturnThis(),
-  } as ViewInterface;
+  } as ViewCtx;
+
+  return ctx;
 }
 
 describe("useUrlState", () => {

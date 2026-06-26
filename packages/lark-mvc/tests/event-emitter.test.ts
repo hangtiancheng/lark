@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { EventEmitter } from "../src/event-emitter";
-import type { AnyFunc, ChangeEvent } from "../src/types";
+import { createEmitter } from "../src/event-emitter";
+import type { AnyFunc, ChangeEvent, EmitterApi } from "../src/types";
 
-describe("EventEmitter", () => {
+describe("EmitterApi", () => {
   it("on / off - binds and unbinds event handlers", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const fn = vi.fn();
 
     emitter.on("testEvent", fn);
@@ -17,7 +17,7 @@ describe("EventEmitter", () => {
   });
 
   it("off - removes all handlers for event when no handler provided", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const fn1 = vi.fn();
     const fn2 = vi.fn();
 
@@ -32,7 +32,7 @@ describe("EventEmitter", () => {
   });
 
   it("fire - triggers event and passes data", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const received: unknown[] = [];
 
     emitter.on("testEvent", (data) => {
@@ -46,7 +46,7 @@ describe("EventEmitter", () => {
   });
 
   it("fire - executes in normal order by default", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const order: number[] = [];
 
     emitter.on("testEvent", () => order.push(1));
@@ -59,7 +59,7 @@ describe("EventEmitter", () => {
   });
 
   it("fire - executes in reverse order when lastToFirst=true", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const order: number[] = [];
 
     emitter.on("testEvent", () => order.push(1));
@@ -72,7 +72,7 @@ describe("EventEmitter", () => {
   });
 
   it("fire - removes all handlers after triggering when remove=true", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const fn = vi.fn();
 
     emitter.on("testEvent", fn);
@@ -84,9 +84,9 @@ describe("EventEmitter", () => {
   });
 
   it("fire - invokes onEventName method if defined", () => {
-    const emitter: EventEmitter & {
+    const emitter: EmitterApi & {
       onTestEvent?: AnyFunc;
-    } = new EventEmitter();
+    } = createEmitter();
     let onFnValue: unknown;
     emitter.onTestEvent = (data: unknown) => {
       onFnValue = data;
@@ -96,9 +96,9 @@ describe("EventEmitter", () => {
   });
 
   it("off - removes onEventName method", () => {
-    const emitter: EventEmitter & {
+    const emitter: EmitterApi & {
       onTestEvent?: AnyFunc;
-    } = new EventEmitter();
+    } = createEmitter();
     const fn = vi.fn();
     emitter.onTestEvent = fn;
 
@@ -108,7 +108,7 @@ describe("EventEmitter", () => {
   });
 
   it("on / off - supports method chaining", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const fn = vi.fn();
 
     const result1 = emitter.on("testEvent", fn);
@@ -119,13 +119,13 @@ describe("EventEmitter", () => {
   });
 
   it("fire - returns this for chaining", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     const result = emitter.fire("testEvent");
     expect(result).toBe(emitter);
   });
 
   it("fire - automatically creates empty object and adds type when no data provided", () => {
-    const emitter = new EventEmitter();
+    const emitter = createEmitter();
     let received: ChangeEvent | undefined;
     emitter.on("testEvent", (data) => {
       received = data;
@@ -136,7 +136,7 @@ describe("EventEmitter", () => {
 
   describe("re-entrant safety (C4)", () => {
     it("handler that calls off() does not skip its sibling", () => {
-      const emitter = new EventEmitter();
+      const emitter = createEmitter();
       const calls: string[] = [];
       const a = (): void => {
         calls.push("a");
@@ -157,7 +157,7 @@ describe("EventEmitter", () => {
     });
 
     it("compacts removed listeners after outermost fire completes", () => {
-      const emitter = new EventEmitter();
+      const emitter = createEmitter();
       const a = (): void => {
         emitter.off("e", a);
       };
@@ -169,7 +169,7 @@ describe("EventEmitter", () => {
 
       const list =
         (
-          emitter as {
+          emitter as unknown as {
             listeners: Map<string, { handler: AnyFunc }[]>;
           }
         ).listeners.get("\x1ee") ?? [];
@@ -179,7 +179,7 @@ describe("EventEmitter", () => {
     });
 
     it("nested fire works without compacting prematurely", () => {
-      const emitter = new EventEmitter();
+      const emitter = createEmitter();
       const outer = vi.fn(() => {
         emitter.fire("inner");
       });

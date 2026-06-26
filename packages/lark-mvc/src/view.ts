@@ -1,33 +1,31 @@
 /**
- * View class with extend/merge inheritance and event method parsing.
+ * View system (functional factory).
  *
- * - View.prepare: scans prototype for `name<click>` methods, builds event maps
- * - View.wrapMethod: wraps render() to manage signature and resource cleanup
- * - View.delegateEvents: binds/unbinds event delegation on mount/destroy
- * - View.mergeMixins: merges mixin objects with event method conflict resolution
- * - beginUpdate/endUpdate: manage DOM update zones and child frame mounting
- * - Resource management (capture/release)
- * - Location/State observation
+ * Replaces the former `View` class with `defineView()` + `createCtx()`.
+ * No `class`, no `this`, no `prototype`, no `mixin`.
+ *
+ * A view is defined by a setup function that receives a `ViewCtx` and
+ * returns `{ template, events, assign? }`. The ctx provides all framework
+ * APIs (updater, events, capture/release, observe, etc.) via closures.
  */
-import { SPLITTER, VIEW_EVENT_METHOD_REGEXP, RouterEvents } from "./common";
-import { hasOwnProperty, funcWithTry, noop, asRecord } from "./utils";
-import { EventEmitter } from "./event-emitter";
+import { VIEW_EVENT_METHOD_REGEXP, RouterEvents } from "./common";
+import { hasOwnProperty, funcWithTry, noop } from "./utils";
+import { createEmitter } from "./event-emitter";
 import { EventDelegator } from "./event-delegator";
-import { Updater } from "./updater";
+import { createUpdater } from "./updater";
 import { Router } from "./router";
-import { acceptView, disposeView } from "./hmr";
-import type { HotContext } from "./hmr";
+import { setCurrentCtx } from "./hooks";
 import type {
   AnyFunc,
-  ViewInterface,
-  ViewTemplate,
-  FrameInterface,
-  UpdaterInterface,
+  ChangeEvent,
+  RouteChangeEvent,
+  ViewCtx,
+  ViewSetup,
+  FrameObj,
   ViewLocationObserved,
-  ViewGlobalEventEntry,
-  MixinEventHandler,
-  ViewEventSelectorEntry,
   ViewResourceEntry,
+  ViewTemplate,
+  VDomTemplate,
 } from "./types";
 
 // ============================================================
@@ -43,179 +41,141 @@ if (typeof document !== "undefined") {
 }
 
 // ============================================================
-// View class
+// defineView — the public API for defining views
 // ============================================================
 
 /**
- * Base View class.
- * Views are created via View.extend() and mounted by Frame.
+ * Define a view via a setup function (hooks style).
+ *
+ * The setup function runs once on mount, receives a `ViewCtx`, and returns
+ * `{ template, events, assign? }`. Hooks (`useState`, `useEffect`, etc.)
+ * can be called inside setup to manage state and side effects.
+ *
+ * @example
+ * const HomeView = defineView((ctx, params) => {
+ *   const [getCount, setCount] = useState('count', 0);
+ *   return {
+ *     template,
+ *     events: { "incr<click>": (e) => setCount(getCount() + 1) },
+ *   };
+ * });
  */
-export class View implements ViewInterface {
-  /** View ID (same as owner frame ID) */
-  id = "";
+export function defineView(setup: ViewSetup): ViewSetup {
+  return setup;
+}
 
-  /** Owner frame */
-  owner: FrameInterface | number = 0;
+// ============================================================
+// createCtx — creates a ViewCtx with all framework APIs
+// ============================================================
 
-  /** Updater instance */
-  updater!: UpdaterInterface;
-
-  /** Signature: > 0 means active, incremented on render, 0 = destroyed */
-  signature = 0;
-
-  /** Whether rendered at least once */
-  rendered?: boolean;
-
-  /** Whether view has template */
-  template?: ViewTemplate;
-
-  /** Location observation config */
-  locationObserved: ViewLocationObserved = {
+/**
+ * Create a ViewCtx for a frame. Called by the Frame system when mounting a view.
+ *
+ * The ctx provides all framework APIs via closures — no `this` binding.
+ */
+export function createCtx(frame: FrameObj): ViewCtx {
+  const id = frame.id;
+  const updater = createUpdater(id);
+  const emitter = createEmitter();
+  const signature = { value: 0 };
+  const rendered = { value: false };
+  const resources: Record<string, ViewResourceEntry> = {};
+  const locationObserved: ViewLocationObserved = {
     flag: 0,
     keys: [],
     observePath: false,
   };
+  const mutable = {
+    observedStateKeys: undefined as string[] | undefined,
+    endUpdatePending: undefined as number | undefined,
+    template: undefined as ViewTemplate | VDomTemplate | undefined,
+    events: undefined as Record<string, AnyFunc> | undefined,
+    assignFn: undefined as
+      | ((options?: unknown) => boolean | undefined)
+      | undefined,
+  };
 
-  /** Observed state keys */
-  observedStateKeys?: string[];
+  const cleanups: Array<() => void> = [];
 
-  /** Resource map */
-  resources: Record<string, ViewResourceEntry> = {};
-
-  /** Whether endUpdate pending */
-  endUpdatePending?: number;
-
-  /** Internal event storage */
-  private _events = new EventEmitter();
-
-  // ============================================================
-  // Getters for prototype-stored event maps
-  // ============================================================
-
-  /** Prototype-stored event maps shape (set by View.prepare). */
-  private get protoEventState(): {
-    $evtObjMap?: Record<string, number>;
-    $selectorMap?: Record<string, ViewEventSelectorEntry>;
-    $globalEvtList?: ViewGlobalEventEntry[];
-  } {
-    return Object.getPrototypeOf(this) as {
-      $evtObjMap?: Record<string, number>;
-      $selectorMap?: Record<string, ViewEventSelectorEntry>;
-      $globalEvtList?: ViewGlobalEventEntry[];
-    };
+  // ── Event emitter passthrough ──
+  function on(event: string, handler: AnyFunc): () => void {
+    emitter.on(event, handler);
+    return () => emitter.off(event, handler);
   }
 
-  /**
-   * Event bitmask map: eventType -> bitmask (1=root, 2=selector).
-   * Read from prototype ($evtObjMap) set by View.prepare.
-   * Using a getter avoids ES6 class field shadowing the prototype value.
-   */
-  get eventObjectMap(): Record<string, number> {
-    return this.protoEventState.$evtObjMap ?? {};
+  function off(event: string, handler?: AnyFunc): void {
+    emitter.off(event, handler);
   }
 
-  /**
-   * Selector event map: eventType -> selector list.
-   * Read from prototype ($selectorMap) set by View.prepare.
-   */
-  get eventSelectorMap(): Record<string, ViewEventSelectorEntry> {
-    return this.protoEventState.$selectorMap ?? {};
-  }
-
-  /**
-   * Global event list: [{handler, element, eventName, modifiers}].
-   * Read from prototype ($globalEvtList) set by View.prepare.
-   */
-  get globalEventList(): ViewGlobalEventEntry[] {
-    return this.protoEventState.$globalEvtList ?? [];
-  }
-
-  // ============================================================
-  // Instance lifecycle methods
-  // ============================================================
-
-  /**
-   * Initialize view (called by Frame when mounting).
-   */
-  init(): void {
-    // Override in subclass
-  }
-
-  /**
-   * Render view template (called by Frame after init).
-   * Wrapped by View.wrapMethod to manage signature + resources.
-   */
-  render(): void {
-    this.updater.digest();
-  }
-
-  // ============================================================
-  // Event methods (delegate to internal EventEmitter)
-  // ============================================================
-
-  on(event: string, handler: AnyFunc): this {
-    this._events.on(event, handler);
-    return this;
-  }
-
-  off(event: string, handler?: AnyFunc): this {
-    this._events.off(event, handler);
-    return this;
-  }
-
-  fire(
+  function fire(
     event: string,
     data?: Record<string, unknown>,
     remove?: boolean,
     lastToFirst?: boolean,
-  ): this {
-    this._events.fire(event, data, remove, lastToFirst);
-    return this;
+  ): void {
+    emitter.fire(event, data, remove, lastToFirst);
   }
 
-  // ============================================================
-  // Update methods
-  // ============================================================
-
-  /** Get the owning frame, asserting it has been bound. */
-  private get ownerFrame(): FrameInterface {
-    return this.owner as FrameInterface;
+  // ── Resource management ──
+  function capture(
+    key: string,
+    resource?: unknown,
+    destroyOnRender = false,
+  ): unknown {
+    if (resource !== undefined) {
+      destroyResource(resources, key, true, resource);
+      resources[key] = { entity: resource, destroyOnRender };
+    } else {
+      const entry = resources[key];
+      return entry ? entry.entity : undefined;
+    }
+    return resource;
   }
 
-  /**
-   * Notify view that HTML update is about to begin.
-   * Unmounts child frames in the update zone.
-   */
-  beginUpdate(id?: string): void {
-    if (this.signature > 0 && this.endUpdatePending !== undefined) {
-      this.ownerFrame.unmountZone(id);
+  function release(key: string, destroy = true): unknown {
+    return destroyResource(resources, key, destroy);
+  }
+
+  // ── Render lifecycle ──
+  function render(): void {
+    if (signature.value > 0) {
+      signature.value++;
+      fire("render");
+      destroyAllResources(ctx, false);
+      if (typeof ctx.renderMethod === "function") {
+        funcWithTry(ctx.renderMethod, [], ctx, noop);
+      } else {
+        updater.digest();
+      }
     }
   }
 
-  /**
-   * Notify view that HTML update has ended.
-   * Mounts child frames in the update zone and runs deferred invokes.
-   */
-  endUpdate(id?: string, inner?: boolean): void {
-    if (this.signature > 0) {
-      const updateId = id || this.id;
+  // ── Update zones ──
+  function beginUpdate(zoneId?: string): void {
+    if (signature.value > 0 && mutable.endUpdatePending !== undefined) {
+      frame.unmountZone(zoneId);
+    }
+  }
+
+  function endUpdate(zoneId?: string, inner?: boolean): void {
+    if (signature.value > 0) {
+      const updateId = zoneId ?? id;
       let flag: number | boolean | undefined;
 
       if (inner) {
         flag = inner;
       } else {
-        flag = this.endUpdatePending;
-        this.endUpdatePending = 1;
-        this.rendered = true;
+        flag = mutable.endUpdatePending;
+        mutable.endUpdatePending = 1;
+        rendered.value = true;
       }
 
-      const ownerFrame = this.ownerFrame;
-      ownerFrame.mountZone(updateId);
+      frame.mountZone(updateId);
 
       if (!flag) {
         setTimeout(
-          this.wrapAsync(() => {
-            View.runInvokes(ownerFrame);
+          wrapAsync(() => {
+            runInvokes(frame);
           }),
           0,
         );
@@ -223,41 +183,26 @@ export class View implements ViewInterface {
     }
   }
 
-  // ============================================================
-  // Async wrapper
-  // ============================================================
-
-  /**
-   * Wrap an async callback to check view signature before executing.
-   * If the view has been re-rendered or destroyed, the callback is skipped.
-   */
-  wrapAsync<Fn extends AnyFunc>(
+  // ── Async safety ──
+  function wrapAsync<Fn extends AnyFunc>(
     fn: Fn,
     context?: unknown,
   ): (...args: Parameters<Fn>) => ReturnType<Fn> | undefined {
-    const currentSignature = this.signature;
+    const currentSignature = signature.value;
     return (...args: Parameters<Fn>) => {
-      if (currentSignature > 0 && currentSignature === this.signature) {
-        return fn.apply(context || this, args) as ReturnType<Fn>;
+      if (currentSignature > 0 && currentSignature === signature.value) {
+        return fn.apply(context ?? ctx, args) as ReturnType<Fn>;
       }
       return undefined;
     };
   }
 
-  // ============================================================
-  // Location observation
-  // ============================================================
-
-  /**
-   * Observe location parameters or path changes.
-   * When observed keys change, render() is called automatically.
-   */
-  observeLocation(
+  // ── Location observation ──
+  function observeLocation(
     params: string | string[] | Record<string, unknown>,
     observePath = false,
   ): void {
-    const loc = this.locationObserved;
-    loc.flag = 1;
+    locationObserved.flag = 1;
 
     if (typeof params === "object" && !Array.isArray(params)) {
       const opts = params;
@@ -270,655 +215,429 @@ export class View implements ViewInterface {
       }
     }
 
-    loc.observePath = observePath;
+    locationObserved.observePath = observePath;
 
     if (params) {
       if (typeof params === "string") {
-        loc.keys = params.split(",");
+        locationObserved.keys = params.split(",");
       } else if (Array.isArray(params)) {
-        loc.keys = params;
+        locationObserved.keys = params;
       }
     }
   }
 
-  // ============================================================
-  // State observation
-  // ============================================================
-
-  /**
-   * Observe State data keys for changes.
-   * When observed keys change via State.digest(), render() is called.
-   */
-  observeState(observedKeys: string | string[]): void {
-    if (typeof observedKeys === "string") {
-      this.observedStateKeys = observedKeys.split(",");
+  // ── State observation ──
+  function observeState(keys: string | string[]): void {
+    if (typeof keys === "string") {
+      mutable.observedStateKeys = keys.split(",");
     } else {
-      this.observedStateKeys = observedKeys;
+      mutable.observedStateKeys = keys;
     }
   }
 
-  // ============================================================
-  // Resource management
-  // ============================================================
+  // ── Leave tip ──
+  function leaveTip(message: string, condition: () => boolean): void {
+    // State tracked via closure (no function-property mutation)
+    const changeState: { a: number; b: number } = { a: 0, b: 0 };
 
-  /**
-   * Capture (register) a resource under a key.
-   * If a resource already exists at that key, it's destroyed first.
-   * When destroyOnRender=true, the resource is destroyed on next render call.
-   */
-  capture(key: string, resource?: unknown, destroyOnRender = false): unknown {
-    const cache = this.resources;
-    if (resource) {
-      View.destroyResource(cache, key, true, resource);
-      cache[key] = {
-        entity: resource,
-        destroyOnRender,
-      };
-    } else {
-      const entry = cache[key];
-      return entry ? entry.entity : undefined;
-    }
-    return resource;
-  }
-
-  /**
-   * Release a captured resource.
-   * If destroy=true, calls the resource's destroy() method.
-   */
-  release(key: string, destroy = true): unknown {
-    return View.destroyResource(this.resources, key, destroy);
-  }
-
-  // ============================================================
-  // Leave tip
-  // ============================================================
-
-  /**
-   * Set up a leave confirmation for route changes and page unload.
-   */
-  leaveTip(message: string, condition: () => boolean): void {
-    interface LeaveEvent {
-      type?: string;
-      prevent?: () => void;
-      reject?: () => void;
-      resolve?: () => void;
-    }
-    interface LeaveListener {
-      a?: number;
-      b?: number;
-      (e: LeaveEvent): void;
+    // Type guard: narrow ChangeEvent to RouteChangeEvent (has prevent/reject/resolve)
+    function isRouteChange(e: ChangeEvent): e is RouteChangeEvent {
+      return "prevent" in e && "reject" in e && "resolve" in e;
     }
 
-    const changeListener: LeaveListener = function (e: LeaveEvent): void {
+    const changeListener = (e?: ChangeEvent): void => {
+      if (!e) return;
       const isRouterChange = e.type === RouterEvents.CHANGE;
       const aKey: "a" | "b" = isRouterChange ? "a" : "b";
       const bKey: "a" | "b" = isRouterChange ? "b" : "a";
 
-      if (changeListener[aKey]) {
-        e.prevent?.();
-        e.reject?.();
+      if (changeState[aKey]) {
+        if (isRouteChange(e)) {
+          e.prevent();
+          e.reject();
+        }
       } else if (condition()) {
-        e.prevent?.();
-        changeListener[bKey] = 1;
-        e.resolve?.();
+        if (isRouteChange(e)) {
+          e.prevent();
+          changeState[bKey] = 1;
+          e.resolve();
+        }
       }
     };
 
-    const unloadListener = (e: Record<string, unknown>): void => {
-      if (condition()) {
-        e["msg"] = message;
+    const unloadListener = (e?: ChangeEvent): void => {
+      if (e && condition()) {
+        Reflect.set(e, "msg", message);
       }
     };
 
-    Router.on(RouterEvents.CHANGE, changeListener as AnyFunc);
-    Router.on(RouterEvents.PAGE_UNLOAD, unloadListener as AnyFunc);
+    Router.on(RouterEvents.CHANGE, changeListener);
+    Router.on(RouterEvents.PAGE_UNLOAD, unloadListener);
 
-    this.on("unload", changeListener as AnyFunc);
-    this.on("destroy", () => {
-      Router.off(RouterEvents.CHANGE, changeListener as AnyFunc);
-      Router.off(RouterEvents.PAGE_UNLOAD, unloadListener as AnyFunc);
+    on("unload", changeListener);
+    on("destroy", () => {
+      Router.off(RouterEvents.CHANGE, changeListener);
+      Router.off(RouterEvents.PAGE_UNLOAD, unloadListener);
     });
   }
 
-  // ============================================================
-  // Static public methods
-  // ============================================================
-
-  /** Collected ctors from mixins */
-  static ctors?: AnyFunc[];
-
-  /**
-   * Prepare a View subclass by scanning its prototype for event method patterns.
-   * Pattern: `$?name<eventType1,eventType2>(&modifiers)`
-   *
-   * Only runs once per View subclass (guarded by ctors marker).
-   * Called from Frame.mountView before creating the view instance.
-   */
-  static prepare(oView: typeof View): AnyFunc[] {
-    if (oView.ctors) {
-      return oView.ctors;
-    }
-
-    const ctors: AnyFunc[] = [];
-    oView.ctors = ctors;
-
-    const eventsObject: Record<string, number> = {};
-    const eventsList: ViewGlobalEventEntry[] = [];
-    const selectorObject: Record<string, ViewEventSelectorEntry> = {};
-
-    // Process mixins first
-    const mixins = Reflect.get(oView.prototype, "mixins");
-    if (mixins && Array.isArray(mixins)) {
-      View.mergeMixins(mixins, oView, ctors);
-    }
-
-    // Scan prototype for event method patterns
-    for (const p in oView.prototype) {
-      if (!hasOwnProperty(oView.prototype, p)) continue;
-      const currentFn = Reflect.get(oView.prototype, p);
-      if (typeof currentFn !== "function") continue;
-
-      const matches = p.match(VIEW_EVENT_METHOD_REGEXP);
-      if (!matches) continue;
-
-      const isSelector = matches[1];
-      const selectorOrCallback = matches[2];
-      const events = matches[3];
-      const modifiers = matches[4];
-
-      const mod: Record<string, boolean> = {};
-      if (modifiers) {
-        for (const item of modifiers.split(",")) {
-          mod[item] = true;
-        }
-      }
-
-      const eventTypes = events.split(",");
-      for (const item of eventTypes) {
-        const globalNode: EventTarget | undefined =
-          VIEW_GLOBALS[selectorOrCallback];
-        let mask = 1;
-
-        if (isSelector) {
-          if (globalNode) {
-            eventsList.push({
-              handler: currentFn as AnyFunc,
-              element: globalNode,
-              eventName: item,
-              modifiers: mod,
-            });
-            continue;
-          }
-          mask = 2;
-          let selectorEntry = selectorObject[item];
-          if (!selectorEntry) {
-            selectorEntry = selectorObject[item] = {
-              selectors: [],
-            };
-          }
-          if (!selectorEntry[selectorOrCallback]) {
-            selectorEntry[selectorOrCallback] = 1;
-            selectorEntry.selectors.push(selectorOrCallback);
-          }
-        }
-
-        eventsObject[item] = (eventsObject[item] || 0) | mask;
-
-        const combinedKey = selectorOrCallback + SPLITTER + item;
-        const existingFn = Reflect.get(oView.prototype, combinedKey);
-        if (!existingFn) {
-          Reflect.set(oView.prototype, combinedKey, currentFn);
-        } else if (typeof existingFn === "function") {
-          const mixinFn = currentFn as MixinEventHandler;
-          const existingMixin = existingFn as MixinEventHandler;
-          if (existingMixin.marker) {
-            if (mixinFn.marker) {
-              Reflect.set(
-                oView.prototype,
-                combinedKey,
-                View.processMixinsSameEvent(mixinFn, existingMixin),
-              );
-            } else if (hasOwnProperty(oView.prototype, p)) {
-              Reflect.set(oView.prototype, combinedKey, currentFn);
-            }
-          }
-        }
-      }
-    }
-
-    // Wrap render method
-    View.wrapMethod(asRecord(oView.prototype), "render", "$renderWrap");
-
-    // Store event maps on prototype
-    Reflect.set(oView.prototype, "$evtObjMap", eventsObject);
-    Reflect.set(oView.prototype, "$globalEvtList", eventsList);
-    Reflect.set(oView.prototype, "$selectorMap", selectorObject);
-    return ctors;
+  // ── Init (called by Frame after setup) ──
+  function init(_params?: unknown): void {
+    // Init hook — currently a no-op; params are passed to setup() directly
   }
 
-  /**
-   * Bind or unbind event delegation for a view instance.
-   * Called from Frame during mount/unmount.
-   */
-  static delegateEvents(view: ViewInterface, destroy = false): void {
-    // Read event maps via getters (which read from prototype $evtObjMap/$selectorMap/$globalEvtList).
-    const eventsObject = view.eventObjectMap;
-    const selectorObject = view.eventSelectorMap;
-    const eventsList = view.globalEventList;
-
-    // Bind/unbind root events
-    for (const e in eventsObject) {
-      if (hasOwnProperty(eventsObject, e)) {
-        if (destroy) {
-          EventDelegator.unbind(e, !!selectorObject[e]);
-        } else {
-          EventDelegator.bind(e, !!selectorObject[e]);
-        }
-      }
-    }
-
-    // Bind/unbind global events (window/document)
-    for (const entry of eventsList) {
-      if (destroy) {
-        entry.element.removeEventListener(
-          entry.eventName,
-          entry.boundHandler as EventListener,
-        );
-      } else {
-        const handler = entry.handler;
-        const element = entry.element;
-        const modifiers = entry.modifiers;
-        entry.boundHandler = function (domEvent: Event): void {
-          const extendedEvent = domEvent as Event & {
-            eventTarget?: EventTarget;
-          };
-          extendedEvent.eventTarget = element;
-          if (modifiers) {
-            const kbEvent = domEvent as KeyboardEvent;
-            if (
-              (modifiers["ctrl"] && !kbEvent.ctrlKey) ||
-              (modifiers["shift"] && !kbEvent.shiftKey) ||
-              (modifiers["alt"] && !kbEvent.altKey) ||
-              (modifiers["meta"] && !kbEvent.metaKey)
-            ) {
-              return;
-            }
-          }
-          funcWithTry(handler, [domEvent], view, noop);
-        };
-        entry.element.addEventListener(
-          entry.eventName,
-          entry.boundHandler as EventListener,
-        );
-      }
-    }
+  // ── Getters/setters as functions (no getter/setter syntax) ──
+  function getTemplate(): ViewTemplate | VDomTemplate | undefined {
+    return mutable.template;
   }
-
-  /**
-   * Destroy all resources managed by a view.
-   * If lastly=true, destroy ALL resources; otherwise only destroyOnRender ones.
-   */
-  static destroyAllResources(view: ViewInterface, lastly: boolean): void {
-    const cache = view.resources;
-    for (const p in cache) {
-      if (hasOwnProperty(cache, p)) {
-        const entry = cache[p];
-        if (lastly || entry.destroyOnRender) {
-          View.destroyResource(cache, p, true);
-        }
-      }
-    }
+  function setTemplate(v: ViewTemplate | VDomTemplate | undefined): void {
+    mutable.template = v;
   }
-
-  /**
-   * Process deferred invoke calls on a frame.
-   */
-  static runInvokes(frame: FrameInterface): void {
-    const list = frame.invokeList;
-    if (!list) return;
-
-    while (list.length) {
-      const entry = list.shift();
-      if (entry && !entry.removed) {
-        frame.invoke(entry.name, entry.args);
-      }
-    }
+  function getObservedStateKeys(): string[] | undefined {
+    return mutable.observedStateKeys;
   }
-
-  // ============================================================
-  // Static private methods
-  // ============================================================
-
-  /**
-   * Wrap a method on the prototype to add signature checking and resource cleanup.
-   */
-  private static wrapMethod(
-    proto: Record<string, unknown>,
-    fnName: string,
-    shortKey: string,
+  function setObservedStateKeys(v: string[] | undefined): void {
+    mutable.observedStateKeys = v;
+  }
+  function getEndUpdatePending(): number | undefined {
+    return mutable.endUpdatePending;
+  }
+  function setEndUpdatePending(v: number | undefined): void {
+    mutable.endUpdatePending = v;
+  }
+  function getEvents(): Record<string, AnyFunc> | undefined {
+    return mutable.events;
+  }
+  function setEvents(v: Record<string, AnyFunc> | undefined): void {
+    mutable.events = v;
+  }
+  function getAssign():
+    | ((options?: unknown) => boolean | undefined)
+    | undefined {
+    return mutable.assignFn;
+  }
+  function setAssign(
+    v: ((options?: unknown) => boolean | undefined) | undefined,
   ): void {
-    const originalFn = proto[fnName];
-    if (typeof originalFn !== "function") return;
-    const originalAsFn = originalFn as AnyFunc;
-
-    const wrapped: AnyFunc = function (
-      this: ViewInterface,
-      ...args: unknown[]
-    ): unknown {
-      if (this.signature > 0) {
-        this.signature++;
-        this.fire("render");
-        View.destroyAllResources(this, false);
-        const lookup = asRecord(this);
-        const candidate = lookup[fnName];
-        const instanceFn =
-          typeof candidate === "function"
-            ? (candidate as AnyFunc)
-            : originalAsFn;
-        const fnToCall = instanceFn === wrapped ? originalAsFn : instanceFn;
-        return funcWithTry(fnToCall, args, this, noop);
-      }
-      return undefined;
-    };
-
-    proto[fnName] = wrapped;
-    proto[shortKey] = wrapped;
+    mutable.assignFn = v;
   }
 
-  /**
-   * When two mixins define the same event method, merge them into
-   * a single function that calls both in sequence.
-   */
-  private static processMixinsSameEvent(
-    additional: MixinEventHandler,
-    exist: MixinEventHandler,
-  ): MixinEventHandler {
-    let temp: MixinEventHandler;
+  const ctx: ViewCtx = {
+    id,
+    owner: frame,
+    updater,
+    signature,
+    rendered,
+    getTemplate,
+    setTemplate,
+    locationObserved,
+    getObservedStateKeys,
+    setObservedStateKeys,
+    resources,
+    emitter,
+    getEndUpdatePending,
+    setEndUpdatePending,
+    getEvents,
+    setEvents,
+    cleanups,
+    getAssign,
+    setAssign,
+    render,
+    init,
+    beginUpdate,
+    endUpdate,
+    wrapAsync,
+    observeLocation,
+    observeState,
+    capture,
+    release,
+    leaveTip,
+    fire,
+    on,
+    off,
+  };
 
-    if (exist.handlerList) {
-      temp = exist;
-    } else {
-      const merged: MixinEventHandler = function (
-        this: unknown,
-        ...e: unknown[]
-      ): void {
-        funcWithTry(merged.handlerList ?? [], e, this, noop);
-      };
-      merged.handlerList = [exist];
-      merged.marker = 1;
-      temp = merged;
-    }
-
-    temp.handlerList = (temp.handlerList ?? []).concat(
-      additional.handlerList ?? [additional],
-    );
-    return temp;
-  }
-
-  /**
-   * Merge an array of mixin objects into the view prototype.
-   */
-  private static mergeMixins(
-    mixins: Record<string, unknown>[],
-    viewClass: typeof View,
-    ctors: AnyFunc[],
-  ): void {
-    const proto = asRecord(viewClass.prototype);
-    const temp: Record<string, MixinEventHandler> = {};
-
-    for (const node of mixins) {
-      for (const p in node) {
-        if (!hasOwnProperty(node, p)) continue;
-        const fn = node[p];
-        if (typeof fn !== "function") continue;
-        const mixinFn = fn as MixinEventHandler;
-        const exist = temp[p];
-
-        if (p === "ctor") {
-          ctors.push(mixinFn);
-          continue;
-        }
-
-        if (VIEW_EVENT_METHOD_REGEXP.test(p)) {
-          if (exist) {
-            temp[p] = View.processMixinsSameEvent(mixinFn, exist);
-          } else {
-            mixinFn.marker = 1;
-            temp[p] = mixinFn;
-          }
-        } else if (!exist) {
-          temp[p] = mixinFn;
-        }
-      }
-    }
-
-    for (const p in temp) {
-      if (!hasOwnProperty(proto, p)) {
-        proto[p] = temp[p];
-      }
-    }
-  }
-
-  /**
-   * Destroy a single resource entry.
-   */
-  private static destroyResource(
-    cache: Record<string, ViewResourceEntry>,
-    key: string,
-    callDestroy: boolean,
-    oldEntity?: unknown,
-  ): unknown {
-    const entry = cache[key];
-    if (!entry || entry.entity === oldEntity) return undefined;
-
-    const entity = entry.entity;
-    if (entity && typeof entity === "object") {
-      const destroyFn = (entity as Record<string, unknown>)["destroy"];
-      if (typeof destroyFn === "function" && callDestroy) {
-        funcWithTry(destroyFn as AnyFunc, [], entity, noop);
-      }
-    }
-
-    Reflect.deleteProperty(cache, key);
-    return entity;
-  }
-
-  // ============================================================
-  // Static: extend and merge
-  // ============================================================
-
-  /**
-   * Extend View to create a new View subclass.
-   *
-   * Supports:
-   * - props.ctor: constructor-like init (called with initParams + {node, deep})
-   * - props.mixins: array of mixin objects
-   * - Event method patterns: `'name<click>'` etc.
-   */
-  static extend(
-    props?: ThisType<ViewInterface> & Record<string, unknown>,
-    statics?: Record<string, unknown>,
-  ): typeof View {
-    const definedProps: Record<string, unknown> = props ?? {};
-    const ctor = definedProps["ctor"];
-    const ctors: AnyFunc[] = [];
-    if (typeof ctor === "function") {
-      ctors.push(ctor as AnyFunc);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- Need reference to ParentView in closure for extend()
-    const ParentView = this;
-
-    // Use ES6 class extends for proper constructor chaining via super().
-    // CRITICAL: extend props (like template) MUST be applied as instance properties
-    // in the constructor AFTER super(), because ES6 class field declarations
-    // (e.g. `template;` in View) set `this.template = undefined` in the constructor body,
-    // which would shadow any prototype property set via `proto.template = ...`.
-    type ViewConstructor = new (
-      nodeId: string,
-      ownerFrame: FrameInterface,
-      initParams?: Record<string, unknown>,
-      node?: Element,
-      mixinCtors?: AnyFunc[],
-    ) => View;
-
-    const ChildView = class extends (ParentView as ViewConstructor) {
-      constructor(
-        nodeId: string,
-        ownerFrame: FrameInterface,
-        initParams?: Record<string, unknown>,
-        node?: Element,
-        mixinCtors?: AnyFunc[],
-      ) {
-        super(nodeId, ownerFrame, initParams, node, []);
-
-        // Apply extend props as INSTANCE properties after super().
-        // CRITICAL: Skip "render" — it is wrapped on the prototype by View.wrapMethod.
-        // Setting render on the instance would shadow the wrapped version, bypassing
-        // signature checking, resource cleanup, and the "render" event.
-        const instanceProps = this as Record<string, unknown>;
-        for (const key in definedProps) {
-          if (
-            hasOwnProperty(definedProps, key) &&
-            key !== "ctor" &&
-            key !== "render"
-          ) {
-            instanceProps[key] = definedProps[key];
-          }
-        }
-
-        this.id = nodeId;
-        this.owner = ownerFrame;
-        this.updater = new Updater(nodeId);
-
-        const params: [
-          Record<string, unknown> | undefined,
-          { node: Element | undefined; deep: boolean },
-        ] = [
-          initParams,
-          {
-            node,
-            deep: !this.template,
-          },
-        ];
-
-        const concatCtors = ctors.concat(mixinCtors || []);
-        if (concatCtors.length) {
-          funcWithTry(concatCtors, params, this, noop);
-        }
-      }
-    } as typeof View;
-
-    // Methods on prototype (for proper method lookup via prototype chain)
-    for (const key in definedProps) {
-      if (hasOwnProperty(definedProps, key) && key !== "ctor") {
-        Reflect.set(ChildView.prototype, key, definedProps[key]);
-      }
-    }
-
-    // Copy statics
-    if (statics) {
-      for (const key in statics) {
-        if (hasOwnProperty(statics, key)) {
-          Reflect.set(ChildView, key, statics[key]);
-        }
-      }
-    }
-
-    // extend and merge are inherited via prototype chain (no manual assignment needed)
-
-    return ChildView;
-  }
-
-  /**
-   * Merge mixins into View prototype.
-   */
-  static merge(
-    this: typeof View,
-    ...mixins: Record<string, unknown>[]
-  ): typeof View {
-    const existingCtors = this.ctors || [];
-    View.mergeMixins(mixins, this, existingCtors);
-    return this;
-  }
-
-  // ============================================================
-  // HMR support (static accept / dispose)
-  // ============================================================
-
-  /**
-   * Set up HMR accept handler for this view module.
-   *
-   * When the module is hot-replaced, the new View class is extracted from
-   * the new module, registered in the view registry, and all currently
-   * mounted frames using this viewPath are re-mounted.
-   *
-   * No-op when `hot` is undefined (production / non-HMR environment).
-   *
-   * ```ts
-   * if (import.meta.hot) {
-   *   HomeView.accept(import.meta.hot, 'home');
-   * }
-   * ```
-   */
-  static accept(hot: HotContext | undefined, viewPath: string): void {
-    if (!hot) return;
-    acceptView(hot, viewPath);
-  }
-
-  /**
-   * Set up HMR dispose handler for this view module.
-   *
-   * When the module is about to be replaced, the old View class is removed
-   * from the registry so subsequent lookups don't return the stale class.
-   *
-   * No-op when `hot` is undefined (production / non-HMR environment).
-   *
-   * ```ts
-   * if (import.meta.hot) {
-   *   HomeView.dispose(import.meta.hot, 'home');
-   * }
-   * ```
-   */
-  static dispose(hot: HotContext | undefined, viewPath: string): void {
-    if (!hot) return;
-    disposeView(hot, viewPath);
-  }
+  return ctx;
 }
 
 // ============================================================
-// defineView — typed factory wrapping View.extend
+// Event registration
 // ============================================================
 
 /**
- * Type-safe wrapper around `View.extend()`.
+ * Parse event method names like "handler<click>" or "$selector<click>"
+ * and register them with the EventDelegator.
  *
- * `View.extend({...})` accepts any object literal, and inside its methods
- * `this` is typed only as the base `ViewInterface` — so any custom state
- * field or helper method requires a `(this as MyView).foo` strong-cast at
- * every call site.
- *
- * `defineView()` threads the literal's own shape back into `this` via
- * `ThisType<P & ViewInterface>`, so `this.foo` is typed automatically:
- *
- * ```ts
- * const HomeView = defineView({
- *   $title: "Home",
- *   init() {
- *     this.updater.set({ title: this.$title }); // both typed
- *   },
- *   greet() {
- *     return `hello ${this.$title}`;
- *   },
- * });
- * ```
- *
- * Runtime semantics are identical to `View.extend(props, statics)` — this is
- * a zero-cost type-only wrapper.
+ * Called after setup returns, with the `events` map from the setup result.
  */
-export function defineView<P extends Record<string, unknown>>(
-  props: P & ThisType<P & ViewInterface>,
-  statics?: Record<string, unknown>,
-): typeof View {
-  return View.extend(props as Record<string, unknown>, statics);
+export function registerEvents(ctx: ViewCtx): void {
+  const events = ctx.getEvents();
+  if (!events) return;
+
+  for (const key of Object.keys(events)) {
+    if (!hasOwnProperty(events, key)) continue;
+    const handler = events[key];
+    if (typeof handler !== "function") continue;
+
+    const matches = key.match(VIEW_EVENT_METHOD_REGEXP);
+    if (!matches) continue;
+
+    const isSelector = matches[1];
+    const selectorOrCallback = matches[2];
+    const eventTypes = matches[3];
+    const modifiers = matches[4];
+
+    const mod: Record<string, boolean> = {};
+    if (modifiers) {
+      for (const item of modifiers.split(",")) {
+        mod[item] = true;
+      }
+    }
+
+    for (const eventType of eventTypes.split(",")) {
+      const globalNode: EventTarget | undefined =
+        VIEW_GLOBALS[selectorOrCallback];
+
+      if (isSelector && globalNode) {
+        // Global event (window/document)
+        registerGlobalEvent(ctx, globalNode, eventType, handler, mod, key);
+      } else if (isSelector) {
+        // Selector event
+        EventDelegator.bind(eventType, true);
+      } else {
+        // Root event
+        EventDelegator.bind(eventType, false);
+      }
+    }
+  }
 }
+
+/**
+ * Unregister all events for a ctx. Called on destroy.
+ */
+export function unregisterEvents(ctx: ViewCtx): void {
+  const events = ctx.getEvents();
+  if (!events) return;
+
+  for (const key of Object.keys(events)) {
+    if (!hasOwnProperty(events, key)) continue;
+    const matches = key.match(VIEW_EVENT_METHOD_REGEXP);
+    if (!matches) continue;
+
+    const isSelector = matches[1];
+    const selectorOrCallback = matches[2];
+    const eventTypes = matches[3];
+
+    for (const eventType of eventTypes.split(",")) {
+      const globalNode: EventTarget | undefined =
+        VIEW_GLOBALS[selectorOrCallback];
+
+      if (isSelector && globalNode) {
+        // Global event: remove listener
+        // The boundHandler is stored on the prototype in the old system.
+        // In the functional system, we track it in the events map metadata.
+        // For now, we rely on EventDelegator.clearRangeEvents for DOM events.
+      } else if (isSelector) {
+        EventDelegator.unbind(eventType, true);
+      } else {
+        EventDelegator.unbind(eventType, false);
+      }
+    }
+  }
+
+  EventDelegator.clearRangeEvents(ctx.id);
+}
+
+/** Register a global (window/document) event listener */
+function registerGlobalEvent(
+  ctx: ViewCtx,
+  element: EventTarget,
+  eventName: string,
+  handler: AnyFunc,
+  modifiers: Record<string, boolean>,
+  _key: string,
+): void {
+  const listener: EventListenerObject = {
+    handleEvent(domEvent: Event): void {
+      // Attach the delegated target for consumer access via event delegation
+      Reflect.set(domEvent, "eventTarget", element);
+      if (modifiers) {
+        // Check keyboard modifiers via runtime property inspection (type-safe)
+        const ctrlKey = Reflect.get(domEvent, "ctrlKey");
+        const shiftKey = Reflect.get(domEvent, "shiftKey");
+        const altKey = Reflect.get(domEvent, "altKey");
+        const metaKey = Reflect.get(domEvent, "metaKey");
+        if (
+          (modifiers["ctrl"] && !ctrlKey) ||
+          (modifiers["shift"] && !shiftKey) ||
+          (modifiers["alt"] && !altKey) ||
+          (modifiers["meta"] && !metaKey)
+        ) {
+          return;
+        }
+      }
+      funcWithTry(handler, [domEvent], ctx, noop);
+    },
+  };
+
+  element.addEventListener(eventName, listener);
+
+  // Store for cleanup on destroy
+  ctx.on("destroy", () => {
+    element.removeEventListener(eventName, listener);
+  });
+}
+
+// ============================================================
+// Resource management
+// ============================================================
+
+/**
+ * Destroy all resources managed by a ctx.
+ * If lastly=true, destroy ALL resources; otherwise only destroyOnRender ones.
+ */
+export function destroyAllResources(ctx: ViewCtx, lastly: boolean): void {
+  const cache = ctx.resources;
+  for (const p in cache) {
+    if (hasOwnProperty(cache, p)) {
+      const entry = cache[p];
+      if (lastly || entry.destroyOnRender) {
+        destroyResource(cache, p, true);
+      }
+    }
+  }
+}
+
+/**
+ * Destroy a single resource entry.
+ */
+function destroyResource(
+  cache: Record<string, ViewResourceEntry>,
+  key: string,
+  callDestroy: boolean,
+  oldEntity?: unknown,
+): unknown {
+  const entry = cache[key];
+  if (!entry || entry.entity === oldEntity) return undefined;
+
+  const entity = entry.entity;
+  if (entity && typeof entity === "object") {
+    const destroyFn = Reflect.get(entity, "destroy");
+    if (typeof destroyFn === "function" && callDestroy) {
+      funcWithTry(destroyFn, [], entity, noop);
+    }
+  }
+
+  Reflect.deleteProperty(cache, key);
+  return entity;
+}
+
+// ============================================================
+// Invoke queue
+// ============================================================
+
+/**
+ * Process deferred invoke calls on a frame.
+ */
+export function runInvokes(frame: FrameObj): void {
+  const list = frame.invokeList;
+  if (!list) return;
+
+  while (list.length) {
+    const entry = list.shift();
+    if (entry && !entry.removed) {
+      frame.invoke(entry.name, entry.args);
+    }
+  }
+}
+
+// ============================================================
+// Mount / unmount a ctx (called by Frame)
+// ============================================================
+
+/**
+ * Mount a view: create ctx, run setup, register events, render.
+ *
+ * Called by `frame.mountView` after the setup function is loaded.
+ */
+export function mountCtx(
+  frame: FrameObj,
+  setup: ViewSetup,
+  params?: unknown,
+): ViewCtx {
+  const ctx = createCtx(frame);
+
+  // Set currentCtx so hooks (useState, useEffect, etc.) can access the ctx
+  // during setup execution. Must be reset to null after setup completes.
+  setCurrentCtx(ctx);
+  let descriptor: ReturnType<ViewSetup>;
+  try {
+    // Run setup — returns { template, events, assign? }
+    descriptor = setup(ctx, params);
+  } finally {
+    setCurrentCtx(null);
+  }
+
+  ctx.setTemplate(descriptor.template);
+  ctx.setEvents(descriptor.events);
+  if (descriptor.assign) {
+    ctx.setAssign(descriptor.assign);
+  }
+
+  // Activate
+  ctx.signature.value = 1;
+
+  // Wire ctx to frame BEFORE render so that updater.digest() → runDigest()
+  // can find `frame.view` and read the template. Without this, runDigest's
+  // `const view = frame?.view` is undefined and the render is a no-op —
+  // the root cause of the blank-page bug in lark-demo.
+  frame.view = ctx;
+
+  // Register events
+  registerEvents(ctx);
+
+  // Render
+  if (ctx.getTemplate()) {
+    ctx.render();
+  } else {
+    ctx.endUpdate();
+  }
+
+  return ctx;
+}
+
+/**
+ * Unmount a view: run cleanups, unregister events, destroy resources.
+ */
+export function unmountCtx(ctx: ViewCtx): void {
+  // Run useEffect cleanups
+  for (let i = ctx.cleanups.length - 1; i >= 0; i--) {
+    const cleanup = ctx.cleanups[i];
+    funcWithTry(cleanup, [], null, noop);
+  }
+  ctx.cleanups.length = 0;
+
+  // Unregister events
+  unregisterEvents(ctx);
+
+  // Destroy all resources
+  destroyAllResources(ctx, true);
+
+  // Fire destroy event
+  if (ctx.signature.value > 0) {
+    ctx.fire("destroy", undefined, true, true);
+  }
+
+  // Clear range events
+  EventDelegator.clearRangeEvents(ctx.id);
+
+  // Mark as destroyed
+  ctx.signature.value = 0;
+}
+
+// ============================================================
+// HMR support
+// ============================================================
+// HMR accept/dispose is handled by the hmr module's acceptView/disposeView.
+// The view module no longer needs wrapper functions — consumers should import
+// acceptView/disposeView directly from ./hmr.

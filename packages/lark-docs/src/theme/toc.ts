@@ -1,4 +1,5 @@
-import { State, View as ViewClass } from "@lark.js/mvc";
+import { State, defineView } from "@lark.js/mvc";
+import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
 
 /**
  * TocView - right-side heading outline.
@@ -7,18 +8,15 @@ import { State, View as ViewClass } from "@lark.js/mvc";
  * Supports scroll-spy to highlight the currently visible heading.
  */
 
-export function createTocView(View: typeof ViewClass, template: unknown) {
-  return View.extend({
-    template,
+export function createTocView(
+  template: ViewTemplate | VDomTemplate,
+): ViewSetup {
+  return defineView((ctx) => {
+    // Re-render when the layout publishes new headings for the current page.
+    ctx.observeState("currentPageHeadings");
 
-    init() {
-      // Re-render when the layout publishes new headings for the current page.
-      this.observeState("currentPageHeadings");
-      this.assign?.();
-    },
-
-    assign() {
-      this.updater.snapshot();
+    const assign = (): boolean | undefined => {
+      ctx.updater.snapshot();
       const rawHeadings = (State.get("currentPageHeadings") || []) as Array<{
         level: number;
         slug: string;
@@ -32,23 +30,28 @@ export function createTocView(View: typeof ViewClass, template: unknown) {
           ? "menu-active text-primary font-medium rounded-field text-base-content/60 text-xs"
           : "rounded-field text-base-content/60 text-xs",
       }));
-      this.updater.set({ headings });
-      return this.updater.altered();
-    },
+      ctx.updater.set({ headings });
+      return ctx.updater.altered();
+    };
 
-    render() {
-      this.updater.digest();
-    },
+    // Initial assign
+    assign();
 
-    "scrollToHeading<click>"(e: Event) {
-      const target = e.target as HTMLElement;
-      const slug = target.dataset["slug"];
-      if (slug) {
-        const el = document.getElementById(slug);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }
-    },
+    return {
+      template,
+      assign,
+      events: {
+        "scrollToHeading<click>": (e: Event) => {
+          const target = e.target as HTMLElement;
+          const slug = target.dataset["slug"];
+          if (slug) {
+            const el = document.getElementById(slug);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+        },
+      },
+    };
   });
 }

@@ -1,9 +1,11 @@
 import type {
-  FrameInterface,
-  FrameworkInterface,
-  StateInterface,
-  RouterInterface,
+  FrameApi,
+  FrameworkApi,
+  StateApi,
+  RouterApi,
   CrossSiteConfig,
+  ViewTemplate,
+  VDomTemplate,
 } from "./types";
 import type { Frame } from "./frame";
 import type { View } from "./view";
@@ -23,7 +25,7 @@ declare global {
   }
   interface HTMLElement {
     /** Bound frame instance */
-    frame?: FrameInterface | undefined;
+    frame?: FrameApi | undefined;
     /** Whether frame is bound to this element (1 = bound) */
     frameBound?: number;
     /** Whether auto-generated ID was assigned */
@@ -55,14 +57,7 @@ declare module "*.css" {
   export default content;
 }
 
-// HTML template module declarations (Lark templates - compiled to functions)
 declare module "*.html" {
-  // const template: (
-  //   data: unknown,
-  //   viewId: string,
-  //   refData: unknown,
-  // ) => string;
-  // export default template;
-  const content: string;
-  export default content;
+  const template: ViewTemplate | VDomTemplate;
+  export default template;
 }

@@ -1,22 +1,23 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { Frame, registerViewClass } from "../src/frame";
-import { View } from "../src/view";
+import { Frame, createFrame, registerViewClass } from "../src/frame";
+import { defineView } from "../src/view";
 import { LARK_VIEW } from "../src/common";
+import type { FrameObj } from "../src/types";
 
 /**
  * Creates a Frame with associated DOM element for testing
  */
-function createTestFrame(id: string, parentId?: string): Frame {
+function createTestFrame(id: string, parentId?: string): FrameObj {
   const el = document.createElement("div");
   el.id = id;
   document.body.appendChild(el);
-  return new Frame(id, parentId);
+  return createFrame(id, parentId);
 }
 
 /**
  * Cleans up Frame and associated DOM
  */
-function cleanupFrame(frame: Frame): void {
+function cleanupFrame(frame: FrameObj): void {
   const id = frame.id;
   const el = document.getElementById(id);
   if (el) el.remove();
@@ -102,7 +103,7 @@ describe("Frame", () => {
       expect(frame.hasAltered).toBe(0);
       expect(frame.invokeList).toEqual([]);
       expect(frame.view).toBeUndefined();
-      expect(frame.viewPath).toBeUndefined();
+      expect(frame.getViewPath()).toBeUndefined();
       expect(frame.originalTemplate).toBeUndefined();
 
       cleanupFrame(frame);
@@ -241,11 +242,7 @@ describe("Frame", () => {
       document.body.appendChild(childEl);
 
       // Register an empty View class
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view", TestView);
 
       const childFrame = parent.mountFrame("mf-child-1", "test-view");
@@ -266,11 +263,7 @@ describe("Frame", () => {
       childEl.id = "mf-child-2";
       document.body.appendChild(childEl);
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view2", TestView);
 
       const childFrame1 = parent.mountFrame("mf-child-2", "test-view2");
@@ -290,11 +283,7 @@ describe("Frame", () => {
       childEl.id = "mf-child-3";
       document.body.appendChild(childEl);
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view3", TestView);
 
       parent.mountFrame("mf-child-3", "test-view3");
@@ -314,11 +303,7 @@ describe("Frame", () => {
       childEl.id = "mf-child-4";
       document.body.appendChild(childEl);
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view4", TestView);
 
       const childFrame = parent.mountFrame("mf-child-4", "test-view4");
@@ -348,11 +333,7 @@ describe("Frame", () => {
       document.body.appendChild(parentEl);
 
       const parent = createTestFrame("mz-parent-1");
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-zone", TestView);
 
       parent.mountZone("mz-parent-1");
@@ -380,11 +361,7 @@ describe("Frame", () => {
       if (boundEl) boundEl.frameBound = 1;
 
       const parent = createTestFrame("mz-parent-2");
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-zone2", TestView);
 
       parent.mountZone("mz-parent-2");
@@ -409,11 +386,7 @@ describe("Frame", () => {
       document.body.appendChild(parentEl);
 
       const parent = createTestFrame("mz-parent-3");
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-zone3", TestView);
 
       parent.mountZone("mz-parent-3");
@@ -437,11 +410,7 @@ describe("Frame", () => {
       childEl2.id = "child-2";
       document.body.appendChild(childEl2);
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-children", TestView);
 
       parent.mountFrame("child-1", "test-view-children");
@@ -472,17 +441,13 @@ describe("Frame", () => {
       parentEl.id = "p-1";
       document.body.appendChild(parentEl);
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-parent", TestView);
 
       const parentFrame = grandparent.mountFrame(
         "p-1",
         "test-view-parent",
-      ) as Frame;
+      ) as FrameObj;
 
       // parent(1) returns direct parent Frame
       expect(parentFrame.parent(1)).toBe(grandparent);
@@ -546,13 +511,10 @@ describe("Frame", () => {
       cleanupFrame(frame);
     });
 
-    it("invokeTyped delegates to invoke with the same defer behavior (D4)", () => {
+    it("invoke delegates with defer behavior when no view (D4)", () => {
       const frame = createTestFrame("invoke-typed-1");
       // No view yet → deferred.
-      type Home = Record<string, unknown> & {
-        loadData: (id: string) => void;
-      };
-      frame.invokeTyped<Home, "loadData">("loadData", ["user-1"]);
+      frame.invoke("loadData", ["user-1"]);
       expect(frame.invokeList).toHaveLength(1);
       expect(frame.invokeList[0].name).toBe("loadData");
       expect(frame.invokeList[0].args).toEqual(["user-1"]);
@@ -583,11 +545,7 @@ describe("Frame", () => {
     it("sets destroyed flag when view exists", async () => {
       const frame = createTestFrame("uv-test-3");
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-uv", TestView);
 
       // The previous version of this test used `frame.mountFrame("uv-child-3",
@@ -677,18 +635,14 @@ describe("Frame", () => {
       const frame = createTestFrame("rvc-test-1");
       frame.hasAltered = 0; // Ensure originalTemplate can be saved
 
-      const TestView = View.extend({
-        ctor() {
-          /** noop */
-        },
-      });
+      const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("rvc-test-view", TestView);
 
       frame.mountView("rvc-test-view");
 
       // mountView internally calls doMountView asynchronously
       // Verify frame does not crash
-      expect(frame.viewPath).toBe("rvc-test-view");
+      expect(frame.getViewPath()).toBe("rvc-test-view");
 
       cleanupFrame(frame);
     });

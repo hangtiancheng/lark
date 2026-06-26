@@ -1,45 +1,15 @@
 <!-- 404 View Template -->
-<div class="flex min-h-screen items-center justify-center bg-neutral-950 p-6">
-  <div class="animate-fade-in max-w-sm text-center">
-    <div class="mb-6 text-8xl font-bold tracking-tighter text-white">404</div>
-    <h1 class="mb-3 text-xl font-semibold text-white">Page Not Found</h1>
-    <p class="mb-8 text-sm text-neutral-500">
+<div class="{{=styles['error-page']}}">
+  <div class="{{=styles['error-page__content']}}">
+    <div class="{{=styles['error-page__number']}}">404</div>
+    <h1 class="{{=styles['error-page__title']}}">Page Not Found</h1>
+    <p class="{{=styles['error-page__description']}}">
       The path
-      <code
-        class="rounded bg-neutral-800 px-2 py-0.5 font-mono text-xs text-neutral-300"
-        >{{=path}}</code
-      >
+      <code class="{{=styles['error-page__code']}}">{{=path}}</code>
       does not exist
     </p>
 
-    <div
-      class="mx-auto mb-8 max-w-xs rounded-xl border border-neutral-800 bg-neutral-900 p-5 text-left"
-    >
-      <h3
-        class="mb-3 text-[11px] font-medium tracking-widest text-neutral-500 uppercase"
-      >
-        Suggestions
-      </h3>
-      <ul class="space-y-2 text-sm text-neutral-400">
-        <li class="flex items-center gap-2">
-          <span class="h-1 w-1 shrink-0 rounded-full bg-neutral-600"></span>
-          Check if the URL is correct
-        </li>
-        <li class="flex items-center gap-2">
-          <span class="h-1 w-1 shrink-0 rounded-full bg-neutral-600"></span>
-          Return to home page
-        </li>
-        <li class="flex items-center gap-2">
-          <span class="h-1 w-1 shrink-0 rounded-full bg-neutral-600"></span>
-          Contact administrator
-        </li>
-      </ul>
-    </div>
-
-    <button
-      @click="goHome()"
-      class="inline-flex h-9 cursor-pointer items-center justify-center rounded-full bg-white px-6 text-xs font-medium text-neutral-900 transition-colors duration-150 hover:bg-neutral-200 active:bg-neutral-300"
-    >
+    <button @click="goHome()" class="{{=styles['error-page__button']}}">
       Back to Home
     </button>
   </div>

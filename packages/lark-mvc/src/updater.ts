@@ -1,14 +1,12 @@
 /**
- * Updater: per-view data binding with change detection and DOM diff.
+ * Updater: per-view data binding with change detection and DOM diff
+ * (functional factory).
+ *
+ * Replaces the former `Updater` class with a `createUpdater()` factory.
+ * No `class`, no `this`, no `prototype`.
  *
  * Each View has an Updater instance that tracks data changes,
  * digests them, and triggers DOM re-rendering when needed.
- *
- * - refData ($data): data object + ref counter for template rendering
- * - changedKeys ($changedKeys): keys changed since last digest
- * - hasChangedFlag ($hasChanged): whether any data changed
- * - digesting queue ($digestQueue): supports re-digest during digest
- * - snapshot ($snapshot): JSON string for altered() detection
  */
 import {
   setData,
@@ -27,7 +25,6 @@ import {
   encodeURIExtra,
   encodeQuote,
 } from "./common";
-import { config } from "./module-loader";
 import {
   domGetNode,
   domSetChildNodes,
@@ -36,234 +33,189 @@ import {
   createDomRef,
 } from "./dom";
 import { vdomSetChildNodes, createVDomRef } from "./vdom";
-import type { UpdaterInterface, VDomNode, VDomTemplate } from "./types";
+import type { UpdaterApi, VDomNode } from "./types";
 import { Frame } from "./frame";
-
-// ============================================================
-// Updater class
-// ============================================================
 
 /** Callback queued via `digest()` to run after the digest cycle completes. */
 type DigestCallback = () => void;
 
 /**
- * Updater class for view data binding.
+ * Create an Updater for per-view data binding.
+ *
  * Manages view-local data with change detection and DOM diff triggering.
  *
+ * @param viewId - The view (frame) ID this updater belongs to
+ * @returns An updater API object with `get`, `set`, `digest`, `forceDigest`, etc.
  */
-export class Updater implements UpdaterInterface {
-  /** View ID (same as owner frame ID) */
-  private viewId: string;
-
+export function createUpdater(viewId: string): UpdaterApi {
   /** Current data object */
-  private data: Record<string, unknown>;
+  let data: Record<string, unknown> = { vId: viewId };
 
   /** Ref data for template rendering */
-  refData: Record<string, unknown>;
+  const refData: Record<string, unknown> = {};
+  refData[SPLITTER] = 1;
 
   /** Changed keys in current digest cycle */
-  private changedKeys = new Set<string>();
+  let changedKeys = new Set<string>();
 
   /** Whether data has changed since last digest */
-  private hasChangedFlag = 0;
+  let hasChangedFlag = 0;
 
   /**
    * Digesting queue: supports re-digest during digest.
    * Holds pending callbacks; `null` is used as a sentinel marking the start
    * of an active digest cycle, so `runDigest` can detect re-entrant calls.
    */
-  private digestingQueue: (DigestCallback | null)[] = [];
+  const digestingQueue: (DigestCallback | null)[] = [];
 
   /** Monotonically increasing version, bumped each time data actually changes. */
-  private version = 0;
+  let version = 0;
 
   /** Snapshot of `version` taken by `snapshot()`, used by `altered()`. */
-  private snapshotVersion: number | undefined;
+  let snapshotVersion: number | undefined;
 
   /** Last rendered VDOM tree (only used when virtualDom is enabled) */
-  private vdom?: VDomNode;
+  let vdom: VDomNode | undefined;
 
-  constructor(viewId: string) {
-    this.viewId = viewId;
-    this.data = { vId: viewId };
-    const refCounter: Record<string, unknown> = {};
-    refCounter[SPLITTER] = 1;
-    this.refData = refCounter;
-    this.hasChangedFlag = 1; // Initial digest always triggers
-  }
+  // Initial digest always triggers
+  hasChangedFlag = 1;
 
-  /**
-   * Get data by key.
-   * Returns entire data object if key is omitted.
-   */
-  get<T = unknown>(key?: string): T {
-    let result: unknown = this.data;
+  function get<T = unknown>(key?: string): T {
+    let result: unknown = data;
     if (key) {
-      result = this.data[key];
+      result = data[key];
     }
+    // Cast is unavoidable here: the updater stores heterogeneous data and the
+    // caller requests a specific type. This is the single source of truth for
+    // updater.get<T> — the runtime value is untyped at storage time.
     return result as T;
   }
 
-  /**
-   * Set data, tracking changed keys.
-   * Returns this for chaining.
-   */
-  set(data: Record<string, unknown>, excludes?: ReadonlySet<string>): this {
+  function set(
+    newData: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+  ): UpdaterApi {
     const changed = setData(
+      newData,
       data,
-      this.data,
-      this.changedKeys,
+      changedKeys,
       excludes || EMPTY_STRING_SET,
     );
     if (changed) {
-      this.version++;
-      this.hasChangedFlag = 1;
+      version++;
+      hasChangedFlag = 1;
     }
-    return this;
+    return api;
   }
 
-  /**
-   * Detect changes and trigger DOM re-render.
-   *
-   * The core rendering pipeline:
-   * 1. Set data if provided
-   * 2. If changed, run DOM diff (template → new DOM → diff against old DOM)
-   * 3. Apply DOM operations
-   * 4. Apply ID updates
-   * 5. Call endUpdate on views that need re-rendering
-   * 6. Support re-digest during digest via queue
-   */
-  digest(
-    data?: Record<string, unknown>,
+  function digest(
+    newData?: Record<string, unknown>,
     excludes?: ReadonlySet<string>,
     callback?: () => void,
   ): void {
-    if (data) {
-      this.set(data, excludes);
+    if (newData) {
+      set(newData, excludes);
     }
 
-    const digesting = this.digestingQueue;
     if (callback) {
-      digesting.push(callback);
+      digestingQueue.push(callback);
     }
 
     // If already digesting, queue for later
-    if (digesting.length > 0 && digesting[0] === null) {
-      // Already in digest cycle, just queue
+    if (digestingQueue.length > 0 && digestingQueue[0] === null) {
       return;
     }
 
-    this.runDigest(digesting);
+    runDigest(digestingQueue);
   }
 
   /**
    * Core digest execution.
    */
-  private runDigest(digesting: (DigestCallback | null)[]): void {
+  function runDigest(digesting: (DigestCallback | null)[]): void {
     // Mark digesting state
     const startIndex = digesting.length;
     digesting.push(null); // Sentinel for re-digest detection
 
-    const keys = this.changedKeys;
-    const changed = this.hasChangedFlag;
-    this.hasChangedFlag = 0;
-    this.changedKeys = new Set();
+    const keys = changedKeys;
+    const changed = hasChangedFlag;
+    // NOTE: Do NOT reset hasChangedFlag / changedKeys yet. If the render
+    // conditions are not met (e.g. frame.view not yet wired during mountCtx),
+    // we must preserve the dirty flag so the next digest() can actually
+    // render. Resetting here would silently swallow the change.
 
-    const frame = Frame.get(this.viewId);
+    const frame = Frame.get(viewId);
     const view = frame?.view;
-    const node = getById(this.viewId);
+    const node = getById(viewId);
 
-    if (changed && view && node && view.signature > 0 && frame) {
-      const template = view.template;
+    if (changed && view && node && view.signature.value > 0 && frame) {
+      // Conditions met — NOW reset the dirty flags so we don't re-render
+      // the same data on the next digest().
+      hasChangedFlag = 0;
+      changedKeys = new Set();
+
+      const template = view.getTemplate();
       if (typeof template === "function") {
-        if (config.virtualDom) {
-          // ── VDOM rendering path ──
-          // The compiled VDOM template imports vdomCreate via ES module
-          // import and takes only (data, viewId, refData).
-          const vdomTemplate = template as VDomTemplate;
-          const newVDom = vdomTemplate(this.data, this.viewId, this.refData);
+        // Call template with all params — string mode uses all 8, VDOM mode
+        // ignores the extra 5. Return type is `string | VDomNode`; we narrow
+        // by checking `typeof result === "string"` to avoid type assertions.
+        const result = template(
+          data,
+          viewId,
+          refData,
+          encodeHTML,
+          strSafe,
+          encodeURIExtra,
+          refFn,
+          encodeQuote,
+        );
 
-          const ref = createVDomRef(this.viewId);
-
-          // ready callback: post-diff operations
-          const ready = (): void => {
-            this.vdom = newVDom;
-            if (ref.changed || !view.rendered) {
-              view.endUpdate(this.viewId);
+        if (typeof result === "string") {
+          // ── String rendering path ──
+          const newDom = domGetNode(result, node);
+          const ref = createDomRef();
+          domSetChildNodes(node, newDom, ref, frame, keys);
+          applyIdUpdates(ref.idUpdates);
+          applyDomOps(ref.domOps);
+          for (const v of ref.views) {
+            if (v.render) {
+              funcWithTry(v.render, [], v, noop);
             }
-            // Apply deferred DOM property assignments
+          }
+          if (ref.hasChanged || !view.rendered.value) {
+            view.endUpdate(viewId);
+          }
+        } else {
+          // ── VDOM rendering path ──
+          const newVDom = result;
+          const ref = createVDomRef(viewId);
+          const ready = (): void => {
+            vdom = newVDom;
+            if (ref.changed || !view.rendered.value) {
+              view.endUpdate(viewId);
+            }
             for (const [el, prop, val] of ref.nodeProps) {
               Reflect.set(el, prop, val);
             }
-            // Re-render sub-views that changed
             for (const v of ref.viewRenders) {
               if (v.render) {
                 funcWithTry(v.render, [], v, noop);
               }
             }
           };
-
-          vdomSetChildNodes(
-            node,
-            this.vdom,
-            newVDom,
-            ref,
-            frame,
-            keys,
-            view,
-            ready,
-          );
-
-          // ready() is deferred by vdomSetChildNodes via callFunction at all
-          // exit paths. This gives the browser a chance to process events and
-          // paint between the parent's DOM mutations and sub-view re-renders,
-          // improving main thread responsiveness during large updates.
-        } else {
-          // ── String rendering path (existing, unchanged) ──
-          const html = template(
-            this.data,
-            this.viewId,
-            this.refData,
-            encodeHTML,
-            strSafe,
-            encodeURIExtra,
-            refFn,
-            encodeQuote,
-          );
-
-          // Parse new DOM from HTML
-          const newDom = domGetNode(html as string, node);
-
-          // Create DOM ref for tracking operations
-          const ref = createDomRef();
-
-          // Run DOM diff (in-memory real DOM diff)
-          domSetChildNodes(node, newDom, ref, frame, keys);
-
-          // Apply ID updates
-          applyIdUpdates(ref.idUpdates);
-
-          // Apply DOM operations
-          applyDomOps(ref.domOps);
-
-          // Trigger endUpdate for views that need re-rendering
-          for (const v of ref.views) {
-            if (v.render) {
-              funcWithTry(v.render, [], v, noop);
-            }
-          }
-
-          // Check if view needs endUpdate
-          if (ref.hasChanged || !view.rendered) {
-            view.endUpdate(this.viewId);
-          }
+          vdomSetChildNodes(node, vdom, newVDom, ref, frame, keys, view, ready);
         }
       }
+    } else {
+      // Conditions not met — preserve hasChangedFlag so the next digest()
+      // can actually render (e.g. when frame.view is wired after setup).
+      // Clear changedKeys so getChangedKeys() reflects the consumed state.
+      changedKeys = new Set();
     }
 
     // Process re-digest queue
     if (digesting.length > startIndex + 1) {
-      this.runDigest(digesting);
+      runDigest(digesting);
     } else {
       // Digest complete, execute pending callbacks
       const callbacks = digesting.slice();
@@ -274,47 +226,22 @@ export class Updater implements UpdaterInterface {
     }
   }
 
-  /**
-   * Save a snapshot of the current data version for `altered()` detection.
-   * Cheap O(1) — records the current monotonic version, no serialization.
-   */
-  snapshot(): this {
-    this.snapshotVersion = this.version;
-    return this;
+  function snapshot(): UpdaterApi {
+    snapshotVersion = version;
+    return api;
   }
 
-  /**
-   * Check whether data has changed since the last snapshot.
-   * Returns undefined when no snapshot has been taken yet.
-   */
-  altered(): boolean | undefined {
-    if (this.snapshotVersion === undefined) return undefined;
-    return this.version !== this.snapshotVersion;
+  function altered(): boolean | undefined {
+    if (snapshotVersion === undefined) return undefined;
+    return version !== snapshotVersion;
   }
 
-  /**
-   * Translate a refData reference back to its original value.
-   *
-   * The ref protocol is `SPLITTER` + ascii decimal digits — the exact format
-   * emitted by `refFn`. We require that exact shape so a user-supplied
-   * string that merely begins with SPLITTER is never accidentally resolved
-   * (or mishandled as a "missing ref").
-   */
-  translate(data: unknown): unknown {
-    if (typeof data !== "string" || !isRefToken(data)) return data;
-    return hasOwnProperty(this.refData, data) ? this.refData[data] : data;
+  function translate(dataVal: unknown): unknown {
+    if (typeof dataVal !== "string" || !isRefToken(dataVal)) return dataVal;
+    return hasOwnProperty(refData, dataVal) ? refData[dataVal] : dataVal;
   }
 
-  /**
-   * Resolve a dotted property path against refData.
-   *
-   * Only safe property-path syntax is supported: `a`, `a.b`, `a.b.c`.
-   * Numeric literals (e.g. `1`, `1.5`) are returned as numbers. Anything else
-   * returns `undefined` — we no longer evaluate arbitrary JavaScript via
-   * `new Function`, so the method is CSP-safe and cannot be used as an
-   * injection vector.
-   */
-  parse(expr: string): unknown {
+  function parse(expr: string): unknown {
     const trimmed = expr.trim();
     if (!trimmed) return undefined;
 
@@ -328,36 +255,35 @@ export class Updater implements UpdaterInterface {
       return undefined;
     }
 
-    let cur: unknown = this.refData;
+    let cur: unknown = refData;
     for (const segment of trimmed.split(".")) {
       if (cur == null || typeof cur !== "object") return undefined;
-      cur = (cur as Record<string, unknown>)[segment];
+      cur = Reflect.get(cur, segment);
     }
     return cur;
   }
 
-  /**
-   * Get the set of keys changed since the last digest (for external inspection).
-   */
-  getChangedKeys(): ReadonlySet<string> {
-    return this.changedKeys;
+  function getChangedKeys(): ReadonlySet<string> {
+    return changedKeys;
   }
 
-  /**
-   * Force a full re-render, bypassing change detection.
-   *
-   * Marks every current data key as changed and triggers a digest cycle.
-   * Used by HMR (`hotSwapView`) to re-render a view after its template has
-   * been hot-swapped, ensuring the new template is fully applied even though
-   * the data itself hasn't changed.
-   *
-   * Unlike `digest(data)` which only marks keys whose values differ, this
-   * method marks ALL keys — so the DOM/VDom diff re-evaluates every
-   * template region rather than skipping ones whose data is unchanged.
-   */
-  forceDigest(): void {
-    this.hasChangedFlag = 1;
-    this.changedKeys = new Set(Object.keys(this.data));
-    this.digest();
+  function forceDigest(): void {
+    hasChangedFlag = 1;
+    changedKeys = new Set(Object.keys(data));
+    digest();
   }
+
+  const api: UpdaterApi = {
+    get,
+    set,
+    digest,
+    forceDigest,
+    snapshot,
+    altered,
+    refData,
+    translate,
+    parse,
+    getChangedKeys,
+  };
+  return api;
 }

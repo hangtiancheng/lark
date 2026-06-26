@@ -1,6 +1,5 @@
 import {
   Framework,
-  View,
   State,
   registerThemeViews,
   type FrameworkConfig,
@@ -39,7 +38,7 @@ const config: FrameworkConfig = {
 // Pass config so registerThemeViews selects the correct template mode
 // (string vs VDOM) based on virtualDom. Must be called before Framework.boot()
 // so views are registered when the default view is mounted during boot.
-registerThemeViews(View, config);
+registerThemeViews(config);
 
 // === Inject site data + content loader into State ===
 

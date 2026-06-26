@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Framework } from "../src/framework";
+import type { ChangeEvent } from "../src/types";
 
 describe("Framework", () => {
   // ============================================================
@@ -47,128 +48,56 @@ describe("Framework", () => {
   // ============================================================
 
   describe("utility proxies", () => {
-    it("toMap converts array to count map", () => {
-      // toMap without key counts occurrences, returning numbers not booleans
-      const result = Framework.toMap(["a", "b", "c"]);
-      expect(result).toEqual({ a: 1, b: 1, c: 1 });
-    });
-
-    it("toMap handles empty array", () => {
-      expect(Framework.toMap([])).toEqual({});
-    });
-
-    it("toMap handles null/undefined input", () => {
-      expect(Framework.toMap(null)).toEqual({});
-      expect(Framework.toMap(undefined)).toEqual({});
-    });
-
-    it("toMap counts duplicate entries", () => {
-      const result = Framework.toMap(["x", "y", "x", "x", "y"]);
-      expect(result).toEqual({ x: 3, y: 2 });
-    });
-
-    it("toTry executes function and returns result", () => {
-      const result = Framework.toTry(
-        (a: number, b: number) => a + b,
-        [1, 2],
-        null,
-      );
-      expect(result).toBe(3);
-    });
-
-    it("toTry catches errors and returns undefined", () => {
-      const result = Framework.toTry(
-        () => {
-          throw new Error("test");
-        },
-        [],
-        null,
-      );
-      expect(result).toBeUndefined();
-    });
-
-    it("toTry with array of functions returns last result", () => {
-      const result = Framework.toTry([() => "first", () => "second"], [], null);
-      expect(result).toBe("second");
-    });
-
-    it("toTry calls configError on exception", () => {
-      let captured: unknown = null;
-      Framework.toTry(
-        () => {
-          throw new Error("boom");
-        },
-        [],
-        null,
-        (e: unknown) => {
-          captured = e;
-        },
-      );
-      expect(captured).toBeInstanceOf(Error);
-      expect((captured as Error).message).toBe("boom");
-    });
-
     it("toUrl constructs URL from path and params", () => {
-      const url = Framework.toUrl("path/to/page", { key: "value" });
+      const url = Framework.toUri("path/to/page", { key: "value" });
       expect(url).toContain("path/to/page");
       expect(url).toContain("key=value");
     });
 
     it("toUrl with no params returns path unchanged", () => {
-      const url = Framework.toUrl("path/to/page", {});
+      const url = Framework.toUri("path/to/page", {});
       expect(url).toBe("path/to/page");
     });
 
     it("toUrl encodes special characters in params", () => {
-      const url = Framework.toUrl("page", { q: "hello world" });
+      const url = Framework.toUri("page", { q: "hello world" });
       expect(url).toContain("q=hello%20world");
     });
 
     it("toUrl appends params with & if path already has ?", () => {
-      const url = Framework.toUrl("page?existing=1", { extra: "2" });
+      const url = Framework.toUri("page?existing=1", { extra: "2" });
       expect(url).toContain("&extra=2");
     });
 
     it("parseUrl extracts path and params", () => {
-      const result = Framework.parseUrl("path/to/page?key=value&num=42");
+      const result = Framework.parseUri("path/to/page?key=value&num=42");
       expect(result.path).toBe("path/to/page");
       expect(result.params["key"]).toBe("value");
       expect(result.params["num"]).toBe("42");
     });
 
     it("parseUrl handles URL with no params", () => {
-      const result = Framework.parseUrl("path/to/page");
+      const result = Framework.parseUri("path/to/page");
       expect(result.path).toBe("path/to/page");
       expect(result.params).toEqual({});
     });
 
     it("mix assigns properties from source to target", () => {
       const target = { a: 1 };
-      Framework.mix(target, { b: 2, c: 3 });
+      Framework.assign(target, { b: 2, c: 3 });
       expect(target).toEqual({ a: 1, b: 2, c: 3 });
     });
 
     it("mix overwrites existing properties", () => {
       const target = { a: 1, b: 2 };
-      Framework.mix(target, { b: 99 });
+      Framework.assign(target, { b: 99 });
       expect(target.b).toBe(99);
     });
 
     it("mix returns the target object", () => {
       const target = { a: 1 };
-      const result = Framework.mix(target, { b: 2 });
+      const result = Framework.assign(target, { b: 2 });
       expect(result).toBe(target);
-    });
-
-    it("has checks own property", () => {
-      expect(Framework.has({ x: 1 }, "x")).toBe(true);
-      expect(Framework.has({ x: 1 }, "y")).toBe(false);
-      expect(Framework.has({ x: 1 }, "toString")).toBe(false);
-    });
-
-    it("has returns false for null/undefined owner", () => {
-      expect(Framework.has(null, "x")).toBe(false);
-      expect(Framework.has(undefined, "x")).toBe(false);
     });
 
     it("keys returns object keys", () => {
@@ -180,46 +109,25 @@ describe("Framework", () => {
     });
 
     it("guid generates unique IDs", () => {
-      const id1 = Framework.guid();
-      const id2 = Framework.guid();
+      const id1 = Framework.generateId();
+      const id2 = Framework.generateId();
       expect(id1).not.toBe(id2);
       expect(typeof id1).toBe("string");
     });
 
     it("guid accepts prefix", () => {
-      const id = Framework.guid("test_");
+      const id = Framework.generateId("test_");
       expect(id.startsWith("test_")).toBe(true);
     });
 
     it("guid uses default prefix when none given", () => {
-      const id = Framework.guid();
+      const id = Framework.generateId();
       expect(id.startsWith("lark_")).toBe(true);
-    });
-
-    it("node returns element by ID", () => {
-      const el = document.createElement("div");
-      el.id = "framework-node-test";
-      document.body.appendChild(el);
-      expect(Framework.node("framework-node-test")).toBe(el);
-      el.remove();
-    });
-
-    it("node returns null for non-existent ID", () => {
-      expect(Framework.node("non-existent-id-xyz")).toBeNull();
-    });
-
-    it("node returns the element itself if passed an element", () => {
-      const el = document.createElement("div");
-      expect(Framework.node(el as any)).toBe(el);
-    });
-
-    it("node returns null for null input", () => {
-      expect(Framework.node(null as any)).toBeNull();
     });
 
     it("nodeId assigns ID to element without one", () => {
       const el = document.createElement("div");
-      const id = Framework.nodeId(el);
+      const id = Framework.ensureNodeId(el);
       expect(id).toBeTruthy();
       expect(el.id).toBe(id);
       expect(id.startsWith("l_")).toBe(true);
@@ -228,7 +136,7 @@ describe("Framework", () => {
     it("nodeId returns existing ID", () => {
       const el = document.createElement("div");
       el.id = "existing-id";
-      expect(Framework.nodeId(el)).toBe("existing-id");
+      expect(Framework.ensureNodeId(el)).toBe("existing-id");
     });
 
     it("inside checks DOM containment", () => {
@@ -236,15 +144,15 @@ describe("Framework", () => {
       const child = document.createElement("span");
       parent.appendChild(child);
       document.body.appendChild(parent);
-      expect(Framework.inside(child, parent)).toBe(true);
-      expect(Framework.inside(parent, child)).toBe(false);
+      expect(Framework.nodeInside(child, parent)).toBe(true);
+      expect(Framework.nodeInside(parent, child)).toBe(false);
       parent.remove();
     });
 
     it("inside returns true when both arguments are the same node", () => {
       const el = document.createElement("div");
       document.body.appendChild(el);
-      expect(Framework.inside(el, el)).toBe(true);
+      expect(Framework.nodeInside(el, el)).toBe(true);
       el.remove();
     });
 
@@ -253,7 +161,7 @@ describe("Framework", () => {
       const b = document.createElement("div");
       // Neither is in the DOM tree, compareDocumentPosition still works
       // but they are not related
-      expect(Framework.inside(a, b)).toBe(false);
+      expect(Framework.nodeInside(a, b)).toBe(false);
     });
 
     it("inside accepts string IDs", () => {
@@ -263,9 +171,9 @@ describe("Framework", () => {
       child.id = "inside-child-test";
       parent.appendChild(child);
       document.body.appendChild(parent);
-      expect(Framework.inside("inside-child-test", "inside-parent-test")).toBe(
-        true,
-      );
+      expect(
+        Framework.nodeInside("inside-child-test", "inside-parent-test"),
+      ).toBe(true);
       parent.remove();
     });
   });
@@ -293,26 +201,26 @@ describe("Framework", () => {
 
   describe("Base (EventEmitter)", () => {
     it("Base is an EventEmitter constructor", () => {
-      const emitter = new Framework.Base();
+      const emitter = Framework.createEmitter();
       expect(typeof emitter.on).toBe("function");
       expect(typeof emitter.off).toBe("function");
       expect(typeof emitter.fire).toBe("function");
     });
 
     it("Base instances can bind and fire events", () => {
-      const emitter = new Framework.Base();
-      let received: unknown = null;
-      emitter.on("test", (e: any) => {
-        received = e;
+      const emitter = Framework.createEmitter();
+      let received: ChangeEvent | undefined;
+      emitter.on("test", (e?: ChangeEvent) => {
+        if (e) received = e;
       });
       emitter.fire("test", { value: 42 });
       expect(received).toBeDefined();
-      expect((received as any).value).toBe(42);
-      expect((received as any).type).toBe("test");
+      expect(received?.type).toBe("test");
+      expect(Reflect.get(received ?? {}, "value")).toBe(42);
     });
 
     it("Base instances support off to unbind", () => {
-      const emitter = new Framework.Base();
+      const emitter = Framework.createEmitter();
       let callCount = 0;
       const handler = () => {
         callCount++;
@@ -350,8 +258,8 @@ describe("Framework", () => {
     });
 
     it("exposes View", () => {
-      expect(Framework.View).toBeDefined();
-      expect(typeof Framework.View.extend).toBe("function");
+      expect(Framework.defineView).toBeDefined();
+      expect(typeof Framework.defineView).toBe("function");
     });
 
     it("exposes Frame", () => {
@@ -376,32 +284,32 @@ describe("Framework", () => {
 
   describe("Cache class", () => {
     it("Cache is a constructable class", () => {
-      const cache = new Framework.Cache({ maxSize: 10 });
+      const cache = Framework.createCache({ maxSize: 10 });
       expect(cache).toBeDefined();
       expect(typeof cache.set).toBe("function");
       expect(typeof cache.get).toBe("function");
     });
 
     it("Cache set and get work correctly", () => {
-      const cache = new Framework.Cache<string>({ maxSize: 10 });
+      const cache = Framework.createCache<string>({ maxSize: 10 });
       cache.set("key1", "value1");
       expect(cache.get("key1")).toBe("value1");
     });
 
     it("Cache get returns undefined for missing keys", () => {
-      const cache = new Framework.Cache({ maxSize: 10 });
+      const cache = Framework.createCache({ maxSize: 10 });
       expect(cache.get("no-such-key")).toBeUndefined();
     });
 
     it("Cache has checks existence", () => {
-      const cache = new Framework.Cache({ maxSize: 10 });
+      const cache = Framework.createCache({ maxSize: 10 });
       cache.set("exists", true);
       expect(cache.has("exists")).toBe(true);
       expect(cache.has("missing")).toBe(false);
     });
 
     it("Cache del removes entries", () => {
-      const cache = new Framework.Cache({ maxSize: 10 });
+      const cache = Framework.createCache({ maxSize: 10 });
       cache.set("toDelete", "val");
       expect(cache.has("toDelete")).toBe(true);
       cache.del("toDelete");
@@ -409,25 +317,25 @@ describe("Framework", () => {
     });
 
     it("Cache clear removes all entries", () => {
-      const cache = new Framework.Cache({ maxSize: 10 });
+      const cache = Framework.createCache({ maxSize: 10 });
       cache.set("a", 1);
       cache.set("b", 2);
       cache.clear();
-      expect(cache.size).toBe(0);
+      expect(cache.getSize()).toBe(0);
       expect(cache.get("a")).toBeUndefined();
     });
 
     it("Cache reports size correctly", () => {
-      const cache = new Framework.Cache({ maxSize: 10 });
-      expect(cache.size).toBe(0);
+      const cache = Framework.createCache({ maxSize: 10 });
+      expect(cache.getSize()).toBe(0);
       cache.set("x", 1);
       cache.set("y", 2);
-      expect(cache.size).toBe(2);
+      expect(cache.getSize()).toBe(2);
     });
 
     it("Cache calls onRemove callback on deletion", () => {
       const removed: string[] = [];
-      const cache = new Framework.Cache({
+      const cache = Framework.createCache({
         maxSize: 10,
         onRemove: (key: string) => removed.push(key),
       });
@@ -518,7 +426,7 @@ describe("Framework", () => {
   });
 
   // ============================================================
-  // I. Additional coverage: mark/unmark, dispatch, guard, applyStyle
+  // I. Additional coverage: mark/unmark, dispatch, guard
   // ============================================================
 
   describe("mark and unmark", () => {
@@ -538,12 +446,14 @@ describe("Framework", () => {
 
       let eventFired = false;
       let eventDetail: unknown = null;
-      el.addEventListener("test-event", ((e: CustomEvent) => {
+      el.addEventListener("test-event", (e: Event) => {
         eventFired = true;
-        eventDetail = e.detail;
-      }) as EventListener);
+        if (e instanceof CustomEvent) {
+          eventDetail = e.detail;
+        }
+      });
 
-      Framework.dispatch(el, "test-event", { detail: { msg: "hello" } });
+      Framework.dispatchEvent(el, "test-event", { detail: { msg: "hello" } });
       expect(eventFired).toBe(true);
       expect(eventDetail).toEqual({ msg: "hello" });
       el.remove();
@@ -560,15 +470,9 @@ describe("Framework", () => {
         bubbled = true;
       });
 
-      Framework.dispatch(child, "bubble-test");
+      Framework.dispatchEvent(child, "bubble-test");
       expect(bubbled).toBe(true);
       parent.remove();
-    });
-  });
-
-  describe("applyStyle", () => {
-    it("is a function", () => {
-      expect(typeof Framework.applyStyle).toBe("function");
     });
   });
 

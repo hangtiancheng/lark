@@ -9,7 +9,7 @@
  * Works with both history and hash routing modes.
  */
 import { Router } from "./router";
-import type { ViewInterface } from "./types";
+import type { ViewCtx } from "./types";
 
 /**
  * Sync view state with URL query parameters.
@@ -24,25 +24,22 @@ import type { ViewInterface } from "./types";
  *
  * @example
  * ```ts
- * export default View.extend({
- *   template,
- *   init() {
- *     const [state, setState] = useUrlState(this, { page: "1", size: "20" });
- *     this.updater.set({ page: state.page, size: state.size }).digest();
- *     this.setState = setState;
- *   },
- *   assign() {
- *     const [state] = useUrlState(this, { page: "1", size: "20" });
- *     this.updater.set({ page: state.page, size: state.size });
- *   },
- *   "nextPage<click>"() {
- *     this.setState((prev) => ({ page: String(Number(prev.page) + 1) }));
- *   },
+ * export default defineView((ctx) => {
+ *   const [state, setState] = useUrlState(ctx, { page: "1", size: "20" });
+ *   ctx.updater.set({ page: state.page, size: state.size }).digest();
+ *   return {
+ *     template,
+ *     events: {
+ *       "nextPage<click>"() {
+ *         setState((prev) => ({ page: String(Number(prev.page) + 1) }));
+ *       },
+ *     },
+ *   };
  * });
  * ```
  */
 export function useUrlState<S extends Record<string, string>>(
-  view: ViewInterface,
+  view: ViewCtx,
   initialState?: S,
 ): [Readonly<S>, (patch: Partial<S> | ((prev: S) => Partial<S>)) => void] {
   const keys = initialState ? Object.keys(initialState) : [];
@@ -53,18 +50,22 @@ export function useUrlState<S extends Record<string, string>>(
 
   const getState = (): S => {
     const loc = Router.parse();
-    const result = { ...(initialState || {}) } as Record<string, string>;
+    const result: Record<string, string> = { ...(initialState || {}) };
     for (const key of keys) {
       const val = loc.get(key);
       if (val) result[key] = val;
     }
+    // result is dynamically constructed from defaults + URL params;
+    // cast to S is unavoidable since we can't verify the shape at runtime.
     return result as S;
   };
 
   const setState = (patch: Partial<S> | ((prev: S) => Partial<S>)): void => {
     const current = getState();
     const resolved = typeof patch === "function" ? patch(current) : patch;
-    Router.to(resolved as Record<string, unknown>);
+    // Partial<S> where S extends Record<string, string> is assignable to
+    // Record<string, unknown> without a cast.
+    Router.to(resolved);
   };
 
   return [getState(), setState];

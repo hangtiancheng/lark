@@ -25,19 +25,19 @@ type ViewSetup = (
 
 The context object passed to every view setup function. No `this` binding — all methods are closures.
 
-| Property | Type | Description |
-|---|---|---|
-| `id` | `string` | View ID (same as owner frame ID) |
-| `owner` | `FrameObj` | Owner frame reference |
-| `updater` | `UpdaterApi` | Data binding and DOM diff |
-| `signature` | `Ref<number>` | >0 active, 0 = destroyed |
-| `rendered` | `Ref<boolean>` | Whether rendered at least once |
-| `resources` | `Record<string, ViewResourceEntry>` | Resource map |
-| `cleanups` | `Array<() => void>` | Cleanup functions (useEffect) |
-| `emitter` | `EmitterApi` | Internal emitter for lifecycle events |
-| `locationObserved` | `ViewLocationObserved` | Location observation config |
-| `renderMethod?` | `AnyFunc` | Custom render function (replaces default digest) |
-| `vdom?` | `VDomNode` | Last rendered VDOM tree |
+| Property           | Type                                | Description                                      |
+| ------------------ | ----------------------------------- | ------------------------------------------------ |
+| `id`               | `string`                            | View ID (same as owner frame ID)                 |
+| `owner`            | `FrameObj`                          | Owner frame reference                            |
+| `updater`          | `UpdaterApi`                        | Data binding and DOM diff                        |
+| `signature`        | `Ref<number>`                       | >0 active, 0 = destroyed                         |
+| `rendered`         | `Ref<boolean>`                      | Whether rendered at least once                   |
+| `resources`        | `Record<string, ViewResourceEntry>` | Resource map                                     |
+| `cleanups`         | `Array<() => void>`                 | Cleanup functions (useEffect)                    |
+| `emitter`          | `EmitterApi`                        | Internal emitter for lifecycle events            |
+| `locationObserved` | `ViewLocationObserved`              | Location observation config                      |
+| `renderMethod?`    | `AnyFunc`                           | Custom render function (replaces default digest) |
+| `vdom?`            | `VDomNode`                          | Last rendered VDOM tree                          |
 
 **Methods**: `getTemplate()`, `setTemplate(v)`, `getEvents()`, `setEvents(v)`, `getAssign()`, `setAssign(v)`, `getObservedStateKeys()`, `setObservedStateKeys(v)`, `getEndUpdatePending()`, `setEndUpdatePending(v)`, `render()`, `init(params?)`, `beginUpdate(id?)`, `endUpdate(id?, inner?)`, `wrapAsync(fn, context?)`, `observeLocation(params, path?)`, `observeState(keys)`, `capture(key, resource?, destroyOnRender?)`, `release(key, destroy?)`, `leaveTip(message, condition)`, `on(event, handler)`, `off(event, handler?)`, `fire(event, data?, remove?, lastToFirst?)`
 
@@ -72,7 +72,10 @@ function useEffect(fn: () => (() => void) | void, deps?: unknown[]): void;
 ### `useStore(store, selector?)`
 
 ```ts
-function useStore<T>(store: StoreApi<T>, selector?: (s: T) => Record<string, unknown>): void;
+function useStore<T>(
+  store: StoreApi<T>,
+  selector?: (s: T) => Record<string, unknown>,
+): void;
 ```
 
 ### `useInterval(callback, delay)` / `useTimeout(callback, delay)` / `useResource(key, factory)` / `useEvent(name, handler)`
@@ -117,31 +120,31 @@ function bindStore<T>(
 
 ### `State` singleton
 
-| Method | Signature |
-|---|---|
-| `get` | `<T>(key?: string) => T` |
-| `set` | `(data, excludes?) => this` |
-| `digest` | `(data?, excludes?) => void` |
-| `diff` | `() => ReadonlySet<string>` |
-| `clean` | `(keys: string) => (ctx: { on: ... }) => void` |
-| `on` | `(event, handler) => this` |
-| `off` | `(event, handler?) => this` |
-| `fire` | `(event, data?, remove?, lastToFirst?) => this` |
+| Method   | Signature                                       |
+| -------- | ----------------------------------------------- |
+| `get`    | `<T>(key?: string) => T`                        |
+| `set`    | `(data, excludes?) => this`                     |
+| `digest` | `(data?, excludes?) => void`                    |
+| `diff`   | `() => ReadonlySet<string>`                     |
+| `clean`  | `(keys: string) => (ctx: { on: ... }) => void`  |
+| `on`     | `(event, handler) => this`                      |
+| `off`    | `(event, handler?) => this`                     |
+| `fire`   | `(event, data?, remove?, lastToFirst?) => this` |
 
 ## Router
 
 ### `Router` singleton
 
-| Method | Signature |
-|---|---|
-| `parse` | `(href?) => Location` |
-| `diff` | `() => LocationDiff \| undefined` |
-| `to` | `(pathOrParams, params?, replace?, silent?) => void` |
-| `join` | `(...paths: string[]) => string` |
+| Method       | Signature                                                          |
+| ------------ | ------------------------------------------------------------------ |
+| `parse`      | `(href?) => Location`                                              |
+| `diff`       | `() => LocationDiff \| undefined`                                  |
+| `to`         | `(pathOrParams, params?, replace?, silent?) => void`               |
+| `join`       | `(...paths: string[]) => string`                                   |
 | `beforeEach` | `(guard: (to, from) => boolean \| Promise<boolean>) => () => void` |
-| `on` | `(event, handler) => this` |
-| `off` | `(event, handler?) => this` |
-| `fire` | `(event, data?, remove?, lastToFirst?) => this` |
+| `on`         | `(event, handler) => this`                                         |
+| `off`        | `(event, handler?) => this`                                        |
+| `fire`       | `(event, data?, remove?, lastToFirst?) => this`                    |
 
 ### `useUrlState(ctx, initialState?)`
 
@@ -156,15 +159,15 @@ function useUrlState<S extends Record<string, string>>(
 
 ### `Frame` singleton (static API)
 
-| Method | Signature |
-|---|---|
-| `get` | `(id: string) => FrameObj \| undefined` |
-| `getAll` | `() => Map<string, FrameObj>` |
-| `getRoot` | `() => FrameObj \| undefined` |
-| `createRoot` | `(rootId?: string) => FrameObj` |
-| `on` | `(event, handler) => Frame` |
-| `off` | `(event, handler?) => Frame` |
-| `fire` | `(event, data?) => Frame` |
+| Method       | Signature                               |
+| ------------ | --------------------------------------- |
+| `get`        | `(id: string) => FrameObj \| undefined` |
+| `getAll`     | `() => Map<string, FrameObj>`           |
+| `getRoot`    | `() => FrameObj \| undefined`           |
+| `createRoot` | `(rootId?: string) => FrameObj`         |
+| `on`         | `(event, handler) => Frame`             |
+| `off`        | `(event, handler?) => Frame`            |
+| `fire`       | `(event, data?) => Frame`               |
 
 ### `createFrame(id, parentId?)`
 
@@ -174,17 +177,17 @@ function createFrame(id: string, parentId?: string): FrameObj;
 
 ### `FrameObj`
 
-| Property | Type |
-|---|---|
-| `id` | `string` |
-| `parentId` | `string \| undefined` |
-| `view` | `ViewCtx \| undefined` |
-| `signature` | `number` |
-| `destroyed` | `number` |
-| `childrenMap` | `Record<string, string>` |
-| `childrenCount` | `number` |
-| `invokeList` | `FrameInvokeEntry[]` |
-| `emitter` | `EmitterApi` |
+| Property        | Type                     |
+| --------------- | ------------------------ |
+| `id`            | `string`                 |
+| `parentId`      | `string \| undefined`    |
+| `view`          | `ViewCtx \| undefined`   |
+| `signature`     | `number`                 |
+| `destroyed`     | `number`                 |
+| `childrenMap`   | `Record<string, string>` |
+| `childrenCount` | `number`                 |
+| `invokeList`    | `FrameInvokeEntry[]`     |
+| `emitter`       | `EmitterApi`             |
 
 **Methods**: `getViewPath()`, `mountView(viewPath, params?)`, `unmountView()`, `mountFrame(frameId, viewPath, params?)`, `unmountFrame(id?)`, `mountZone(zoneId?)`, `unmountZone(zoneId?)`, `parent(level?)`, `invoke(name, args?)`, `children()`, `on/off/fire`
 
@@ -195,39 +198,39 @@ function createFrame(id: string, parentId?: string): FrameObj;
 ```ts
 function createService(
   syncFn: (payload: PayloadApi, callback: () => void) => void,
-  cacheMax?: number,    // default 20
+  cacheMax?: number, // default 20
   cacheBuffer?: number, // default 5
 ): ServiceApi;
 ```
 
 ### `ServiceApi`
 
-| Method | Signature |
-|---|---|
-| `add` | `(attrs: ServiceMetaEntry \| ServiceMetaEntry[]) => void` |
-| `meta` | `(attrs: string \| Record<string, unknown>) => ServiceMetaEntry` |
-| `create` | `(attrs: Record<string, unknown>) => PayloadApi` |
-| `get` | `(attrs, createNew?) => { entity: PayloadApi; needsUpdate: boolean }` |
-| `cached` | `(attrs) => PayloadApi \| undefined` |
-| `clear` | `(names: string \| string[]) => void` |
-| `instance` | `() => ServiceInstance` |
-| `on` | `(event, handler) => void` |
-| `off` | `(event, handler?) => void` |
-| `fire` | `(event, data?) => void` |
+| Method     | Signature                                                             |
+| ---------- | --------------------------------------------------------------------- |
+| `add`      | `(attrs: ServiceMetaEntry \| ServiceMetaEntry[]) => void`             |
+| `meta`     | `(attrs: string \| Record<string, unknown>) => ServiceMetaEntry`      |
+| `create`   | `(attrs: Record<string, unknown>) => PayloadApi`                      |
+| `get`      | `(attrs, createNew?) => { entity: PayloadApi; needsUpdate: boolean }` |
+| `cached`   | `(attrs) => PayloadApi \| undefined`                                  |
+| `clear`    | `(names: string \| string[]) => void`                                 |
+| `instance` | `() => ServiceInstance`                                               |
+| `on`       | `(event, handler) => void`                                            |
+| `off`      | `(event, handler?) => void`                                           |
+| `fire`     | `(event, data?) => void`                                              |
 
 ### `ServiceInstance`
 
-| Method | Signature |
-|---|---|
-| `all` | `(attrs, done) => ServiceInstance` |
-| `one` | `(attrs, done) => ServiceInstance` |
-| `save` | `(attrs, done) => ServiceInstance` |
-| `enqueue` | `(callback) => ServiceInstance` |
-| `dequeue` | `(...args) => void` |
-| `destroy` | `() => void` |
-| `on` | `(event, handler) => ServiceInstance` |
-| `off` | `(event, handler?) => ServiceInstance` |
-| `fire` | `(event, data?) => ServiceInstance` |
+| Method    | Signature                              |
+| --------- | -------------------------------------- |
+| `all`     | `(attrs, done) => ServiceInstance`     |
+| `one`     | `(attrs, done) => ServiceInstance`     |
+| `save`    | `(attrs, done) => ServiceInstance`     |
+| `enqueue` | `(callback) => ServiceInstance`        |
+| `dequeue` | `(...args) => void`                    |
+| `destroy` | `() => void`                           |
+| `on`      | `(event, handler) => ServiceInstance`  |
+| `off`     | `(event, handler?) => ServiceInstance` |
+| `fire`    | `(event, data?) => ServiceInstance`    |
 
 ### `createPayload(data?)`
 
@@ -245,7 +248,12 @@ function createEmitter<T = unknown>(): EmitterApi<T>;
 interface EmitterApi<T = unknown> {
   on(name: string, fn: (e?: ChangeEvent) => void): EmitterApi<T>;
   off(name: string, fn?: AnyFunc): EmitterApi<T>;
-  fire(name: string, data?: Record<string, unknown>, remove?: boolean, lastToFirst?: boolean): EmitterApi<T>;
+  fire(
+    name: string,
+    data?: Record<string, unknown>,
+    remove?: boolean,
+    lastToFirst?: boolean,
+  ): EmitterApi<T>;
 }
 ```
 
@@ -278,7 +286,10 @@ function createUpdater(viewId: string): UpdaterApi;
 
 interface UpdaterApi {
   get<T>(key?: string): T;
-  set(data: Record<string, unknown>, excludes?: ReadonlySet<string>): UpdaterApi;
+  set(
+    data: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+  ): UpdaterApi;
   digest(data?, excludes?, callback?): void;
   forceDigest(): void;
   snapshot(): UpdaterApi;
@@ -294,13 +305,13 @@ interface UpdaterApi {
 
 Module-level singleton. Delegates DOM events to `document.body`.
 
-| Method | Signature |
-|---|---|
-| `bind` | `(eventType: string, hasSelector?: boolean) => void` |
-| `unbind` | `(eventType: string, hasSelector?: boolean) => void` |
-| `clearRangeEvents` | `(viewId: string) => void` |
-| `setFrameGetter` | `(getter: (id: string) => FrameObj \| undefined) => void` |
-| `nextElementGuid` | `() => number` |
+| Method             | Signature                                                 |
+| ------------------ | --------------------------------------------------------- |
+| `bind`             | `(eventType: string, hasSelector?: boolean) => void`      |
+| `unbind`           | `(eventType: string, hasSelector?: boolean) => void`      |
+| `clearRangeEvents` | `(viewId: string) => void`                                |
+| `setFrameGetter`   | `(getter: (id: string) => FrameObj \| undefined) => void` |
+| `nextElementGuid`  | `() => number`                                            |
 
 At event dispatch time, `EventDelegator` looks up handlers via `view.getEvents()["handlerName<eventType>"]`.
 
@@ -308,23 +319,23 @@ At event dispatch time, `EventDelegator` looks up handlers via `view.getEvents()
 
 ### Runtime functions
 
-| Function | Description |
-|---|---|
-| `hotSwapByTemplate(old, new)` | Swap template on all matching views |
-| `hotSwapByClass(oldSetup, newSetup)` | Swap setup on all matching views |
-| `hotSwapView(frame, newSetup)` | Swap setup on a single frame (re-runs setup, preserves ctx) |
-| `hotSwapFrames(viewPath, newSetup)` | Swap all frames matching viewPath |
-| `reloadViews(viewPath)` | Legacy full-remount (loses state) |
-| `acceptView(hot, viewPath)` | Set up HMR accept handler |
-| `disposeView(hot, viewPath)` | Set up HMR dispose handler |
+| Function                             | Description                                                 |
+| ------------------------------------ | ----------------------------------------------------------- |
+| `hotSwapByTemplate(old, new)`        | Swap template on all matching views                         |
+| `hotSwapByClass(oldSetup, newSetup)` | Swap setup on all matching views                            |
+| `hotSwapView(frame, newSetup)`       | Swap setup on a single frame (re-runs setup, preserves ctx) |
+| `hotSwapFrames(viewPath, newSetup)`  | Swap all frames matching viewPath                           |
+| `reloadViews(viewPath)`              | Legacy full-remount (loses state)                           |
+| `acceptView(hot, viewPath)`          | Set up HMR accept handler                                   |
+| `disposeView(hot, viewPath)`         | Set up HMR dispose handler                                  |
 
 ### Injection functions
 
-| Function | Description |
-|---|---|
-| `injectTemplateHmr(source, bundler)` | Append template HMR snippet |
+| Function                              | Description                              |
+| ------------------------------------- | ---------------------------------------- |
+| `injectTemplateHmr(source, bundler)`  | Append template HMR snippet              |
 | `injectViewClassHmr(source, bundler)` | Rewrite export default + append view HMR |
-| `importsHtmlTemplate(source)` | Check if source imports .html |
+| `importsHtmlTemplate(source)`         | Check if source imports .html            |
 
 ## Framework
 
@@ -340,11 +351,12 @@ Built-in view for micro-frontend via Module Federation. Default export from `@la
 
 ## Template types
 
-| Type | Signature |
-|---|---|
-| `ViewTemplate` | `(data, viewId, refData, ...encoders) => string` |
-| `VDomTemplate` | `(data, viewId, refData) => VDomNode` |
-| `ViewSetup` | `(ctx: ViewCtx, params?) => { template?, events?, assign? }` |
+| Type           | Signature                                                    |
+| -------------- | ------------------------------------------------------------ |
+| `ViewTemplate` | `(data, viewId, refData, ...encoders) => string`             |
+| `VDomTemplate` | `(data, viewId, refData) => VDomNode`                        |
+| `ViewSetup`    | `(ctx: ViewCtx, params?) => { template?, events?, assign? }` |
+
 # Lark API Reference
 
 This document is the complete API reference for every public module in `@lark.js/mvc`. The runtime helpers used by compiled templates live in the separate `@lark.js/mvc/runtime` entry; the Vite plugin and Webpack loader live in `@lark.js/mvc/vite` and `@lark.js/mvc/webpack` respectively.
@@ -667,7 +679,7 @@ Returns a `[state, setState]` tuple. Reads URL query parameters into a state obj
 
 ```ts
 function useUrlState<S extends Record<string, string>>(
-  view: ViewInterface,
+  view: ViewApi,
   initialState?: S,
 ): [S, (patch: Partial<S> | ((prev: S) => Partial<S>)) => void];
 ```
@@ -780,8 +792,8 @@ Internal — scans the prototype for event method patterns. Idempotent (guarded 
 | Property            | Type                                             | Description                                           |
 | ------------------- | ------------------------------------------------ | ----------------------------------------------------- |
 | `id`                | `string`                                         | Same as owner frame id                                |
-| `owner`             | `FrameInterface \| 0`                            | Owner frame (`0` as placeholder before init)          |
-| `updater`           | `UpdaterInterface`                               | Per-view data binder                                  |
+| `owner`             | `FrameApi \| 0`                                  | Owner frame (`0` as placeholder before init)          |
+| `updater`           | `UpdaterApi`                                     | Per-view data binder                                  |
 | `signature`         | `number`                                         | `>0` = active; incremented on render; `0` = destroyed |
 | `rendered`          | `boolean \| undefined`                           | Whether rendered at least once                        |
 | `template`          | `ViewTemplate \| undefined`                      | Compiled template function (from `.html` import)      |
@@ -840,11 +852,11 @@ Hooks into Router `change` and window `beforeunload`. If `condition()` returns t
 
 ## defineView
 
-Type-safe factory that wraps `View.extend`. Threads the literal's own shape into `this` via `ThisType<P & ViewInterface>`, so user fields and methods are properly typed inside hooks.
+Type-safe factory that wraps `View.extend`. Threads the literal's own shape into `this` via `ThisType<P & ViewApi>`, so user fields and methods are properly typed inside hooks.
 
 ```ts
 export function defineView<P extends Record<string, unknown>>(
-  props: P & ThisType<P & ViewInterface>,
+  props: P & ThisType<P & ViewApi>,
   statics?: Record<string, unknown>,
 ): typeof View;
 ```
@@ -855,7 +867,7 @@ Runtime semantics are identical to `View.extend(props, statics)`. The only diffe
 const HomeView = defineView({
   $title: "Home",
   init() {
-    // `this.$title` typed as string; `this.updater` typed via ViewInterface.
+    // `this.$title` typed as string; `this.updater` typed via ViewApi.
     this.updater.set({ title: this.$title });
   },
 });
@@ -1068,7 +1080,7 @@ frame.invokeTyped<
 | ----------------- | ----------------------------------------------- |
 | `id`              | DOM id this frame is bound to                   |
 | `parentId`        | Parent frame id (undefined for root)            |
-| `view`            | Current `ViewInterface \| undefined`            |
+| `view`            | Current `ViewApi \| undefined`                  |
 | `viewPath`        | Currently mounted view path                     |
 | `childrenMap`     | `Record<string, string>` of child ids           |
 | `childrenCount`   | Number of children                              |
@@ -1404,7 +1416,7 @@ import { EventDelegator } from "@lark.js/mvc";
 EventDelegator.bind(eventType: string, hasSelector?: boolean): void
 EventDelegator.unbind(eventType: string, hasSelector?: boolean): void
 EventDelegator.clearRangeEvents(viewId: string): void
-EventDelegator.setFrameGetter(getter: (id: string) => FrameInterface | undefined): void
+EventDelegator.setFrameGetter(getter: (id: string) => FrameApi | undefined): void
 EventDelegator.nextElementGuid(): number
 ```
 
@@ -1458,7 +1470,7 @@ function hotSwapByClass(oldClass: typeof View, newClass: typeof View): void;
 In-place prototype swap for a single frame. Preserves `updater.data`, `resources`, `_events`, `signature`. Performs six steps: unbind old events, prepare new class, swap prototype, update template, bind new events, force-render. The user's `init()` / `ctor()` / `render()` are NOT re-invoked.
 
 ```ts
-function hotSwapView(frame: FrameInterface, NewViewClass: typeof View): void;
+function hotSwapView(frame: FrameApi, NewViewClass: typeof View): void;
 ```
 
 ### hotSwapFrames(viewPath, NewViewClass)
@@ -1553,7 +1565,7 @@ interface VDomNode {
 ```ts
 interface VDomRef {
   viewId: string;
-  viewRenders: ViewInterface[];
+  viewRenders: ViewApi[];
   nodeProps: [Element, string, unknown][];
   asyncCount: number;
   changed: number;

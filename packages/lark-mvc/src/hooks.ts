@@ -152,6 +152,8 @@ export function useStore<T extends Record<string, unknown>>(
         result[key] = data[key];
       }
     }
+    // Dynamic construction from updater data — cast to Partial<T> is
+    // unavoidable since we can't verify the shape matches T at runtime.
     return result as Partial<T>;
   };
 }

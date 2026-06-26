@@ -144,7 +144,7 @@ export default defineView({
 });
 ```
 
-`defineView` is a typed wrapper around `View.extend`: via `ThisType<P & ViewInterface>` it threads the literal's own fields into `this`, so writing `this.appName` in `ctor` requires no cast. Runtime behavior is equivalent to `View.extend({...})`.
+`defineView` is a typed wrapper around `View.extend`: via `ThisType<P & ViewApi>` it threads the literal's own fields into `this`, so writing `this.appName` in `ctor` requires no cast. Runtime behavior is equivalent to `View.extend({...})`.
 
 ### View and Template
 
@@ -435,7 +435,7 @@ export default View.extend({
 });
 ```
 
-`defineView({...})` is a typed wrapper that threads the literal's own fields into `this` via `ThisType<P & ViewInterface>`:
+`defineView({...})` is a typed wrapper that threads the literal's own fields into `this` via `ThisType<P & ViewApi>`:
 
 ```ts
 import { defineView } from "@lark.js/mvc";

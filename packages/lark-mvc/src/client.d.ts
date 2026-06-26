@@ -1,8 +1,8 @@
 import type {
-  FrameInterface,
-  FrameworkInterface,
-  StateInterface,
-  RouterInterface,
+  FrameApi,
+  FrameworkApi,
+  StateApi,
+  RouterApi,
   CrossSiteConfig,
   ViewTemplate,
   VDomTemplate,
@@ -25,7 +25,7 @@ declare global {
   }
   interface HTMLElement {
     /** Bound frame instance */
-    frame?: FrameInterface | undefined;
+    frame?: FrameApi | undefined;
     /** Whether frame is bound to this element (1 = bound) */
     frameBound?: number;
     /** Whether auto-generated ID was assigned */

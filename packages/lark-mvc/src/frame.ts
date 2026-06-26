@@ -16,6 +16,7 @@ import {
   assign,
   translateData,
   ensureElementId,
+  isRecord,
 } from "./utils";
 import { createEmitter } from "./event-emitter";
 import { unmark } from "./mark";
@@ -38,14 +39,13 @@ let rootFrame: FrameObj | undefined;
 /** Global alter data */
 let globalAlter: { id: string } | undefined;
 
-/** Maximum number of destroyed Frame instances kept around for reuse. */
-// const MAX_FRAME_POOL = 64;
-
-/** Frame object cache for reuse (bounded by MAX_FRAME_POOL) */
-// const frameCache: FrameObj[] = [];
-
 /** Static event emitter for Frame-level events (add/remove) */
 const staticEmitter = createEmitter();
+
+/** Type guard: verify a dynamically loaded module is a ViewSetup function */
+function isViewSetup(fn: unknown): fn is ViewSetup {
+  return typeof fn === "function";
+}
 
 // ============================================================
 // createFrame — factory function
@@ -132,14 +132,13 @@ export function createFrame(id: string, parentId?: string): FrameObj {
       }
 
       // Asynchronous path: load View setup from remote module
-      use(viewClassName, (ViewSetup: unknown) => {
+      use(viewClassName, (loadedModule: unknown) => {
         // Guard: Frame may have been unmounted or re-mounted during async load
         if (sign !== frame.signature) return;
 
-        if (typeof ViewSetup === "function") {
-          const setup = ViewSetup as ViewSetup;
-          registerViewClass(viewClassName, setup);
-          doMountView(setup, initParams, node, sign);
+        if (isViewSetup(loadedModule)) {
+          registerViewClass(viewClassName, loadedModule);
+          doMountView(loadedModule, initParams, node, sign);
         } else {
           const error = new Error(`Cannot load view: ${viewClassName}`);
           const errorHandler = frameworkConfig.error;
@@ -247,35 +246,22 @@ export function createFrame(id: string, parentId?: string): FrameObj {
     mountZone(zoneId?: string): void {
       const targetZone = zoneId ?? frame.id;
 
-      console.log(`[mountZone] frameId=${frame.id} targetZone=${targetZone}`);
-
       // Hold fire created event
       frame.holdFireCreated = 1;
 
       // Find all v-lark elements in zone
       const rootEl = document.getElementById(targetZone);
-      if (!rootEl) {
-        console.log(
-          `[mountZone] frameId=${frame.id} rootEl NOT FOUND for ${targetZone}`,
-        );
-        return;
-      }
+      if (!rootEl) return;
 
       const viewElements = rootEl.querySelectorAll(`[${LARK_VIEW}]`);
-      console.log(
-        `[mountZone] frameId=${frame.id} found ${viewElements.length} v-lark elements`,
-      );
       const frames: [string, string][] = [];
 
       viewElements.forEach((el) => {
         if (!(el instanceof HTMLElement)) return;
         if (htmlElIsBound(el)) return;
         const elId = ensureElementId(el, "frame_");
-        (el as unknown as Record<string, unknown>)["frameBound"] = 1;
+        Reflect.set(el, "frameBound", 1);
         const viewPathArg = getAttribute(el, LARK_VIEW);
-        console.log(
-          `[mountZone] v-lark el: id=${elId} viewPath=${viewPathArg}`,
-        );
         if (viewPathArg) {
           frames.push([elId, viewPathArg]);
         }
@@ -283,9 +269,6 @@ export function createFrame(id: string, parentId?: string): FrameObj {
 
       // Mount each frame
       for (const [frameId, viewPathArg] of frames) {
-        console.log(
-          `[mountZone] mounting frameId=${frameId} viewPath=${viewPathArg}`,
-        );
         frame.mountFrame(frameId, viewPathArg);
       }
 
@@ -324,9 +307,9 @@ export function createFrame(id: string, parentId?: string): FrameObj {
 
       if (currentView && currentView.rendered.value) {
         // View is rendered, invoke directly
-        const fn = (currentView as unknown as Record<string, unknown>)[name];
+        const fn = Reflect.get(currentView, name);
         if (typeof fn === "function") {
-          result = funcWithTry(fn as AnyFunc, args ?? [], currentView, noop);
+          result = funcWithTry(fn, args ?? [], currentView, noop);
         }
       } else {
         // View not rendered, add to invoke list
@@ -387,9 +370,8 @@ export function createFrame(id: string, parentId?: string): FrameObj {
   // Attach frame to DOM element
   const element = document.getElementById(id);
   if (element) {
-    const elRec = element as unknown as Record<string, unknown>;
-    elRec["frame"] = frame;
-    elRec["frameBound"] = 1;
+    Reflect.set(element, "frame", frame);
+    Reflect.set(element, "frameBound", 1);
   }
 
   // Fire add event
@@ -428,17 +410,17 @@ function doMountView(
 // Frame singleton — static-like methods
 // ============================================================
 
-export interface FrameInterface {
+export interface FrameApi {
   get(id: string): FrameObj | undefined;
   getAll(): Map<string, FrameObj>;
   getRoot(): FrameObj | undefined;
   createRoot(rootId?: string): FrameObj;
-  on(event: string, handler: AnyFunc): FrameInterface;
-  off(event: string, handler?: AnyFunc): FrameInterface;
+  on(event: string, handler: AnyFunc): FrameApi;
+  off(event: string, handler?: AnyFunc): FrameApi;
   fire(event: string, data?: Record<string, unknown>): void;
 }
 
-export const Frame: FrameInterface = {
+export const Frame: FrameApi = {
   /** Get frame by ID */
   get(id: string): FrameObj | undefined {
     return frameRegistry.get(id);
@@ -499,8 +481,7 @@ export const Frame: FrameInterface = {
 
 /** Whether the element already has a Frame attached. */
 function htmlElIsBound(element: HTMLElement): boolean {
-  const el = element as unknown as Record<string, unknown>;
-  return !!el["frameBound"];
+  return !!Reflect.get(element, "frameBound");
 }
 
 /** Remove frame from registry */
@@ -516,9 +497,8 @@ function removeFrame(id: string, wasCreated: boolean): void {
   // Clear DOM reference
   const element = document.getElementById(id);
   if (element) {
-    const el = element as unknown as Record<string, unknown>;
-    el["frameBound"] = 0;
-    Reflect.deleteProperty(el, "frame");
+    Reflect.set(element, "frameBound", 0);
+    Reflect.deleteProperty(element, "frame");
   }
 }
 
@@ -564,12 +544,6 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
   }
 }
 
-/** Reinitialize a cached frame for reuse — currently unused (cache disabled) */
-// function reInitFrame(frame: FrameObj, id: string, parentId: string): void { ... }
-
-/** Reset frame for cache reuse — currently unused (cache disabled) */
-// function reInitFrameForCache(frame: FrameObj): void { ... }
-
 // ============================================================
 // TranslateQuery: translate SPLITTER-prefixed params from parent
 // ============================================================
@@ -589,10 +563,17 @@ function translateQuery(
   // If viewPath contains SPLITTER, translate params
   if (src.indexOf(SPLITTER) > 0) {
     translateData(parentRefData, params);
-    const paramsRec = params as Record<string, unknown>;
-    const splitterValue = paramsRec[SPLITTER];
-    if (splitterValue && typeof splitterValue === "object") {
-      assign(params, splitterValue as Record<string, string>);
+    const splitterValue = Reflect.get(params, SPLITTER);
+    if (isRecord(splitterValue)) {
+      // Merge translated params from the SPLITTER key into the params object
+      for (const k in splitterValue) {
+        if (hasOwnProperty(splitterValue, k)) {
+          const v = splitterValue[k];
+          if (typeof v === "string") {
+            params[k] = v;
+          }
+        }
+      }
       Reflect.deleteProperty(params, SPLITTER);
     }
   }

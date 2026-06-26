@@ -3,35 +3,32 @@
  * Displayed when route is not matched
  */
 import { defineView, Router } from "@lark.js/mvc";
-import { withBaseView } from "../view";
 import template from "./404.html";
 
-export default defineView(
-  withBaseView((ctx, initParams) => {
-    // ── assign: incremental DOM update ──
-    const assign = (_options?: unknown): boolean | undefined => {
-      ctx.updater.snapshot();
+export default defineView((ctx, params) => {
+  // ── assign: incremental DOM update ──
+  const assign = (_options?: unknown): boolean | undefined => {
+    ctx.updater.snapshot();
 
-      const loc = Router.parse();
+    const loc = Router.parse();
 
-      ctx.updater.set({
-        path: loc.path || "Unknown path",
-      });
+    ctx.updater.set({
+      path: loc.path || "Unknown path",
+    });
 
-      return ctx.updater.altered();
-    };
+    return ctx.updater.altered();
+  };
 
-    // Call assign for initial render
-    assign(initParams);
+  // Call assign for initial render
+  assign(params);
 
-    return {
-      template,
-      assign,
-      events: {
-        "goHome<click>": () => {
-          Router.to("/home");
-        },
+  return {
+    template,
+    assign,
+    events: {
+      "goHome<click>": () => {
+        Router.to("/home");
       },
-    };
-  }),
-);
+    },
+  };
+});

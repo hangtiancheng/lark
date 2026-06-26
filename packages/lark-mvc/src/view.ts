@@ -14,10 +14,11 @@ import { createEmitter } from "./event-emitter";
 import { EventDelegator } from "./event-delegator";
 import { createUpdater } from "./updater";
 import { Router } from "./router";
-import { acceptView, disposeView } from "./hmr";
-import type { HotContext } from "./hmr";
+import { setCurrentCtx } from "./hooks";
 import type {
   AnyFunc,
+  ChangeEvent,
+  RouteChangeEvent,
   ViewCtx,
   ViewSetup,
   FrameObj,
@@ -157,9 +158,6 @@ export function createCtx(frame: FrameObj): ViewCtx {
   }
 
   function endUpdate(zoneId?: string, inner?: boolean): void {
-    console.log(
-      `[endUpdate] id=${id} zoneId=${zoneId} inner=${inner} sig=${signature.value}`,
-    );
     if (signature.value > 0) {
       const updateId = zoneId ?? id;
       let flag: number | boolean | undefined;
@@ -172,9 +170,7 @@ export function createCtx(frame: FrameObj): ViewCtx {
         rendered.value = true;
       }
 
-      console.log(`[endUpdate] id=${id} calling mountZone(${updateId})`);
       frame.mountZone(updateId);
-      console.log(`[endUpdate] id=${id} mountZone returned`);
 
       if (!flag) {
         setTimeout(
@@ -184,8 +180,6 @@ export function createCtx(frame: FrameObj): ViewCtx {
           0,
         );
       }
-    } else {
-      console.log(`[endUpdate] id=${id} SKIPPED — sig not > 0`);
     }
   }
 
@@ -243,52 +237,53 @@ export function createCtx(frame: FrameObj): ViewCtx {
 
   // ── Leave tip ──
   function leaveTip(message: string, condition: () => boolean): void {
-    interface LeaveEvent {
-      type?: string;
-      prevent?: () => void;
-      reject?: () => void;
-      resolve?: () => void;
-    }
-    interface LeaveListener {
-      a?: number;
-      b?: number;
-      (e: LeaveEvent): void;
+    // State tracked via closure (no function-property mutation)
+    const changeState: { a: number; b: number } = { a: 0, b: 0 };
+
+    // Type guard: narrow ChangeEvent to RouteChangeEvent (has prevent/reject/resolve)
+    function isRouteChange(e: ChangeEvent): e is RouteChangeEvent {
+      return "prevent" in e && "reject" in e && "resolve" in e;
     }
 
-    const changeListener: LeaveListener = function (e: LeaveEvent): void {
+    const changeListener = (e?: ChangeEvent): void => {
+      if (!e) return;
       const isRouterChange = e.type === RouterEvents.CHANGE;
       const aKey: "a" | "b" = isRouterChange ? "a" : "b";
       const bKey: "a" | "b" = isRouterChange ? "b" : "a";
 
-      if (changeListener[aKey]) {
-        e.prevent?.();
-        e.reject?.();
+      if (changeState[aKey]) {
+        if (isRouteChange(e)) {
+          e.prevent();
+          e.reject();
+        }
       } else if (condition()) {
-        e.prevent?.();
-        changeListener[bKey] = 1;
-        e.resolve?.();
+        if (isRouteChange(e)) {
+          e.prevent();
+          changeState[bKey] = 1;
+          e.resolve();
+        }
       }
     };
 
-    const unloadListener = (e: Record<string, unknown>): void => {
-      if (condition()) {
-        e["msg"] = message;
+    const unloadListener = (e?: ChangeEvent): void => {
+      if (e && condition()) {
+        Reflect.set(e, "msg", message);
       }
     };
 
-    Router.on(RouterEvents.CHANGE, changeListener as AnyFunc);
-    Router.on(RouterEvents.PAGE_UNLOAD, unloadListener as AnyFunc);
+    Router.on(RouterEvents.CHANGE, changeListener);
+    Router.on(RouterEvents.PAGE_UNLOAD, unloadListener);
 
-    on("unload", changeListener as AnyFunc);
+    on("unload", changeListener);
     on("destroy", () => {
-      Router.off(RouterEvents.CHANGE, changeListener as AnyFunc);
-      Router.off(RouterEvents.PAGE_UNLOAD, unloadListener as AnyFunc);
+      Router.off(RouterEvents.CHANGE, changeListener);
+      Router.off(RouterEvents.PAGE_UNLOAD, unloadListener);
     });
   }
 
   // ── Init (called by Frame after setup) ──
-  function init(params?: unknown): void {
-    void params;
+  function init(_params?: unknown): void {
+    // Init hook — currently a no-op; params are passed to setup() directly
   }
 
   // ── Getters/setters as functions (no getter/setter syntax) ──
@@ -460,36 +455,37 @@ function registerGlobalEvent(
   eventName: string,
   handler: AnyFunc,
   modifiers: Record<string, boolean>,
-  key: string,
+  _key: string,
 ): void {
-  const boundHandler = function (domEvent: Event): void {
-    const extendedEvent = domEvent as Event & {
-      eventTarget?: EventTarget;
-    };
-    extendedEvent.eventTarget = element;
-    if (modifiers) {
-      const kbEvent = domEvent as KeyboardEvent;
-      if (
-        (modifiers["ctrl"] && !kbEvent.ctrlKey) ||
-        (modifiers["shift"] && !kbEvent.shiftKey) ||
-        (modifiers["alt"] && !kbEvent.altKey) ||
-        (modifiers["meta"] && !kbEvent.metaKey)
-      ) {
-        return;
+  const listener: EventListenerObject = {
+    handleEvent(domEvent: Event): void {
+      // Attach the delegated target for consumer access via event delegation
+      Reflect.set(domEvent, "eventTarget", element);
+      if (modifiers) {
+        // Check keyboard modifiers via runtime property inspection (type-safe)
+        const ctrlKey = Reflect.get(domEvent, "ctrlKey");
+        const shiftKey = Reflect.get(domEvent, "shiftKey");
+        const altKey = Reflect.get(domEvent, "altKey");
+        const metaKey = Reflect.get(domEvent, "metaKey");
+        if (
+          (modifiers["ctrl"] && !ctrlKey) ||
+          (modifiers["shift"] && !shiftKey) ||
+          (modifiers["alt"] && !altKey) ||
+          (modifiers["meta"] && !metaKey)
+        ) {
+          return;
+        }
       }
-    }
-    funcWithTry(handler, [domEvent], ctx, noop);
+      funcWithTry(handler, [domEvent], ctx, noop);
+    },
   };
 
-  element.addEventListener(eventName, boundHandler as EventListener);
+  element.addEventListener(eventName, listener);
 
   // Store for cleanup on destroy
   ctx.on("destroy", () => {
-    element.removeEventListener(eventName, boundHandler as EventListener);
+    element.removeEventListener(eventName, listener);
   });
-
-  // Store the key so unregisterEvents can find it
-  void key;
 }
 
 // ============================================================
@@ -526,9 +522,9 @@ function destroyResource(
 
   const entity = entry.entity;
   if (entity && typeof entity === "object") {
-    const destroyFn = (entity as Record<string, unknown>)["destroy"];
+    const destroyFn = Reflect.get(entity, "destroy");
     if (typeof destroyFn === "function" && callDestroy) {
-      funcWithTry(destroyFn as AnyFunc, [], entity, noop);
+      funcWithTry(destroyFn, [], entity, noop);
     }
   }
 
@@ -570,19 +566,23 @@ export function mountCtx(
   params?: unknown,
 ): ViewCtx {
   const ctx = createCtx(frame);
-  console.log(`[mountCtx] frameId=${frame.id} start`);
 
-  // Run setup — returns { template, events, assign? }
-  const descriptor = setup(ctx, params);
+  // Set currentCtx so hooks (useState, useEffect, etc.) can access the ctx
+  // during setup execution. Must be reset to null after setup completes.
+  setCurrentCtx(ctx);
+  let descriptor: ReturnType<ViewSetup>;
+  try {
+    // Run setup — returns { template, events, assign? }
+    descriptor = setup(ctx, params);
+  } finally {
+    setCurrentCtx(null);
+  }
+
   ctx.setTemplate(descriptor.template);
   ctx.setEvents(descriptor.events);
   if (descriptor.assign) {
     ctx.setAssign(descriptor.assign);
   }
-
-  console.log(
-    `[mountCtx] frameId=${frame.id} hasTemplate=${!!descriptor.template} hasEvents=${!!descriptor.events}`,
-  );
 
   // Activate
   ctx.signature.value = 1;
@@ -595,23 +595,14 @@ export function mountCtx(
 
   // Register events
   registerEvents(ctx);
-  console.log(`[mountCtx] frameId=${frame.id} events registered`);
-
-  // Run cleanups for useEffect hooks (they registered during setup)
-  // No-op here; cleanups are registered via the hooks system
 
   // Render
   if (ctx.getTemplate()) {
-    console.log(`[mountCtx] frameId=${frame.id} calling render()`);
     ctx.render();
   } else {
-    console.log(
-      `[mountCtx] frameId=${frame.id} no template, calling endUpdate()`,
-    );
     ctx.endUpdate();
   }
 
-  console.log(`[mountCtx] frameId=${frame.id} done`);
   return ctx;
 }
 
@@ -647,23 +638,6 @@ export function unmountCtx(ctx: ViewCtx): void {
 // ============================================================
 // HMR support
 // ============================================================
-
-/**
- * Set up HMR for a view setup function.
- * No-op when `hot` is undefined (production).
- */
-export function viewAccept(
-  hot: HotContext | undefined,
-  viewPath: string,
-): void {
-  if (!hot) return;
-  acceptView(hot, viewPath);
-}
-
-export function viewDispose(
-  hot: HotContext | undefined,
-  viewPath: string,
-): void {
-  if (!hot) return;
-  disposeView(hot, viewPath);
-}
+// HMR accept/dispose is handled by the hmr module's acceptView/disposeView.
+// The view module no longer needs wrapper functions — consumers should import
+// acceptView/disposeView directly from ./hmr.

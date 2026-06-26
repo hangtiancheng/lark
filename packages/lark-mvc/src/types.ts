@@ -56,8 +56,6 @@ export interface CacheOptions<T> {
   sortComparator?: (a: CacheEntry<T>, b: CacheEntry<T>) => number;
 }
 
-// CacheInterface removed — use CacheApi (returned by createCache())
-
 // ============================================================
 // Event types
 // ============================================================
@@ -362,7 +360,7 @@ export interface ViewObserveLocation {
  * Supports two-phase route confirmation mechanism: change (can reject) → changed.
  * Hash-based implementation using #! as default hash prefix.
  */
-export interface RouterInterface {
+export interface RouterApi {
   /** Bind event listener */
   on(event: string, handler: (e?: ChangeEvent) => void): this;
   /** Unbind event listener */
@@ -447,7 +445,7 @@ export interface ServiceEvent extends ChangeEvent {
   /**
    * Data payload object carrying this request's data.
    */
-  readonly payload: PayloadInterface;
+  readonly payload: PayloadApi;
   /**
    * Error object, present if request throws an error, otherwise null.
    */
@@ -474,19 +472,12 @@ export interface FrameStaticEvent extends ChangeEvent {
   readonly frame: FrameObj;
 }
 
-// ViewInterface removed — use ViewCtx (returned by createCtx/mountCtx)
-
-// FrameInterface removed — use FrameObj (returned by createFrame())
-// and FrameInterface from frame.ts (the Frame singleton static API).
-
-// UpdaterInterface removed — use UpdaterApi (returned by createUpdater())
-
 // ============================================================
 // Functional API interfaces (replace class-based interfaces above)
 // ============================================================
 
 /**
- * Functional emitter API (replaces `EventEmitterInterface`).
+ * Functional emitter API
  *
  * Returned by `createEmitter()`. No `this` binding — handlers are called
  * with `null` context. Methods return the API object for chaining.
@@ -503,7 +494,7 @@ export interface EmitterApi<T = unknown> {
 }
 
 /**
- * Functional cache API (replaces `CacheInterface`).
+ * Functional cache API
  *
  * Returned by `createCache()`. `size` is a getter property.
  */
@@ -518,7 +509,7 @@ export interface CacheApi<T = unknown> {
 }
 
 /**
- * Functional updater API (replaces `UpdaterInterface`).
+ * Functional updater API (replaces `UpdaterApi`).
  *
  * Returned by `createUpdater()`. `refData` is a getter property.
  * `set()` returns the API object for chaining.
@@ -552,7 +543,7 @@ export interface Ref<T> {
 }
 
 /**
- * Functional view context (replaces `ViewInterface` as the runtime view handle).
+ * Functional view context (replaces `ViewApi` as the runtime view handle).
  *
  * Passed as the first argument to every view setup function. Provides
  * framework APIs without `this` binding.
@@ -624,9 +615,9 @@ export interface ViewCtx {
 }
 
 /**
- * Functional frame object (replaces `FrameInterface` for runtime use).
+ * Functional frame object (replaces `FrameApi` for runtime use).
  *
- * Created by `createFrame()`. Uses `ViewCtx` instead of `ViewInterface`.
+ * Created by `createFrame()`. Uses `ViewCtx` instead of `ViewApi`.
  */
 export interface FrameObj {
   id: string;
@@ -693,7 +684,7 @@ export type ViewSetup = (
  * Data payload interface wrapping API request response data, providing read/write methods.
  * Payload instances are created internally by Service, developers access via all/one/save callbacks.
  */
-export interface PayloadInterface {
+export interface PayloadApi {
   /**
    * Get data from Payload by key.
    * @param key Data key name
@@ -711,7 +702,7 @@ export interface PayloadInterface {
   set(
     keyOrData: string | Record<string, unknown> | ServiceMetaEntry,
     value?: unknown,
-  ): PayloadInterface;
+  ): PayloadApi;
   data: Record<string, unknown>;
   cacheInfo?: ServiceCacheInfo;
 }
@@ -731,8 +722,6 @@ export interface ChangeEvent {
   readonly keys?: ReadonlySet<string>;
 }
 
-// EventEmitterInterface removed — use EmitterApi (returned by createEmitter())
-
 /**
  * Global state interface providing cross-view data sharing and data change notification capabilities.
  * State is a singleton object managing app-level state data via get/set/digest.
@@ -742,7 +731,7 @@ export interface ChangeEvent {
  * toggles, page title, session info, etc.). For COMPLEX reactive state —
  * handlers, derived data, or fine-grained subscriptions — use `createStore` instead.
  */
-export interface StateInterface {
+export interface StateApi {
   /** Bind event listener */
   on(event: string, handler: (e?: ChangeEvent) => void): this;
   /** Unbind event listener */
@@ -832,14 +821,14 @@ export interface ServiceMetaEntry {
    * Hook function called before request is sent, can process request data.
    * @param payload Data carrier for current request
    */
-  before?: (payload: PayloadInterface) => void;
+  before?: (payload: PayloadApi) => void;
   /**
    * After-fetch hook.
    * Hook function called after request succeeds, before data is passed to view.
    * Can process response data in this method.
    * @param payload Data carrier for current request
    */
-  after?: (payload: PayloadInterface) => void;
+  after?: (payload: PayloadApi) => void;
   /** Clean keys on destroy,
    * Comma-separated endpoint name string for clearing other endpoints' cache.
    * For example, if an endpoint creates new data,
@@ -865,7 +854,7 @@ export interface ServiceCacheInfo {
   time: number;
 }
 
-export interface FrameworkInterface {
+export interface FrameworkApi {
   /**
    * Read framework configuration.
    * - Without arguments: returns the complete config object.
@@ -891,38 +880,13 @@ export interface FrameworkInterface {
    */
   boot(cfg: FrameworkConfig): void;
   /**
-   * Convert array to hash map object.
-   * - Simple array: `Framework.toMap([1,2,3])` => `{1:1, 2:1, 3:1}`
-   * - Object array: `Framework.toMap([{id:20},{id:30}], 'id')` => `{20:{id:20}, 30:{id:30}}`
-   * @param list Source array
-   * @param key Use object's key value from array as map key
-   */
-  toMap<T>(
-    list: T[] | null | undefined,
-    key?: keyof T,
-  ): Record<string, T | number>;
-  /**
-   * Execute methods in try-catch manner, catches exceptions.
-   * Returns return value of last successfully executed method.
-   * @param fns Function or function array
-   * @param args Arguments array passed to functions
-   * @param context `this` binding during function execution
-   * @param configError Optional error callback, receives the caught exception
-   */
-  toTry(
-    fns: AnyFunc | AnyFunc[],
-    args?: unknown[],
-    context?: unknown,
-    configError?: (e: unknown) => void,
-  ): unknown;
-  /**
    * Convert path and params to URL string.
    * Example: `Framework.toUrl('/xxx/', {a:'b',c:'d'})` => `/xxx/?a=b&c=d`
    * @param path Path string
    * @param params Params object
    * @param keepEmpty Set of keys whose empty values should be preserved
    */
-  toUrl(
+  toUri(
     path: string,
     params?: Record<string, unknown>,
     keepEmpty?: Set<string>,
@@ -932,22 +896,14 @@ export interface FrameworkInterface {
    * Example: `Framework.parseUrl('/xxx/?a=b&c=d')` => `{path:'/xxx/', params:{a:'b',c:'d'}}`
    * @param url URL string
    */
-  parseUrl(url: string): ParsedUri;
+  parseUri(url: string): ParsedUri;
   /**
    * Merge source object properties into target object.
    * @param target Target object
    * @param sources One or more source objects
    */
-  mix<T extends object>(target: T, ...sources: Record<string, unknown>[]): T;
-  /**
-   * Check if object has specified own property (safe hasOwnProperty).
-   * @param owner Object to check, supports undefined/null
-   * @param prop Property key name
-   */
-  has<T extends object>(
-    owner: T | undefined | null,
-    prop: PropertyKey,
-  ): boolean;
+  assign<T extends object>(target: T, ...sources: Record<string, unknown>[]): T;
+
   /**
    * Get enumerable property keys of object as array.
    * @param src Source object
@@ -959,19 +915,16 @@ export interface FrameworkInterface {
    * @param node Node or node ID
    * @param container Container node or node ID
    */
-  inside(node: HTMLElement | string, container: HTMLElement | string): boolean;
-  /**
-   * Shorthand for document.getElementById.
-   * Returns directly if Element is passed.
-   * @param id Node ID or Element object
-   */
-  node(id: string | Element | null): Element | null;
+  nodeInside(
+    node: HTMLElement | string,
+    container: HTMLElement | string,
+  ): boolean;
   /**
    * Ensure DOM element has an ID, auto-generates one if missing.
    * Returns element's ID.
    * @param node DOM element object
    */
-  nodeId(node: HTMLElement): string;
+  ensureNodeId(node: HTMLElement): string;
   /**
    * Load modules using configured module loader.
    * @param names Module names, supports string or string array
@@ -994,7 +947,7 @@ export interface FrameworkInterface {
    * Generate globally unique identifier (GUID).
    * @param prefix GUID prefix, defaults to "lark-"
    */
-  guid(prefix?: string): string;
+  generateId(prefix?: string): string;
   /**
    * Create async callback validity marker.
    * Returns a check function; if host object is unmarked (e.g., view re-rendered), check function returns false, preventing expired async callbacks from executing.
@@ -1024,7 +977,7 @@ export interface FrameworkInterface {
    * @param eventType Event type string
    * @param eventInit CustomEvent init options
    */
-  dispatch(
+  dispatchEvent(
     target: EventTarget,
     eventType: string,
     eventInit?: CustomEventInit,
@@ -1065,11 +1018,11 @@ export interface FrameworkInterface {
   /**
    * Global state object.
    */
-  State: StateInterface;
+  State: StateApi;
   /**
    * Router object.
    */
-  Router: RouterInterface;
+  Router: RouterApi;
   /**
    * Frame singleton.
    * Frame tree for view lifecycle management. Use createFrame() to create frames.

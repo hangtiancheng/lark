@@ -45,7 +45,7 @@ function isComputedMarker(val: unknown): val is ComputedMarker {
   return (
     val !== null &&
     typeof val === "object" &&
-    (val as Record<symbol, unknown>)[COMPUTED_BRAND] === true
+    Reflect.get(val, COMPUTED_BRAND) === true
   );
 }
 
@@ -65,6 +65,10 @@ function isComputedMarker(val: unknown): val is ComputedMarker {
  * Writes to a computed key via `setState` are silently ignored.
  */
 export function computed<T>(deps: readonly string[], fn: () => T): T {
+  // The marker object is branded with a symbol; callers treat the return
+  // value as type T but the store reads the marker via isComputedMarker.
+  // This cast is unavoidable: the function returns a sentinel that mimics T
+  // for the caller but is intercepted by createStore.
   return { [COMPUTED_BRAND]: true, deps, fn } as T;
 }
 
@@ -74,7 +78,7 @@ const storeRegistry = new Map<string, StoreApi>();
 
 // ---- create ----------------------------------------------------------------
 
-export function createStore<T>(
+export function createStore<T extends Record<string, unknown>>(
   name: string,
   creator: StateCreator<T>,
 ): StoreApi<T> {
@@ -94,7 +98,7 @@ export function createStore<T>(
     const resolved =
       typeof partial === "function" ? partial(prevState) : partial;
 
-    const nextState = { ...prevState } as Record<string, unknown>;
+    const nextState: Record<string, unknown> = { ...prevState };
     let changed = false;
 
     for (const key in resolved) {
@@ -103,8 +107,8 @@ export function createStore<T>(
         !computedKeys.has(key) &&
         !actionKeys.has(key)
       ) {
-        const newVal = resolved[key];
-        if (!Object.is((prevState as Record<string, unknown>)[key], newVal)) {
+        const newVal = Reflect.get(resolved, key);
+        if (!Object.is(Reflect.get(prevState, key), newVal)) {
           nextState[key] = newVal;
           changed = true;
         }
@@ -126,13 +130,8 @@ export function createStore<T>(
     if (computedDefs.size === 0) return;
 
     const changedKeys = new Set<string>();
-    for (const key of Object.keys(state as Record<string, unknown>)) {
-      if (
-        !Object.is(
-          (state as Record<string, unknown>)[key],
-          (prevState as Record<string, unknown>)[key],
-        )
-      ) {
+    for (const key of Object.keys(state)) {
+      if (!Object.is(Reflect.get(state, key), Reflect.get(prevState, key))) {
         changedKeys.add(key);
       }
     }
@@ -140,8 +139,8 @@ export function createStore<T>(
     for (const [key, def] of computedDefs) {
       if (def.deps.some((dep) => changedKeys.has(dep))) {
         const newVal = def.fn();
-        if (!Object.is((state as Record<string, unknown>)[key], newVal)) {
-          (state as Record<string, unknown>)[key] = newVal;
+        if (!Object.is(Reflect.get(state, key), newVal)) {
+          Reflect.set(state, key, newVal);
         }
       }
     }
@@ -169,14 +168,15 @@ export function createStore<T>(
   const initialState: Record<string, unknown> = {};
   const actions: Record<string, AnyFunc> = {};
 
-  for (const key of Object.keys(body as Record<string, unknown>)) {
-    const val = (body as Record<string, unknown>)[key];
+  for (const key of Object.keys(body)) {
+    const val = Reflect.get(body, key);
     if (isComputedMarker(val)) {
       computedDefs.set(key, val);
       computedKeys.add(key);
       initialState[key] = undefined;
     } else if (typeof val === "function") {
-      actions[key] = val as AnyFunc;
+      // Use Reflect.set to avoid Function→AnyFunc assignment type error
+      Reflect.set(actions, key, val);
       actionKeys.add(key);
     } else {
       initialState[key] = val;
@@ -188,7 +188,7 @@ export function createStore<T>(
 
   // Compute initial values for computed properties
   for (const [key, def] of computedDefs) {
-    (state as Record<string, unknown>)[key] = def.fn();
+    Reflect.set(state, key, def.fn());
   }
 
   // Register
@@ -209,13 +209,12 @@ interface LarkView {
 
 function isLarkView(instance: unknown): instance is LarkView {
   if (!instance || typeof instance !== "object") return false;
-  const obj = instance as Record<string, unknown>;
-  const updater = obj["updater"];
+  const updater = Reflect.get(instance, "updater");
   return (
     updater !== null &&
     typeof updater === "object" &&
-    typeof (updater as Record<string, unknown>)["set"] === "function" &&
-    typeof (updater as Record<string, unknown>)["digest"] === "function"
+    typeof Reflect.get(updater, "set") === "function" &&
+    typeof Reflect.get(updater, "digest") === "function"
   );
 }
 

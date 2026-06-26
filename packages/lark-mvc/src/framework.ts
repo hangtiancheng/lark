@@ -18,9 +18,7 @@ import {
   noop,
   parseUri,
   toUri,
-  toMap,
   generateId,
-  getById,
   nodeInside,
   keys,
 } from "./utils";
@@ -40,8 +38,8 @@ import type {
   FrameworkConfig,
   ViewCtx,
   ChangeEvent,
-  RouteChangedEvent,
-  FrameworkInterface,
+  // RouteChangedEvent,
+  FrameworkApi,
 } from "./types";
 
 // ============================================================
@@ -70,6 +68,11 @@ let booted = false;
 //   consumed in batches to minimize scheduling overhead
 // ============================================================
 
+/** Type guard: narrow unknown to AnyFunc */
+function isAnyFunc(v: unknown): v is AnyFunc {
+  return typeof v === "function";
+}
+
 /** Flat task queue: [fn, context, args, fn, context, args, ...] */
 const taskList: unknown[] = [];
 /** Current read position in taskList */
@@ -87,9 +90,9 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
   const startTime = Date.now();
 
   while (true) {
-    const fn = taskList[taskIndex] as AnyFunc | undefined;
-    if (!fn) {
-      // All tasks consumed — reset queue
+    const fn = taskList[taskIndex];
+    if (!isAnyFunc(fn)) {
+      // All tasks consumed (or invalid entry) — reset queue
       taskList.length = 0;
       taskIndex = 0;
       taskScheduled = false;
@@ -114,7 +117,8 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
 
     // Execute one task
     const context = taskList[taskIndex + 1];
-    const args = taskList[taskIndex + 2] as unknown[];
+    const rawArgs = taskList[taskIndex + 2];
+    const args = Array.isArray(rawArgs) ? rawArgs : [];
     funcWithTry(fn, args, context, noop);
     taskIndex += 3;
   }
@@ -162,7 +166,8 @@ function isThenable(value: unknown): value is PromiseLike<void> {
   return (
     !!value &&
     (typeof value === "object" || typeof value === "function") &&
-    typeof (value as { then?: unknown }).then === "function"
+    "then" in value &&
+    typeof Reflect.get(value, "then") === "function"
   );
 }
 
@@ -301,13 +306,14 @@ function dispatcherNotifyChange(e: ChangeEvent): void {
   const rootFrame = Frame.getRoot();
   if (!rootFrame) return;
 
-  const routeEvent = e as RouteChangedEvent;
-  const view = routeEvent.view;
-  if (view) {
+  // RouteChangedEvent extends ChangeEvent with LocationDiff fields
+  // (path, view, params, etc.). Use "view" in e to narrow.
+  if ("view" in e && e.view !== undefined) {
+    const view = e.view;
     // View changed, mount new view
     const viewPath =
       typeof view === "object" && view !== null
-        ? String(view.to || "")
+        ? String(Reflect.get(view, "to") || "")
         : String(view);
     rootFrame.mountView(viewPath);
   } else {
@@ -379,7 +385,7 @@ function waitZoneViewsRendered(
 // ============================================================
 
 /**
- * Public `Framework.getConfig` overload set (see `FrameworkInterface.getConfig`).
+ * Public `Framework.getConfig` overload set (see `FrameworkApi.getConfig`).
  * Declared as a free function with explicit overloads so it can satisfy the
  * interface's two-overload shape from inside an object literal.
  */
@@ -389,6 +395,7 @@ function getConfigImpl<T = unknown>(
   key?: string,
 ): FrameworkConfig | T | undefined {
   if (key === undefined) return config;
+  // Generic retrieval from config — cast is unavoidable
   return Reflect.get(config, key) as T | undefined;
 }
 
@@ -396,16 +403,16 @@ function getConfigImpl<T = unknown>(
  * Main framework object.
  * Provides boot, config, and all global utility methods.
  */
-export const Framework: FrameworkInterface = {
+export const Framework: FrameworkApi = {
   // ============================================================
   // Lifecycle
   // ============================================================
 
-  /** Read framework configuration. See `FrameworkInterface.getConfig`. */
+  /** Read framework configuration. See `FrameworkApi.getConfig`. */
   getConfig: getConfigImpl,
 
   /**
-   * Merge a patch into framework configuration. See `FrameworkInterface.setConfig`.
+   * Merge a patch into framework configuration. See `FrameworkApi.setConfig`.
    */
   setConfig<T extends object = Partial<FrameworkConfig>>(
     patch: Partial<FrameworkConfig> & T,
@@ -413,6 +420,7 @@ export const Framework: FrameworkInterface = {
     if (patch && typeof patch === "object") {
       assign(config, patch);
     }
+    // Generic merge — cast is unavoidable since T is caller-specified
     return config as FrameworkConfig & T;
   },
 
@@ -505,7 +513,7 @@ export const Framework: FrameworkInterface = {
   unmark,
 
   /** Fire a custom DOM event on a target */
-  dispatch: dispatchEvent,
+  dispatchEvent,
 
   /** Execute function in try-catch, ignoring errors */
   task,
@@ -521,38 +529,23 @@ export const Framework: FrameworkInterface = {
   /** Wait for zone views to be rendered */
   waitZoneViewsRendered,
 
-  WAIT_OK,
-  WAIT_TIMEOUT_OR_NOT_FOUND,
-
-  /**
-   * Convert array to hash map.
-   */
-  toMap,
-
-  /**
-   * Execute function in try-catch.
-   */
-  toTry: funcWithTry,
-
   /**
    * Convert path + params to URL string.
    */
-  toUrl: toUri,
+  toUri,
 
   /**
    * Parse URI string into path and params.
    */
-  parseUrl: parseUri,
+  parseUri,
+
+  WAIT_OK,
+  WAIT_TIMEOUT_OR_NOT_FOUND,
 
   /**
    * Mix properties from source to target.
    */
-  mix: assign,
-
-  /**
-   * Check if object has own property.
-   */
-  has: hasOwnProperty,
+  assign,
 
   /**
    * Get object keys.
@@ -562,12 +555,7 @@ export const Framework: FrameworkInterface = {
   /**
    * Check if node A is inside node B.
    */
-  inside: nodeInside,
-
-  /**
-   * Get element by ID (shorthand for document.getElementById).
-   */
-  node: getById,
+  nodeInside,
 
   /**
    * Apply CSS style.
@@ -577,17 +565,17 @@ export const Framework: FrameworkInterface = {
   /**
    * Generate globally unique ID.
    */
-  guid: generateId,
+  generateId,
 
   /**
    * Cache factory (functional).
    */
-  createCache: createCache,
+  createCache,
 
   /**
    * Ensure element has an ID.
    */
-  nodeId(element: HTMLElement): string {
+  ensureNodeId(element: HTMLElement): string {
     if (!element.id) {
       element.id = generateId("l_");
     }
@@ -597,7 +585,7 @@ export const Framework: FrameworkInterface = {
   /**
    * Base class with EventEmitter.
    */
-  createEmitter: createEmitter,
+  createEmitter,
 
   // ============================================================
   // Module access
@@ -610,7 +598,7 @@ export const Framework: FrameworkInterface = {
   State,
 
   /** View factory (functional) */
-  defineView: defineView,
+  defineView,
 
   /** Frame class */
   Frame,

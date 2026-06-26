@@ -85,6 +85,9 @@ export function createUpdater(viewId: string): UpdaterApi {
     if (key) {
       result = data[key];
     }
+    // Cast is unavoidable here: the updater stores heterogeneous data and the
+    // caller requests a specific type. This is the single source of truth for
+    // updater.get<T> — the runtime value is untyped at storage time.
     return result as T;
   }
 
@@ -145,10 +148,6 @@ export function createUpdater(viewId: string): UpdaterApi {
     const view = frame?.view;
     const node = getById(viewId);
 
-    console.log(
-      `[runDigest] viewId=${viewId} changed=${changed} hasView=${!!view} hasNode=${!!node} sig=${view?.signature.value ?? "?"} hasFrame=${!!frame}`,
-    );
-
     if (changed && view && node && view.signature.value > 0 && frame) {
       // Conditions met — NOW reset the dirty flags so we don't re-render
       // the same data on the next digest().
@@ -156,9 +155,6 @@ export function createUpdater(viewId: string): UpdaterApi {
       changedKeys = new Set();
 
       const template = view.getTemplate();
-      console.log(
-        `[runDigest] viewId=${viewId} hasTemplate=${typeof template === "function"}`,
-      );
       if (typeof template === "function") {
         // Call template with all params — string mode uses all 8, VDOM mode
         // ignores the extra 5. Return type is `string | VDomNode`; we narrow
@@ -174,8 +170,6 @@ export function createUpdater(viewId: string): UpdaterApi {
           encodeQuote,
         );
 
-        console.log(`[runDigest] viewId=${viewId} resultType=${typeof result}`);
-
         if (typeof result === "string") {
           // ── String rendering path ──
           const newDom = domGetNode(result, node);
@@ -189,27 +183,15 @@ export function createUpdater(viewId: string): UpdaterApi {
             }
           }
           if (ref.hasChanged || !view.rendered.value) {
-            console.log(
-              `[runDigest] viewId=${viewId} calling endUpdate (string path)`,
-            );
             view.endUpdate(viewId);
           }
         } else {
           // ── VDOM rendering path ──
           const newVDom = result;
-          console.log(
-            `[runDigest] viewId=${viewId} VDOM path, newVDom.html=${newVDom.html?.substring(0, 200)}`,
-          );
           const ref = createVDomRef(viewId);
           const ready = (): void => {
             vdom = newVDom;
-            console.log(
-              `[runDigest.ready] viewId=${viewId} ref.changed=${ref.changed} rendered=${view.rendered.value}`,
-            );
             if (ref.changed || !view.rendered.value) {
-              console.log(
-                `[runDigest.ready] viewId=${viewId} calling endUpdate`,
-              );
               view.endUpdate(viewId);
             }
             for (const [el, prop, val] of ref.nodeProps) {
@@ -223,19 +205,12 @@ export function createUpdater(viewId: string): UpdaterApi {
           };
           vdomSetChildNodes(node, vdom, newVDom, ref, frame, keys, view, ready);
         }
-      } else {
-        console.log(
-          `[runDigest] viewId=${viewId} NO TEMPLATE — template is ${typeof template}`,
-        );
       }
     } else {
       // Conditions not met — preserve hasChangedFlag so the next digest()
       // can actually render (e.g. when frame.view is wired after setup).
       // Clear changedKeys so getChangedKeys() reflects the consumed state.
       changedKeys = new Set();
-      console.log(
-        `[runDigest] viewId=${viewId} SKIPPED — changed=${changed} view=${!!view} node=${!!node} sig=${view?.signature.value ?? "?"} frame=${!!frame} (hasChangedFlag preserved=${hasChangedFlag})`,
-      );
     }
 
     // Process re-digest queue
@@ -283,7 +258,7 @@ export function createUpdater(viewId: string): UpdaterApi {
     let cur: unknown = refData;
     for (const segment of trimmed.split(".")) {
       if (cur == null || typeof cur !== "object") return undefined;
-      cur = (cur as Record<string, unknown>)[segment];
+      cur = Reflect.get(cur, segment);
     }
     return cur;
   }

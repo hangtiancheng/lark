@@ -13,6 +13,7 @@ import {
   getViewClassRegistry,
 } from "./view-registry";
 import { unregisterEvents, registerEvents, destroyAllResources } from "./view";
+import { setCurrentCtx } from "./hooks";
 import type { ViewSetup, ViewTemplate, FrameObj } from "./types";
 import { Frame } from "./frame";
 
@@ -52,7 +53,14 @@ export function hotSwapView(frame: FrameObj, newSetup: ViewSetup): void {
   oldView.cleanups.length = 0;
   unregisterEvents(oldView);
   destroyAllResources(oldView, false);
-  const descriptor = newSetup(oldView, undefined);
+  // Set currentCtx so hooks inside the new setup can access the ctx
+  setCurrentCtx(oldView);
+  let descriptor: ReturnType<ViewSetup>;
+  try {
+    descriptor = newSetup(oldView, undefined);
+  } finally {
+    setCurrentCtx(null);
+  }
   oldView.setTemplate(descriptor.template);
   oldView.setEvents(descriptor.events);
   if (descriptor.assign) oldView.setAssign(descriptor.assign);
@@ -124,13 +132,17 @@ export function hotSwapByClass(oldSetup: ViewSetup, newSetup: ViewSetup): void {
   }
 }
 
+/** Type guard: verify a dynamic module export is a ViewSetup function */
+function isViewSetup(fn: unknown): fn is ViewSetup {
+  return typeof fn === "function";
+}
+
 export function acceptView(hot: HotContext, viewPath: string): void {
   hot.accept((newModule) => {
     const candidate = newModule?.default ?? newModule;
-    if (typeof candidate === "function") {
-      const newSetup = candidate as ViewSetup;
-      registerViewClass(viewPath, newSetup);
-      hotSwapFrames(viewPath, newSetup);
+    if (isViewSetup(candidate)) {
+      registerViewClass(viewPath, candidate);
+      hotSwapFrames(viewPath, candidate);
       return;
     }
     const registered = getViewClass(viewPath);

@@ -27,7 +27,7 @@ import type {
   ParamDiff,
   FrameworkConfig,
   RouteViewConfig,
-  RouterInterface,
+  RouterApi,
 } from "./types";
 
 // ============================================================
@@ -292,7 +292,7 @@ function updateUrl(
  * const loc = Router.parse();
  * const diff = Router.diff();
  */
-export const Router: RouterInterface = {
+export const Router: RouterApi = {
   /**
    * Parse href into Location object.
    * Defaults to window.location.href.
@@ -426,7 +426,7 @@ export const Router: RouterInterface = {
   },
 
   /**
-   * Register an async-friendly navigation guard. See `RouterInterface.beforeEach`.
+   * Register an async-friendly navigation guard. See `RouterApi.beforeEach`.
    */
   beforeEach(guard: BeforeEachGuard): () => void {
     beforeEachGuards.push(guard);

@@ -23,14 +23,14 @@ import type {
   ServiceMetaEntry,
   ServiceCacheInfo,
   PendingCacheEntry,
-  PayloadInterface,
+  PayloadApi,
 } from "./types";
 
 // ============================================================
 // Payload: response wrapper (functional factory)
 // ============================================================
 
-export interface PayloadApi extends PayloadInterface {
+export interface PayloadApi extends PayloadApi {
   data: Record<string, unknown>;
   cacheInfo?: ServiceCacheInfo;
   get<T = unknown>(key: string): T;
@@ -43,6 +43,12 @@ function isPayload(v: unknown): v is PayloadApi {
   return "data" in v && "get" in v;
 }
 
+/** Type guard: check if a value is a ServiceMetaEntry */
+function isServiceMetaEntry(v: unknown): v is ServiceMetaEntry {
+  if (v == null || typeof v !== "object") return false;
+  return "name" in v && "url" in v;
+}
+
 /**
  * Create a Payload wrapping API response data.
  */
@@ -50,6 +56,7 @@ export function createPayload(data: Record<string, unknown> = {}): PayloadApi {
   const payloadData = data;
 
   function get<T = unknown>(key: string): T {
+    // Generic retrieval from heterogeneous payload data — unavoidable cast
     return payloadData[key] as T;
   }
 
@@ -196,7 +203,12 @@ export function createService(
       typeof attrs === "string" ? attrs : String(attrs["name"] ?? "");
     const known = metaList[name];
     if (known) return known;
-    return attrs as ServiceMetaEntry;
+    // When attrs is a valid ServiceMetaEntry, return it as-is
+    if (isServiceMetaEntry(attrs)) {
+      return attrs;
+    }
+    // Fallback: construct a minimal meta entry from the string
+    return { name, url: "" };
   }
 
   function create(attrs: Record<string, unknown>): PayloadApi {
@@ -558,7 +570,8 @@ function getPayload(
   const metaList = internals.metaList;
   const name = String(attrs["name"] ?? "");
   const known = metaList[name];
-  const m: ServiceMetaEntry = known ?? (attrs as ServiceMetaEntry);
+  const m: ServiceMetaEntry =
+    known ?? (isServiceMetaEntry(attrs) ? attrs : { name, url: "" });
   const cache = toCacheValue(attrs["cache"]) || m.cache || 0;
   let cacheKey = "";
   if (cache) {

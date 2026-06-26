@@ -76,7 +76,7 @@ const [Home] = await use(["remote-app/views/home"]);
 Resolution algorithm:
 
 ```ts
-nameList = typeof names === "string" ? [names] : names
+nameList = typeof names === "string" ? [names] : names;
 
 if (config.require) {
   const result = config.require(nameList);
@@ -86,16 +86,20 @@ if (config.require) {
 }
 
 // Fallback path
-return Promise.all(nameList.map(name => {
-  const importPath = name.startsWith(".") || name.startsWith("/")
-    ? name
-    : `./${name}`;
-  return import(/* @vite-ignore */ /* webpackIgnore: true */ importPath)
-    .then(mod => (mod.__esModule || typeof mod.default === "function")
-      ? mod.default
-      : mod)
-    .catch(err => { config.error?.(err); return undefined; });
-}));
+return Promise.all(
+  nameList.map((name) => {
+    const importPath =
+      name.startsWith(".") || name.startsWith("/") ? name : `./${name}`;
+    return import(/* @vite-ignore */ /* webpackIgnore: true */ importPath)
+      .then((mod) =>
+        mod.__esModule || typeof mod.default === "function" ? mod.default : mod,
+      )
+      .catch((err) => {
+        config.error?.(err);
+        return undefined;
+      });
+  }),
+);
 ```
 
 Three details worth highlighting:
@@ -269,7 +273,7 @@ remote mount will silently no-op.
 #### 3.4 Cross-frame method invocation
 
 ```ts
-callView(this: ViewInterface, name: string, ...args: unknown[]): unknown {
+callView(this: ViewApi, name: string, ...args: unknown[]): unknown {
   const mf = Frame.get("mf_" + this.id);
   return mf?.invoke(name, args);
 }
@@ -623,7 +627,7 @@ async branch.
 | `src/frame.ts`           | Frame tree, `mountView` async branch, signature races, frame pool. |
 | `src/view-registry.ts`   | View class registry + HMR invalidation helpers.                    |
 | `src/framework.ts`       | `Framework.boot`, dispatcher, devtools bridge install.             |
-| `src/types.ts`           | `FrameworkConfig`, `CrossSiteConfig`, `FrameInterface`, …          |
+| `src/types.ts`           | `FrameworkConfig`, `CrossSiteConfig`, `FrameApi`, …                |
 | `src/event-delegator.ts` | DOM event delegation; consumed by Pattern C `setFrameGetter`.      |
 | `src/index.ts`           | Public barrel — surfaces `CrossSite`, `use`, `frameworkConfig`.    |
 

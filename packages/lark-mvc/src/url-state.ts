@@ -50,18 +50,22 @@ export function useUrlState<S extends Record<string, string>>(
 
   const getState = (): S => {
     const loc = Router.parse();
-    const result = { ...(initialState || {}) } as Record<string, string>;
+    const result: Record<string, string> = { ...(initialState || {}) };
     for (const key of keys) {
       const val = loc.get(key);
       if (val) result[key] = val;
     }
+    // result is dynamically constructed from defaults + URL params;
+    // cast to S is unavoidable since we can't verify the shape at runtime.
     return result as S;
   };
 
   const setState = (patch: Partial<S> | ((prev: S) => Partial<S>)): void => {
     const current = getState();
     const resolved = typeof patch === "function" ? patch(current) : patch;
-    Router.to(resolved as Record<string, unknown>);
+    // Partial<S> where S extends Record<string, string> is assignable to
+    // Record<string, unknown> without a cast.
+    Router.to(resolved);
   };
 
   return [getState(), setState];

@@ -64,7 +64,8 @@ export function vdomCreate(
   }
 
   // ── Element node ──
-  const propsObj = (props || {}) as Record<string, unknown>;
+  const propsObj: Record<string, unknown> =
+    typeof props === "object" && props !== null ? props : {};
   const specialsObj = specials || {};
   const unary = children === 1;
 
@@ -581,13 +582,7 @@ export function vdomSetChildNodes(
   // Fast path: first render
   if (!lastVDom) {
     ref.changed = 1;
-    console.log(
-      `[vdomSetChildNodes] FIRST RENDER — setting innerHTML, html=${newVDom.html?.substring(0, 200)}`,
-    );
     realNode.innerHTML = newVDom.html;
-    console.log(
-      `[vdomSetChildNodes] innerHTML set, calling ready via callFunction`,
-    );
     callFunction(ready, []);
     return;
   }

@@ -9,7 +9,7 @@
 import { RouterEvents } from "./common";
 import { hasOwnProperty, setData, EMPTY_STRING_SET } from "./utils";
 import { createEmitter } from "./event-emitter";
-import type { AnyFunc, ChangeEvent, StateInterface } from "./types";
+import type { AnyFunc, ChangeEvent, StateApi } from "./types";
 
 /** Application state data */
 const appData: Record<string, unknown> = {};
@@ -79,7 +79,7 @@ function teardownKeysRef(keyList: string[]): void {
  * Observable in-memory data object.
  * Provides get/set/digest/diff/clean methods for cross-view data sharing.
  */
-export const State: StateInterface = {
+export const State: StateApi = {
   /**
    * Get data from state.
    */

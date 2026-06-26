@@ -37,7 +37,7 @@ export { Router, markRouterBooted, getRouteMode } from "./router";
 
 // Frame (view lifecycle management — functional factory + singleton)
 export { Frame, createFrame } from "./frame";
-export type { FrameInterface as FrameStaticApi } from "./frame";
+export type { FrameApi } from "./frame";
 export { registerViewClass, invalidateViewClass } from "./frame";
 
 // Module loader (async view loading via FrameworkConfig.require)

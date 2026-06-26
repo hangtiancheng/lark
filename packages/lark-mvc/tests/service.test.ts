@@ -101,10 +101,16 @@ describe("Service", () => {
       expect(SubService.meta("attr2").cache).toBe(5);
     });
 
-    it("meta - returns input value for unknown name", () => {
+    it("meta - returns ServiceMetaEntry for unknown name", () => {
       const SubService = createService(vi.fn());
       const result = SubService.meta("unknownName");
-      expect(result).toBe("unknownName");
+      // meta() must return a ServiceMetaEntry object, not a raw string.
+      // The previous test expected result === "unknownName" (the raw string),
+      // which was only possible due to an `as ServiceMetaEntry` cast that
+      // bypassed the return type. After removing the cast, meta() correctly
+      // constructs a { name, url } object for unknown names.
+      expect(result.name).toBe("unknownName");
+      expect(result.url).toBe("");
     });
 
     it("meta - with object parameter", () => {

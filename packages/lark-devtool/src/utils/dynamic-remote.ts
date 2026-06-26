@@ -52,7 +52,8 @@ function extractContainerName(url: string): string {
  */
 function extractRemoteName(url: string): string {
   const parts = new URL(url).pathname.replace(/\/$/, "").split("/");
-  return parts[parts.length - 2] ?? "remote";
+  const dir = parts[parts.length - 2] ?? "remote";
+  return dir.replace(/-/g, "_");
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +154,51 @@ async function loadViaRuntime<T>(containerUrl: string, moduleName: string): Prom
 }
 
 // ---------------------------------------------------------------------------
-// Strategy 2: Webpack-style <script> injection + window[name]
+// Strategy 2: Dynamic import() for ESM remote entries (Vite)
+// ---------------------------------------------------------------------------
+
+/** Track ESM-loaded containers */
+const loadedViaEsm = new Map<string, RemoteContainer>();
+
+async function loadViaEsmImport<T>(containerUrl: string, moduleName: string): Promise<T> {
+  // Check cache first
+  const cached = loadedViaEsm.get(containerUrl);
+  if (cached !== undefined) {
+    return resolveModule<T>(cached, moduleName, extractContainerName(containerUrl));
+  }
+
+  // Dynamic import the ESM remoteEntry.js
+  // Vite builds produce: export { init, get }
+  const container = (await import(/* @vite-ignore */ containerUrl)) as RemoteContainer;
+
+  if (typeof container.init !== "function" || typeof container.get !== "function") {
+    throw new Error(
+      `ESM remoteEntry at ${containerUrl} does not export valid { init, get }. ` +
+        `Found keys: [${Object.keys(container).join(", ")}]`,
+    );
+  }
+
+  // Initialize shared scope — use MF runtime's share scope if available,
+  // otherwise pass an empty scope (Vite remotes handle this gracefully).
+  try {
+    if (typeof __webpack_init_sharing__ === "function") {
+      await __webpack_init_sharing__("default");
+      await container.init(__webpack_share_scopes__["default"]);
+    } else {
+      // Vite host: pass empty shared scope, the remote's init handles it
+      await container.init({});
+    }
+  } catch (initError) {
+    console.warn(`[dynamic-remote] Container init warning (may be non-fatal):`, initError);
+  }
+
+  loadedViaEsm.set(containerUrl, container);
+
+  return resolveModule<T>(container, moduleName, extractContainerName(containerUrl));
+}
+
+// ---------------------------------------------------------------------------
+// Strategy 3: Webpack-style <script> injection + window[name]
 // ---------------------------------------------------------------------------
 
 async function loadViaScriptInjection<T>(containerUrl: string, moduleName: string): Promise<T> {
@@ -216,8 +261,10 @@ async function loadViaScriptInjection<T>(containerUrl: string, moduleName: strin
  * Strategy:
  *   1. Try @module-federation/runtime loadRemote() — works with both
  *      Webpack and Vite remote entries (ESM + var).
- *   2. Fall back to Webpack-style <script> injection — for legacy setups
- *      or when the MF runtime is unavailable.
+ *   2. Try dynamic import() for ESM remote entries — for Vite-built
+ *      remotes that export { init, get }.
+ *   3. Fall back to Webpack-style <script> injection — for legacy var-type
+ *      remotes that register on window[name].
  *
  * @param containerUrl - Full URL to the remoteEntry.js file
  * @param moduleName   - The exposed module path (e.g., "./counter-view")
@@ -241,12 +288,22 @@ export async function loadRemoteFromCdn<T = unknown>(
     return await loadViaRuntime<T>(containerUrl, moduleName);
   } catch (runtimeError) {
     console.warn(
-      `[dynamic-remote] loadRemote() failed, falling back to <script> injection:`,
+      `[dynamic-remote] Strategy 1 (loadRemote) failed, trying ESM import:`,
       runtimeError,
     );
   }
 
-  // Strategy 2: Webpack-style <script> injection
+  // Strategy 2: Dynamic import() for ESM remote entries
+  try {
+    return await loadViaEsmImport<T>(containerUrl, moduleName);
+  } catch (esmError) {
+    console.warn(
+      `[dynamic-remote] Strategy 2 (ESM import) failed, trying <script> injection:`,
+      esmError,
+    );
+  }
+
+  // Strategy 3: Webpack-style <script> injection
   return loadViaScriptInjection<T>(containerUrl, moduleName);
 }
 
@@ -258,8 +315,10 @@ export function clearRemoteCache(containerUrl?: string): void {
   if (containerUrl !== undefined) {
     loadedContainers.delete(containerUrl);
     loadedViaRuntime.delete(containerUrl);
+    loadedViaEsm.delete(containerUrl);
   } else {
     loadedContainers.clear();
     loadedViaRuntime.clear();
+    loadedViaEsm.clear();
   }
 }

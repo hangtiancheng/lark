@@ -33,11 +33,7 @@ function flattenTree(
   return result;
 }
 
-function collectDefaultExpanded(
-  node: SerializedFrameNode,
-  depth: number,
-  set: Set<string>,
-): void {
+function collectDefaultExpanded(node: SerializedFrameNode, depth: number, set: Set<string>): void {
   if (depth < 3) {
     set.add(node.id);
     for (const child of node.children) {
@@ -55,10 +51,7 @@ export function FrameTree({ root, selectedId, onSelect }: FrameTreeProps) {
 
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const flatNodes = useMemo(
-    () => flattenTree(root, 0, expanded, true),
-    [root, expanded],
-  );
+  const flatNodes = useMemo(() => flattenTree(root, 0, expanded, true), [root, expanded]);
 
   const virtualizer = useVirtualizer({
     count: flatNodes.length,
@@ -127,11 +120,7 @@ export function FrameTree({ root, selectedId, onSelect }: FrameTreeProps) {
                 <div
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${isRoot ? "bg-sky-100 text-sky-600" : "bg-slate-100 text-slate-400"}`}
                 >
-                  {isRoot ? (
-                    <Square className="h-3 w-3" />
-                  ) : (
-                    <AppWindow className="h-3 w-3" />
-                  )}
+                  {isRoot ? <Square className="h-3 w-3" /> : <AppWindow className="h-3 w-3" />}
                 </div>
 
                 <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -140,9 +129,7 @@ export function FrameTree({ root, selectedId, onSelect }: FrameTreeProps) {
                       <span className="truncate font-mono text-sm text-slate-700">
                         {node.viewPath}
                       </span>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        #{node.id}
-                      </span>
+                      <span className="font-mono text-[10px] text-slate-400">#{node.id}</span>
                     </>
                   ) : (
                     <span className="truncate font-mono text-sm text-slate-500">

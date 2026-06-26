@@ -12,7 +12,7 @@
  *   1. User enters CDN remoteEntry.js URL
  *   2. Dynamic script injection loads the remote container
  *   3. __webpack_init_sharing__ + __webpack_share_scopes__ for shared deps
- *   4. Container.get("./counter-view") loads the remote module
+ *   4. Container.get("./counter-view") loads the remote modulex
  *   5. mountCounter() renders the Lark View
  */
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -46,10 +46,7 @@ export function MfCdn() {
     setErrorMsg(null);
 
     try {
-      const remoteModule = await loadRemoteFromCdn<Record<string, unknown>>(
-        cdnUrl,
-        MODULE_PATH,
-      );
+      const remoteModule = await loadRemoteFromCdn<Record<string, unknown>>(cdnUrl, MODULE_PATH);
 
       if (!containerRef.current) {
         setStatus("error");
@@ -130,9 +127,7 @@ export function MfCdn() {
                 Unmount
               </button>
             )}
-            <span
-              className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[status]}`}
-            />
+            <span className={`inline-block h-2 w-2 rounded-full ${STATUS_DOT[status]}`} />
           </div>
         </div>
       </div>
@@ -168,9 +163,7 @@ export function MfCdn() {
             <br />
             <span className="text-sky-400">(Host)</span>
           </div>
-          <div className="ml-2 text-slate-400">
-            Dynamic MF: runtime remote loading
-          </div>
+          <div className="ml-2 text-slate-400">Dynamic MF: runtime remote loading</div>
         </div>
       </div>
 
@@ -178,12 +171,8 @@ export function MfCdn() {
       <div className="flex-1 overflow-auto">
         {status === "error" && (
           <div className="m-4 rounded-lg border border-red-200 bg-red-50 p-3">
-            <p className="text-xs font-medium text-red-700">
-              Failed to load remote from CDN
-            </p>
-            <p className="mt-1 font-mono text-[10px] text-red-500">
-              {errorMsg}
-            </p>
+            <p className="text-xs font-medium text-red-700">Failed to load remote from CDN</p>
+            <p className="mt-1 font-mono text-[10px] text-red-500">{errorMsg}</p>
             <p className="mt-2 text-[10px] text-red-400">
               Make sure lark-cdn is running and the project is published:
               <code className="ml-1 rounded bg-red-100 px-1">pnpm cdn</code>

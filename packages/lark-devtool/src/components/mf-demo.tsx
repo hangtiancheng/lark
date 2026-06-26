@@ -38,7 +38,7 @@ export function MfDemo() {
 
     try {
       // Dynamic import triggers Module Federation runtime to load from lark-demo
-      const module = await import("lark-demo/counter-view");
+      const module = await import("lark_demo/counter-view");
 
       if (!containerRef.current) {
         setStatus("error");

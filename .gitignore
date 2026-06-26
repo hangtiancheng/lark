@@ -192,13 +192,9 @@ stats.html
 
 # Legacy
 libs/libpool/lib
-
-packages/fe24-client/plugins/assets/robot-list.json
-packages/fe24-client/plugins/assets/order-list.json
-packages/fe24-client-vue/plugins/assets/robot-list.json
-packages/fe24-client-vue/plugins/assets/order-list.json
-
-packages/lark-vscode/lark-vscode-*.vsix
+**/robot-list.json
+**/order-list.json
+*.vsix
 
 .dist/
 **/.dist/
@@ -208,5 +204,5 @@ dist-*
 **/dist-*
 
 packages/lark-docs/docs
-
-**/.lark-docs/generated
+**/.lark-docs
+**/@mf-types

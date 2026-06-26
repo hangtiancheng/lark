@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import CopyWebpackPlugin from "copy-webpack-plugin";
-import webpack from 'webpack';
+import webpack from "webpack";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -78,12 +78,12 @@ export default (env, argv) => {
 
       // ── Module Federation (Host) ──
       // Consumes remote Lark views from lark-demo running on port 3000.
-      // At runtime: import('lark-demo/counter-view') loads the remote module.
+      // At runtime: import('lark_demo/counter-view') loads the remote module.
       new webpack.container.ModuleFederationPlugin({
         name: "lark_devtool",
         filename: "remoteEntry.js",
         remotes: {
-          "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
+          lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
         },
         shared: {
           "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
@@ -115,17 +115,17 @@ export default (env, argv) => {
 
     optimization: isProd
       ? {
-        splitChunks: {
-          chunks: "all",
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: "vendor",
-              chunks: "all",
+          splitChunks: {
+            chunks: "all",
+            cacheGroups: {
+              vendor: {
+                test: /[\\/]node_modules[\\/]/,
+                name: "vendor",
+                chunks: "all",
+              },
             },
           },
-        },
-      }
+        }
       : undefined,
 
     devtool: isProd ? "hidden-source-map" : "source-map",

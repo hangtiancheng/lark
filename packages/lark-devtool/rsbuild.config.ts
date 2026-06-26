@@ -40,7 +40,7 @@ export default defineConfig({
           name: "lark_devtool",
           filename: "remoteEntry.js",
           remotes: {
-            "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
+            lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
           },
           shared: {
             "@lark.js/mvc": { singleton: true, requiredVersion: "*" },

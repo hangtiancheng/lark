@@ -11,8 +11,8 @@ export default defineConfig({
   plugins: [
     larkMvcPlugin({ virtualDom: true }),
     federation({
-      name: "lark_demo",
-      filename: "remoteEntry.js",
+      name: "lark_demo", // Module federation name
+      filename: "remoteEntry.js", // Entry point
       exposes: {
         "./counter-view": "./src/exposed/counter-view.ts",
       },

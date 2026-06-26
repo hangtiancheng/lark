@@ -129,11 +129,8 @@ export async function loadRemoteFromCdn<T = unknown>(
 
   await new Promise<void>((resolve, reject) => {
     // Check if already loaded via script tag (valid MF container with get method)
-    const existing = (window as unknown as Record<string, unknown>)[containerName];
-    if (
-      existing !== undefined &&
-      typeof (existing as Record<string, unknown>)["get"] === "function"
-    ) {
+    const existing = Reflect.get(window, containerName);
+    if (existing !== undefined && typeof Reflect.get(existing, "get") === "function") {
       resolve();
       return;
     }
@@ -150,7 +147,7 @@ export async function loadRemoteFromCdn<T = unknown>(
   });
 
   // 2. Get the container from window
-  const container = (window as unknown as Record<string, RemoteContainer>)[containerName];
+  const container = Reflect.get(window, containerName) as RemoteContainer;
   if (container === undefined) {
     throw new Error(
       `Container "${containerName}" not found on window after loading ${containerUrl}`,
@@ -158,7 +155,7 @@ export async function loadRemoteFromCdn<T = unknown>(
   }
 
   // Validate it's a proper MF container
-  if (typeof container["init"] !== "function" || typeof container["get"] !== "function") {
+  if (typeof container.get !== "function" || typeof container.init !== "function") {
     throw new Error(
       `"${containerName}" on window is not a valid MF container. ` +
         `Expected { init, get } but found: ${Object.keys(container).join(", ")}`,

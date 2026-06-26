@@ -155,7 +155,7 @@ Key webpack configuration:
 new ModuleFederationPlugin({
   name: "lark_devtool",
   remotes: {
-    "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
+    lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
   },
   shared: {
     "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
@@ -543,7 +543,7 @@ Changing ports:
 new ModuleFederationPlugin({
   name: "lark_devtool",
   remotes: {
-    "lark-demo": "lark_demo@http://localhost:3000/remoteEntry.js",
+    lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
   },
   shared: {
     "@lark.js/mvc": { singleton: true, requiredVersion: "*" },

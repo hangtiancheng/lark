@@ -62,11 +62,7 @@ export default {
       {
         test: /\.css$/,
         exclude: /\.module\.css$/,
-        use: [
-          "style-loader",
-          "css-loader",
-          "postcss-loader",
-        ],
+        use: ["style-loader", "css-loader", "postcss-loader"],
       },
       // Lark template processing - compiles .html to template functions
       {

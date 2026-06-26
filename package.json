@@ -44,6 +44,7 @@
     "devtool:webpack": "pnpm --filter @lark.js/devtool dev:webpack",
     "devtool:rsbuild": "pnpm --filter @lark.js/devtool dev:rsbuild",
     "prepare": "husky",
+    "postinstall": "node scripts/patch-mf-vite.cjs",
     "git:precommit": "rm -rf ./.claude && ln -s ./.github ./.claude",
     "git:commit": "pnpm git:precommit && git add -A && git commit -m \"feat: Introduce new features\"",
     "git:commit:ci": "pnpm git:precommit && git add -A && git commit -m \"ci: Deploy homepage\"",

@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "vite",
+    "dev": "rm -rf ./dist && vite",
+    "dev:webpack": "rm -rf ./dist && webpack serve --mode development",
+    "dev:rsbuild": "rm -rf ./dist && rsbuild dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "dev:rsbuild": "rsbuild dev",
-    "build:rsbuild": "rsbuild build",
-    "preview:rsbuild": "rsbuild preview",
-    "dev:webpack": "webpack serve --mode development",
     "build:webpack": "tsc --noEmit && webpack --mode production",
-    "preview:webpack": "webpack serve --mode production"
+    "build:rsbuild": "rsbuild build",
+    "preview": "vite preview",
+    "preview:webpack": "webpack serve --mode production",
+    "preview:rsbuild": "rsbuild preview"
   },
   "dependencies": {
     "@lark.js/mvc": "workspace:^",

@@ -7,7 +7,7 @@ export default defineConfig({
 
   source: {
     entry: {
-      index: "./src/remote-entry.tsx",
+      index: "./src/remoteEntry.tsx",
     },
   },
 

@@ -16,7 +16,7 @@ const { ModuleFederationPlugin } = webpack.container;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
-  entry: "./src/remote-entry.ts",
+  entry: "./src/remoteEntry.ts",
 
   output: {
     clean: true,

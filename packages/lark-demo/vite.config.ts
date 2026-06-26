@@ -13,6 +13,9 @@ export default defineConfig({
     federation({
       name: "lark_demo", // Module federation name
       filename: "remoteEntry.js", // Entry point
+      // optional: additional "var" remoteEntry file
+      // needed only for legacy hosts with "var" usage (remote.type = 'var')
+      varFilename: "varRemoteEntry.js",
       exposes: {
         "./counter-view": "./src/exposed/counter-view.ts",
       },

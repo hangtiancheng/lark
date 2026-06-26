@@ -45,6 +45,19 @@ export function createCdnMiddleware(
       return next();
     }
 
+    // CORS headers — allow cross-origin access from dev servers (Vite, Webpack, etc.)
+    const origin = ctx.get("Origin") || "*";
+    ctx.set("Access-Control-Allow-Origin", origin);
+    ctx.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    ctx.set("Access-Control-Allow-Headers", "Content-Type");
+    ctx.set("Access-Control-Expose-Headers", "ETag, X-Cache, X-CDN-Version, X-Resolution-Source");
+
+    // Handle preflight requests
+    if (ctx.method === "OPTIONS") {
+      ctx.status = 204;
+      return;
+    }
+
     const { projectName, explicitVersion, filePath } = parsed;
 
     const projectConfig = getProjectConfig(projectName);

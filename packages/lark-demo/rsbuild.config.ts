@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/postcss";
 export default defineConfig({
   source: {
     entry: {
-      index: "./src/remote-entry.ts",
+      index: "./src/remoteEntry.ts",
     },
   },
 

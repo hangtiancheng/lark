@@ -17,7 +17,7 @@ export default (env, argv) => {
   const isProd = argv.mode === "production";
 
   return {
-    entry: "./src/remote-entry.tsx",
+    entry: "./src/remoteEntry.tsx",
 
     output: {
       clean: true,

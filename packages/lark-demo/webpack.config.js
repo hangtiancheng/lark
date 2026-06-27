@@ -8,8 +8,8 @@ import HtmlWebpackPlugin from "html-webpack-plugin";
 // and webpack-cli's internal `require("webpack")` can resolve to different
 // virtual store entries (different peer dependency hashes), causing
 // "The 'compilation' argument must be an instance of Compilation".
-const require = createRequire(import.meta.resolve("webpack-cli"));
-const webpack = require("webpack");
+const __require = createRequire(import.meta.resolve("webpack-cli"));
+const webpack = __require("webpack");
 
 const { ModuleFederationPlugin } = webpack.container;
 
@@ -104,14 +104,11 @@ export default {
           singleton: true,
           requiredVersion: "*",
         },
-        react: {
-          singleton: true,
-          requiredVersion: "*",
-        },
-        "react-dom": {
-          singleton: true,
-          requiredVersion: "*",
-        },
+        // react / react-dom intentionally not shared — see lark-devtool/vite.config.ts
+        // for the full explanation. Short version: lark-demo is a Lark MVC app,
+        // not a React app. The remote (lark-devtool) bundles its own React and
+        // the render tree is self-contained. Sharing React across MF in Vite
+        // dev mode causes duplicate module instances → "Invalid hook call".
       },
     }),
   ],

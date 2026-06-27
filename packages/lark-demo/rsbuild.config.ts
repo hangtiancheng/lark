@@ -63,14 +63,6 @@ export default defineConfig({
               singleton: true,
               requiredVersion: "*",
             },
-            react: {
-              singleton: true,
-              requiredVersion: "*",
-            },
-            "react-dom": {
-              singleton: true,
-              requiredVersion: "*",
-            },
           },
         }),
       );

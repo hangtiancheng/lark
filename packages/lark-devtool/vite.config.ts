@@ -31,8 +31,16 @@ export default defineConfig({
       },
       shared: {
         "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
-        react: { singleton: true, requiredVersion: "*" },
-        "react-dom": { singleton: true, requiredVersion: "*" },
+        // NOTE: react / react-dom are intentionally NOT shared via MF.
+        // In Vite dev mode, @module-federation/vite does not reliably
+        // share react across host and remote — even with singleton:true,
+        // two separate module instances can be loaded, causing React's
+        // internal dispatcher (ReactSharedInternals.H) to be set on one
+        // copy while useState reads from the other → "Invalid hook call".
+        //
+        // Since lark-demo is a Lark MVC app (not a React app), the remote
+        // bundles its own React and the render tree is fully self-contained.
+        // The host never touches React, so there is no sharing needed.
       },
     }),
   ],
@@ -59,8 +67,10 @@ export default defineConfig({
           if (id.includes("/src/views/about")) return "view-about";
           if (id.includes("/src/views/counter")) return "view-counter";
           if (id.includes("/src/views/404")) return "view-404";
-          if (id.includes("/src/components/counter-store")) return "comp-counter-store";
-          if (id.includes("/src/components/counter-updater")) return "comp-counter-updater";
+          if (id.includes("/src/components/counter-store"))
+            return "comp-counter-store";
+          if (id.includes("/src/components/counter-updater"))
+            return "comp-counter-updater";
         },
       },
     },

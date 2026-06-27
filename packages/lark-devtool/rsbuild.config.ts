@@ -47,8 +47,6 @@ export default defineConfig({
           },
           shared: {
             "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
-            react: { singleton: true, eager: true },
-            "react-dom": { singleton: true, eager: true },
           },
         }),
       );

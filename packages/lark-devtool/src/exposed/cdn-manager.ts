@@ -8,6 +8,7 @@
  *   const { mountCdnManager } = await import('lark_devtool/cdn-manager');
  *   const unmount = mountCdnManager(containerElement);
  */
+import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { CdnManager } from "../components/cdn-manager";
 
@@ -28,7 +29,10 @@ import "../index.css";
  */
 export function mountCdnManager(container: HTMLElement): () => void {
   const root = createRoot(container);
-  root.render(CdnManager());
+  // Pass the component as an element so React invokes it inside its own
+  // render context — calling CdnManager() directly would execute its hooks
+  // outside of React, causing "Invalid hook call".
+  root.render(createElement(CdnManager));
 
   return () => {
     root.unmount();

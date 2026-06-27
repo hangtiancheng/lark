@@ -35,14 +35,11 @@ export default defineConfig({
           singleton: true,
           requiredVersion: "*",
         },
-        react: {
-          singleton: true,
-          requiredVersion: "*",
-        },
-        "react-dom": {
-          singleton: true,
-          requiredVersion: "*",
-        },
+        // react / react-dom intentionally not shared — see lark-devtool/vite.config.ts
+        // for the full explanation. Short version: lark-demo is a Lark MVC app,
+        // not a React app. The remote (lark-devtool) bundles its own React and
+        // the render tree is self-contained. Sharing React across MF in Vite
+        // dev mode causes duplicate module instances → "Invalid hook call".
       },
     }),
   ],
@@ -58,13 +55,6 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-  },
-  // Prevent Vite from pre-bundling react/react-dom — they must go through
-  // MF shared scope so that host and remote use the same React instance.
-  // Without this, Vite creates a local pre-bundled copy that bypasses
-  // the shared scope, resulting in two React copies and "Invalid hook call".
-  optimizeDeps: {
-    exclude: ["react", "react-dom", "react/jsx-runtime", "react-dom/client"],
   },
   build: {
     sourcemap: true,

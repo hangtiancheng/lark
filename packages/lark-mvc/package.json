@@ -97,7 +97,7 @@
     "build": "pnpm build:tsup",
     "build:rollup": "rollup -c rollup.config.mjs",
     "build:tsup": "tsup",
-    "format": "prettier -w ./ --experimental-cli",
+    "format": "oxfmt --write ./",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

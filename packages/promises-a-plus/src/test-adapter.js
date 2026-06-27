@@ -1,4 +1,4 @@
-import MyPromise from "./MyPromise.js";
+import MyPromise from "./my-promise.js";
 
 const adapter = {
   resolved: (value) => MyPromise.resolve(value),

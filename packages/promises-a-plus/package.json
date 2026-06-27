@@ -2,13 +2,13 @@
   "name": "@lark.js/promises-a-plus",
   "version": "1.0.0",
   "private": true,
-  "main": "src/MyPromise.ts",
-  "types": "src/MyPromise.ts",
+  "main": "src/my-promise.ts",
+  "types": "src/my-promise.ts",
   "exports": {
     ".": {
-      "types": "./src/MyPromise.ts",
-      "import": "./src/MyPromise.ts",
-      "default": "./src/MyPromise.ts"
+      "types": "./src/my-promise.ts",
+      "import": "./src/my-promise.ts",
+      "default": "./src/my-promise.ts"
     }
   },
   "scripts": {

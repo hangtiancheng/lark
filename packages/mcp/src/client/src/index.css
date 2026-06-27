@@ -13,22 +13,22 @@
   --color-base-100: var(--color-emerald-50);
   --color-base-200: var(--color-emerald-100);
   --color-base-300: var(--color-emerald-200);
-  --color-base-content: var(--color-emerald-800);
-  --color-primary: var(--color-emerald-600);
+  --color-base-content: var(--color-emerald-700);
+  --color-primary: var(--color-emerald-500);
   --color-primary-content: var(--color-white);
-  --color-secondary: var(--color-teal-500);
+  --color-secondary: var(--color-teal-400);
   --color-secondary-content: var(--color-white);
-  --color-accent: var(--color-cyan-500);
+  --color-accent: var(--color-cyan-400);
   --color-accent-content: var(--color-white);
-  --color-neutral: var(--color-slate-500);
+  --color-neutral: var(--color-slate-400);
   --color-neutral-content: var(--color-white);
-  --color-info: var(--color-sky-500);
+  --color-info: var(--color-sky-400);
   --color-info-content: var(--color-white);
-  --color-success: var(--color-emerald-500);
+  --color-success: var(--color-emerald-400);
   --color-success-content: var(--color-white);
-  --color-warning: var(--color-amber-500);
+  --color-warning: var(--color-amber-400);
   --color-warning-content: var(--color-white);
-  --color-error: var(--color-rose-500);
+  --color-error: var(--color-rose-400);
   --color-error-content: var(--color-white);
 
   --border: 0.5px;
@@ -49,4 +49,20 @@
   --font-mono:
     Iosevka, Maple Mono, Menlo, "Cascadia Code", "Sarasa Gothic SC",
     "PingFang SC", "Microsoft YaHei", monospace;
+}
+
+/* @theme {
+  --font-sans:
+    Iosevka, Maple Mono, Menlo, Cascadia Code, Sarasa Gothic SC, PingFang SC, Microsoft YaHei;
+
+  --font-mono:
+    Iosevka, Maple Mono, Menlo, Cascadia Code, Sarasa Gothic SC, PingFang SC, Microsoft YaHei;
+} */
+
+/* Override daisyUI input/textarea focus styles to use 1px orange border */
+.input:focus,
+.input:focus-within,
+.textarea:focus,
+.textarea:focus-within {
+  @apply border-teal-400 shadow-none outline-none;
 }

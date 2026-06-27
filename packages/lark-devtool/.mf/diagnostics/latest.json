@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project /Users/hangtiancheng/github/lark/packages/lark-devtool/node_modules/.federation/tsconfig.68b71e09552f9c5d89190ecdd84c87f8.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"npx tsc --project /Users/hangtiancheng/github/lark/packages/lark-devtool/node_modules/.federation/tsconfig.1e9b22f7377caf78433abd036d6be6ac.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "npx tsc --project /Users/hangtiancheng/github/lark/packages/lark-devtool/node_modules/.federation/tsconfig.68b71e09552f9c5d89190ecdd84c87f8.json"
+      "cmd": "npx tsc --project /Users/hangtiancheng/github/lark/packages/lark-devtool/node_modules/.federation/tsconfig.1e9b22f7377caf78433abd036d6be6ac.json"
     },
-    "timestamp": 1782531375386
+    "timestamp": 1782531561367
   }
 }

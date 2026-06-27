@@ -41,10 +41,115 @@ function vdomEscapeStr(s: string): string {
 }
 
 /**
- * Resolve an attribute value that may contain `\x00N\x00` placeholders
- * (template expressions) or `\x1f` (viewId placeholder).
+ * Resolve an attribute value that contains code-block (statement)
+ * placeholders into an IIFE that builds and returns the final string.
  *
- * Returns a JS expression string.
+ * Code blocks (compiled from `{{if}}/{{else}}/{{forOf}}/{{/if}}` etc.)
+ * are JS statements (e.g. "if(width){", "}else{", "}"), which cannot be
+ * used in a concatenation expression. Instead we emit them as raw
+ * statements inside an IIFE that accumulates text into a local `$s`
+ * variable and returns it.
+ *
+ * Example — template:
+ *   style="{{if width}}width: {{=width}}px;{{else}}width: 100%;{{/if}}"
+ *
+ * Compiled IIFE:
+ *   (()=>{
+ *     let $s='';
+ *     if(width){
+ *       $s+='width: ';$s+=$strSafe(width);$s+='px;';
+ *     }else{
+ *       $s+='width: 100%;';
+ *     }
+ *     return $s;
+ *   })()
+ */
+function vdomResolveAttrValueIIFE(
+  rawValue: string,
+  exprStore: VDomExprEntry[],
+): string {
+  const stmts: string[] = [];
+  let remaining = rawValue;
+
+  while (remaining.length > 0) {
+    const phIdx = remaining.indexOf("\x00");
+    const viIdx = remaining.indexOf("\x1f");
+
+    let nextSpecial = -1;
+    let specialType: "ph" | "vi" | null = null;
+
+    if (phIdx >= 0 && (viIdx < 0 || phIdx <= viIdx)) {
+      nextSpecial = phIdx;
+      specialType = "ph";
+    } else if (viIdx >= 0) {
+      nextSpecial = viIdx;
+      specialType = "vi";
+    }
+
+    if (nextSpecial === -1) {
+      if (remaining) stmts.push(`$s+='${vdomEscapeStr(remaining)}'`);
+      break;
+    }
+
+    if (nextSpecial > 0) {
+      stmts.push(`$s+='${vdomEscapeStr(remaining.substring(0, nextSpecial))}'`);
+    }
+
+    if (specialType === "vi") {
+      stmts.push(`$s+=$viewId`);
+      remaining = remaining.substring(nextSpecial + 1);
+    } else {
+      // Placeholder: \x00N\x00
+      const closeIdx = remaining.indexOf("\x00", nextSpecial + 1);
+      if (closeIdx === -1) {
+        stmts.push(`$s+='${vdomEscapeStr(remaining.substring(nextSpecial))}'`);
+        break;
+      }
+
+      const idx = parseInt(remaining.substring(nextSpecial + 1, closeIdx), 10);
+      const expr = exprStore[idx];
+
+      if (expr.op === "=" || expr.op === ":") {
+        stmts.push(`$s+=$strSafe(${expr.content})`);
+      } else if (expr.op === "!") {
+        if (expr.content.startsWith("$encUri(") && expr.content.endsWith(")")) {
+          stmts.push(`$s+=${expr.content}`);
+        } else {
+          stmts.push(`$s+=$strSafe(${expr.content})`);
+        }
+      } else if (expr.op === "@") {
+        stmts.push(`$s+=$refFn($refAlt,${expr.content})`);
+      } else {
+        // Code block (statement) — emit raw JS (if/else/for/etc.)
+        stmts.push(expr.content);
+      }
+
+      remaining = remaining.substring(closeIdx + 1);
+    }
+  }
+
+  const body = stmts.join(";");
+  return `(()=>{let $s='';${body};return $s;})()`;
+}
+
+/**
+ * Resolve an attribute value that may contain `\x00N\x00` placeholders
+ * (template expressions) or `\x1f` (viewId placeholder) into a JS expression
+ * string.
+ *
+ * When the attribute value contains only expression placeholders
+ * (`<%= %>`, `<%! %>`, `<%@ %>`), a simple concatenation expression is
+ * returned (e.g. `'text '+$strSafe(expr)+'more'`).
+ *
+ * When the attribute value also contains code-block placeholders
+ * (`<%if(...){%>`, `<%}else{%>`, `<%}%>`, etc. — compiled from
+ * `{{if}}/{{else}}/{{/if}}` and other control-flow tags), those entries
+ * are JS **statements**, not expressions, and cannot participate in a
+ * `$strSafe(...)` wrapping. In that case an IIFE is generated that builds
+ * and returns the attribute string via statement-based accumulation —
+ * mirroring the approach used by the real-DOM (string) compiler's
+ * `compileToFunction`, where `if/else/for` statements naturally wrap
+ * `$out+=...` concatenation statements.
  */
 function vdomResolveAttrValue(
   rawValue: string,
@@ -55,6 +160,22 @@ function vdomResolveAttrValue(
 
   if (!hasPlaceholders && !hasViewId) {
     return `'${vdomEscapeStr(rawValue)}'`;
+  }
+
+  // Detect code-block (statement) placeholders: {{if}}/{{else}}/{{forOf}}
+  // etc. compile to op="" entries containing statements like "if(...){",
+  // "}else{", "}". These are statements, not expressions — wrapping them
+  // in $strSafe() would produce invalid JS such as $strSafe(if(width){).
+  // When present, route to the IIFE-based resolver.
+  if (hasPlaceholders) {
+    const codeBlockRegExp = /\x00(\d+)\x00/g;
+    let m: RegExpExecArray | null;
+    while ((m = codeBlockRegExp.exec(rawValue)) !== null) {
+      const idx = parseInt(m[1], 10);
+      if (exprStore[idx] && exprStore[idx].op === "") {
+        return vdomResolveAttrValueIIFE(rawValue, exprStore);
+      }
+    }
   }
 
   const segments: string[] = [];

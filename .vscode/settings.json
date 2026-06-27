@@ -50,7 +50,10 @@
     "noreferrer",
     "nums",
     "oncall",
+    "oper",
     "overscan",
+    "oxfmt",
+    "oxlint",
     "popstate",
     "poptate",
     "prefersdark",
@@ -70,6 +73,7 @@
     "vitesse",
     "vnode",
     "vnodes",
+    "Yahei",
     "xxhash"
   ],
   "css.validate": false

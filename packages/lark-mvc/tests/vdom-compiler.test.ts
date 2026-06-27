@@ -254,6 +254,117 @@ describe("VDOM Compiler", () => {
     });
   });
 
+  // ===== D2. Control flow inside attribute values (IIFE path) =====
+  //
+  // When {{if}}/{{else}}/{{/if}} (or {{forOf}} etc.) appear inside an HTML
+  // attribute value, the compiled code-block entries are JS statements
+  // (e.g. "if(width){", "}else{", "}") that cannot be wrapped in
+  // $strSafe(). The compiler must detect this and generate an IIFE that
+  // builds and returns the attribute string via statement-based accumulation.
+  describe("control flow in attributes", () => {
+    it("compiles {{if}} inside attribute value as IIFE (not $strSafe(if())", async () => {
+      const src = await compileSource(
+        '<div class="base {{if show}}extra{{/if}}">x</div>',
+        { globalVars: ["show"] },
+      );
+      // Must NOT produce the buggy $strSafe(if(...)) wrapping
+      expect(src).not.toContain("$strSafe(if(");
+      // Must produce an IIFE that accumulates into $s
+      expect(src).toContain("(()=>{let $s=''");
+      expect(src).toContain("if(show)");
+    });
+
+    it("compiles {{if}}...{{else}}...{{/if}} inside attribute value", async () => {
+      const src = await compileSource(
+        '<div style="{{if w}}width:{{=w}}px;{{else}}width:100%;{{/if}}">x</div>',
+        { globalVars: ["w"] },
+      );
+      expect(src).not.toContain("$strSafe(if(");
+      expect(src).not.toContain("$strSafe(}else{)");
+      expect(src).not.toContain("$strSafe(})");
+      expect(src).toContain("if(w)");
+      expect(src).toContain("}else{");
+    });
+
+    it("compiles {{if}} with || operator inside attribute value", async () => {
+      const src = await compileSource(
+        '<a class="base {{if disabled || loading}}opacity-50{{/if}}">x</a>',
+        { globalVars: ["disabled", "loading"] },
+      );
+      expect(src).not.toContain("$strSafe(if(");
+      expect(src).toContain("if(disabled || loading)");
+    });
+
+    it("compiles forOf inside attribute value as IIFE", async () => {
+      const src = await compileSource(
+        '<div class="{{forOf items as item}}{{=item}} {{/forOf}}">x</div>',
+        { globalVars: ["items"] },
+      );
+      expect(src).not.toContain("$strSafe(for(");
+      expect(src).toContain("(()=>{let $s=''");
+      expect(src).toContain("for(let");
+    });
+
+    it("renders {{if}} in attribute — true branch", async () => {
+      const root = await compileAndRun(
+        '<div class="base {{if show}}visible{{/if}}">x</div>',
+        { show: true },
+        ["show"],
+      );
+      expect(root.html).toContain('class="base visible"');
+    });
+
+    it("renders {{if}} in attribute — false branch", async () => {
+      const root = await compileAndRun(
+        '<div class="base {{if show}}visible{{/if}}">x</div>',
+        { show: false },
+        ["show"],
+      );
+      // When show is false, the if-block yields nothing, so class is
+      // "base " (with trailing space from the literal text before {{if}}).
+      expect(root.html).toContain('class="base "');
+      expect(root.html).not.toContain("visible");
+    });
+
+    it("renders {{if}}...{{else}} in style attribute — true branch", async () => {
+      const root = await compileAndRun(
+        '<div style="{{if w}}width:{{=w}}px;{{else}}width:100%;{{/if}}">x</div>',
+        { w: 200 },
+        ["w"],
+      );
+      expect(root.html).toContain('style="width:200px;"');
+    });
+
+    it("renders {{if}}...{{else}} in style attribute — false branch", async () => {
+      const root = await compileAndRun(
+        '<div style="{{if w}}width:{{=w}}px;{{else}}width:100%;{{/if}}">x</div>',
+        { w: 0 },
+        ["w"],
+      );
+      expect(root.html).toContain('style="width:100%;"');
+    });
+
+    it("renders forOf in attribute value", async () => {
+      const root = await compileAndRun(
+        '<div class="{{forOf items as item}}{{=item}} {{/forOf}}">x</div>',
+        { items: ["a", "b"] },
+        ["items"],
+      );
+      expect(root.html).toContain('class="a b "');
+    });
+
+    it("renders mixed expression + if in attribute (btn-style)", async () => {
+      // Mirrors the real btn component template: expression + if/else
+      // concatenated in a single style attribute.
+      const root = await compileAndRun(
+        '<div style="{{=base}}; {{if w}}width:{{=w}}px;{{else}}width:100%;{{/if}}">x</div>',
+        { base: "display:block", w: 50 },
+        ["base", "w"],
+      );
+      expect(root.html).toContain('style="display:block; width:50px;"');
+    });
+  });
+
   // ===== E. Execution tests (compile + run with real vdomCreate) =====
   describe("execution", () => {
     it("renders static HTML to VDomNode tree", async () => {

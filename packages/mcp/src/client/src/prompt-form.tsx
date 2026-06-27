@@ -10,7 +10,7 @@ export const PromptForm: FC = () => {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
-    if (status && status !== t("saving")) {
+    if (status && status !== t("mcp.saving")) {
       const timer = setTimeout(() => {
         setStatus("");
       }, 10000);
@@ -20,7 +20,7 @@ export const PromptForm: FC = () => {
 
   const handleSubmit = async (e: ChangeEvent) => {
     e.preventDefault();
-    setStatus(t("saving"));
+    setStatus(t("mcp.saving"));
 
     try {
       const response = await fetch("/prompts", {
@@ -36,33 +36,33 @@ export const PromptForm: FC = () => {
       });
 
       if (response.ok) {
-        setStatus(t("success_message"));
+        setStatus(t("mcp.success_message"));
         setName("");
         setDescription("");
         setContent("");
       } else {
         const data = await response.json();
         setStatus(
-          `${t("error_message")}: ${data.error || "Failed to create prompt"}`,
+          `${t("mcp.error_message")}: ${data.error || "Failed to create prompt"}`,
         );
       }
     } catch (err) {
-      setStatus(t("network_error"));
+      setStatus(t("mcp.network_error"));
     }
   };
 
   return (
-    <div className="card bg-base-100 w-full shadow-xl shadow-orange-900/5 transition-shadow duration-300 hover:shadow-2xl">
+    <div className="card bg-base-100 shadow-neutral/5 w-full shadow-xl transition-shadow duration-300 hover:shadow-2xl">
       <div className="card-body p-8 lg:p-12">
         <h2 className="card-title text-base-content border-base-200 mb-8 border-b pb-4 text-3xl">
-          {t("form_title")}
+          {t("mcp.form_title")}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <label className="form-control w-full">
             <div className="label">
               <span className="label-text text-base-content/80">
-                {t("prompt_name_label")}
+                {t("mcp.prompt_name_label")}
               </span>
             </div>
             <input
@@ -70,7 +70,7 @@ export const PromptForm: FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input input-bordered bg-base-100 w-full transition-colors"
-              placeholder={t("prompt_name_placeholder")}
+              placeholder={t("mcp.prompt_name_placeholder")}
               required
             />
           </label>
@@ -78,7 +78,7 @@ export const PromptForm: FC = () => {
           <label className="form-control w-full">
             <div className="label">
               <span className="label-text text-base-content/80">
-                {t("description_label")}
+                {t("mcp.description_label")}
               </span>
             </div>
             <input
@@ -86,7 +86,7 @@ export const PromptForm: FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="input input-bordered bg-base-100 w-full transition-colors"
-              placeholder={t("description_placeholder")}
+              placeholder={t("mcp.description_placeholder")}
               required
             />
           </label>
@@ -94,14 +94,14 @@ export const PromptForm: FC = () => {
           <label className="form-control w-full">
             <div className="label">
               <span className="label-text text-base-content/80">
-                {t("content_label")}
+                {t("mcp.content_label")}
               </span>
             </div>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="textarea textarea-bordered bg-base-100 h-40 w-full resize-y leading-relaxed transition-colors"
-              placeholder={t("content_placeholder")}
+              placeholder={t("mcp.content_placeholder")}
               required
             ></textarea>
           </label>
@@ -110,27 +110,27 @@ export const PromptForm: FC = () => {
             <button
               type="submit"
               className={`btn btn-primary px-10 transition-transform hover:scale-105 ${
-                status === t("saving") ? "btn-disabled" : ""
+                status === t("mcp.saving") ? "btn-disabled" : ""
               }`}
             >
-              {status === t("saving") ? (
+              {status === t("mcp.saving") ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
-                t("save_button")
+                t("mcp.save_button")
               )}
             </button>
           </div>
         </form>
 
-        {status && status !== t("saving") && (
+        {status && status !== t("mcp.saving") && (
           <div
             className={`alert mt-8 animate-[fade-in-up_0.3s_ease-out] ${
-              status.includes(t("error_message"))
+              status.includes(t("mcp.error_message"))
                 ? "alert-error"
                 : "alert-success"
             }`}
           >
-            {status.includes(t("error_message")) ? (
+            {status.includes(t("mcp.error_message")) ? (
               <AlertCircle className="h-6 w-6 shrink-0" />
             ) : (
               <CheckCircle2 className="h-6 w-6 shrink-0" />

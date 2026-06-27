@@ -1,17 +1,86 @@
 {
-  "app_title": "Prompt 管理",
-  "app_subtitle": "管理 AI 提示词",
-  "form_title": "创建新提示词",
-  "prompt_name_label": "提示词名称",
-  "prompt_name_placeholder": "例如: code review 专家",
-  "description_label": "描述",
-  "description_placeholder": "提示词描述",
-  "content_label": "内容",
-  "content_placeholder": "提示词内容...",
-  "save_button": "保存提示词",
-  "saving": "保存中...",
-  "success_message": "提示词创建成功！",
-  "error_message": "错误",
-  "network_error": "网络错误",
-  "switch_lang": "EN / 文"
+  "mcp": {
+    "app_subtitle": "管理 AI 提示词",
+    "app_title": "Prompt 管理",
+    "content_label": "内容",
+    "content_placeholder": "提示词内容...",
+    "description_label": "描述",
+    "description_placeholder": "提示词描述",
+    "error_message": "错误",
+    "form_title": "创建新提示词",
+    "network_error": "网络错误",
+    "prompt_name_label": "提示词名称",
+    "prompt_name_placeholder": "例如: code review 专家",
+    "save_button": "保存提示词",
+    "saving": "保存中...",
+    "success_message": "提示词创建成功！",
+    "switch_lang": "EN / 文"
+  },
+  "repair": {
+    "failure": "修复失败",
+    "running": "修复中...",
+    "success": "修复成功"
+  },
+  "task": {
+    "api": {
+      "name": "API 连通性",
+      "recommendation": "部分 API 无法访问, 请检查防火墙或服务状态",
+      "skipped": "未配置 API 列表",
+      "success": "{{reachable}}/{{total}} API 可达"
+    },
+    "location": {
+      "error": "获取位置信息失败: {{message}}",
+      "name": "位置和 ISP 检测",
+      "recommendation": "可能是网络屏蔽或 API 速率限制, 核心功能不受影响"
+    },
+    "network_status": {
+      "name": "网络状态",
+      "offline_error": "浏览器报告离线状态",
+      "recommendation": "请确保设备连接到网络 (WiFi/以太网)",
+      "success": "在线 ({{effectiveType}}{{dataSaver}}), 延迟: {{rtt}}ms",
+      "unknown_error": "未知错误"
+    },
+    "resource": {
+      "name": "静态资源加载",
+      "recommendation": "加载 CDN 资源失败, 可能是 CDN 节点故障或本地 DNS 问题",
+      "skipped": "未配置资源列表",
+      "success": "{{loaded}}/{{total}} 个资源加载成功"
+    },
+    "speed": {
+      "download_error": "下载测试文件失败",
+      "error": "{{message}}",
+      "name": "网速测试",
+      "recommendation": "网络连接不稳定, 尝试切换网络环境",
+      "success": "下载速度: {{mbps}} Mbps"
+    }
+  },
+  "ui": {
+    "data_saver": "流量节省模式",
+    "diag_id": "诊断 ID",
+    "diagnosing_btn": "诊断中...",
+    "downlink": "下载带宽",
+    "download_speed": "下载速度",
+    "fail": "失败",
+    "ip": "IP 地址",
+    "isp": "运营商",
+    "latency": "延迟",
+    "location": "地理位置",
+    "max_downlink": "最大带宽",
+    "network_type": "网络类型",
+    "no": "否",
+    "off": "关闭",
+    "ok": "正常",
+    "on": "开启",
+    "on_call_btn": "发起 Oncall",
+    "online": "在线",
+    "recommendation": "修复建议",
+    "repair_btn": "一键修复",
+    "repairing_btn": "修复中...",
+    "rtt": "延迟 (RTT)",
+    "start_btn": "开始诊断",
+    "start_msg": "点击右下角按钮开始网络诊断",
+    "title": "网络诊断",
+    "unknown": "未知",
+    "yes": "是"
+  }
 }

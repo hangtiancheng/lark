@@ -3,7 +3,7 @@ import { PromptService } from "../services/prompt-service.js";
 import { type AppContext } from "../app.js";
 
 export const setupPromptRoutes = () => {
-  const router = new Router<any, AppContext>({ prefix: "/prompts" });
+  const router = new Router<unknown, AppContext>({ prefix: "/prompts" });
 
   // List all prompts
   router.get("/", async (ctx) => {

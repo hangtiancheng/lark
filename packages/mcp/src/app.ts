@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { setupPromptRoutes } from "./routes/prompt-routes.js";
 import { setupMcpRoutes } from "./mcp.js";
+import { setupOncallRoutes } from "./routes/oncall-routes.js";
 import bodyParser from "@koa/bodyparser";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,6 +43,9 @@ export const buildApp = async (): Promise<AppInstance> => {
 
   app.use(promptRouter.routes()).use(promptRouter.allowedMethods());
   app.use(mcpRouter.routes()).use(mcpRouter.allowedMethods());
+
+  const oncallRouter = setupOncallRoutes();
+  app.use(oncallRouter.routes()).use(oncallRouter.allowedMethods());
 
   // Attach the mongo client so we can close it later if needed
   app.mongoClient = client;

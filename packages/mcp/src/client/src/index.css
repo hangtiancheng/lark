@@ -1,22 +1,52 @@
 @import "tailwindcss";
 
-/* daisyUI 内置多种主题，
-如果不指定主题，则默认注入所有主题
-指定使用 bumblebee 主题，可以减小产物体积 */
 @plugin "daisyui" {
-  themes: bumblebee;
+  themes: lark --default;
 }
 
-:root {
-  font-family:
-    "Iosevka", Menlo, "Cascadia Code", "PingFang SC", "Microsoft YaHei",
-    monospace;
+@plugin "daisyui/theme" {
+  name: "lark";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: var(--color-emerald-50);
+  --color-base-200: var(--color-emerald-100);
+  --color-base-300: var(--color-emerald-200);
+  --color-base-content: var(--color-emerald-800);
+  --color-primary: var(--color-emerald-600);
+  --color-primary-content: var(--color-white);
+  --color-secondary: var(--color-teal-500);
+  --color-secondary-content: var(--color-white);
+  --color-accent: var(--color-cyan-500);
+  --color-accent-content: var(--color-white);
+  --color-neutral: var(--color-slate-500);
+  --color-neutral-content: var(--color-white);
+  --color-info: var(--color-sky-500);
+  --color-info-content: var(--color-white);
+  --color-success: var(--color-emerald-500);
+  --color-success-content: var(--color-white);
+  --color-warning: var(--color-amber-500);
+  --color-warning-content: var(--color-white);
+  --color-error: var(--color-rose-500);
+  --color-error-content: var(--color-white);
+
+  --border: 0.5px;
+  --depth: 0;
+  --noise: 0;
+  --radius-box: 1rem;
+  --radius-field: 0.5rem;
+  --radius-selector: 0.5rem;
+  --size-field: 0.25rem;
+  --size-selector: 0.25rem;
 }
 
-/* Override daisyUI input/textarea focus styles to use 1px orange border */
-.input:focus,
-.input:focus-within,
-.textarea:focus,
-.textarea:focus-within {
-  @apply border-orange-400 shadow-none outline-none;
+@theme {
+  --font-sans:
+    Iosevka, Maple Mono, Menlo, "Cascadia Code", "Sarasa Gothic SC",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --font-mono:
+    Iosevka, Maple Mono, Menlo, "Cascadia Code", "Sarasa Gothic SC",
+    "PingFang SC", "Microsoft YaHei", monospace;
 }

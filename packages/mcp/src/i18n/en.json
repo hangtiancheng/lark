@@ -1,17 +1,86 @@
 {
-  "app_title": "Prompt Manage",
-  "app_subtitle": "Manage AI prompts",
-  "form_title": "Create New Prompt",
-  "prompt_name_label": "Prompt Name",
-  "prompt_name_placeholder": "e.g. code review expert",
-  "description_label": "Description",
-  "description_placeholder": "Description of the prompt",
-  "content_label": "Content",
-  "content_placeholder": "The prompt content...",
-  "save_button": "Save Prompt",
-  "saving": "Saving...",
-  "success_message": "Prompt created successfully!",
-  "error_message": "Error",
-  "network_error": "Network error",
-  "switch_lang": "文 / EN"
+  "mcp": {
+    "app_subtitle": "Manage AI prompts",
+    "app_title": "Prompt Manage",
+    "content_label": "Content",
+    "content_placeholder": "The prompt content...",
+    "description_label": "Description",
+    "description_placeholder": "Description of the prompt",
+    "error_message": "Error",
+    "form_title": "Create New Prompt",
+    "network_error": "Network error",
+    "prompt_name_label": "Prompt Name",
+    "prompt_name_placeholder": "e.g. code review expert",
+    "save_button": "Save Prompt",
+    "saving": "Saving...",
+    "success_message": "Prompt created successfully!",
+    "switch_lang": "文 / EN"
+  },
+  "repair": {
+    "failure": "Repair failed",
+    "running": "Repairing...",
+    "success": "Repair successful"
+  },
+  "task": {
+    "api": {
+      "name": "API Connectivity",
+      "recommendation": "Some APIs are unreachable. Please check your firewall or the service status.",
+      "skipped": "No API list configured",
+      "success": "{{reachable}}/{{total}} API reachable"
+    },
+    "location": {
+      "error": "Failed to retrieve location information: {{message}}",
+      "name": "Location & ISP Check",
+      "recommendation": "This might be due to network blocking or API rate limits. Core functionality is not affected."
+    },
+    "network_status": {
+      "name": "Network Status",
+      "offline_error": "Browser reports offline status",
+      "recommendation": "Please ensure device is connected to a network (WiFi/Ethernet).",
+      "success": "Online ({{effectiveType}}{{dataSaver}}), RTT: {{rtt}}ms",
+      "unknown_error": "Unknown error"
+    },
+    "resource": {
+      "name": "Static Resource Loading",
+      "recommendation": "Failed to load CDN resources. This might be due to a CDN node failure or a local DNS issue.",
+      "skipped": "No resource list configured",
+      "success": "{{loaded}}/{{total}} resources loaded successfully"
+    },
+    "speed": {
+      "download_error": "Failed to download test file",
+      "error": "{{message}}",
+      "name": "Speed Test",
+      "recommendation": "Network connection may be unstable. Try switching to a different network environment.",
+      "success": "Download Speed: {{mbps}} Mbps"
+    }
+  },
+  "ui": {
+    "data_saver": "Data Saver",
+    "diag_id": "Diagnostic ID",
+    "diagnosing_btn": "Diagnosing...",
+    "downlink": "Downlink",
+    "download_speed": "Download Speed",
+    "fail": "Fail",
+    "ip": "IP",
+    "isp": "ISP",
+    "latency": "Latency",
+    "location": "Location",
+    "max_downlink": "Max Downlink",
+    "network_type": "Network Type",
+    "no": "No",
+    "off": "Off",
+    "ok": "OK",
+    "on": "On",
+    "on_call_btn": "Create Oncall",
+    "online": "Online",
+    "recommendation": "Recommendation",
+    "repair_btn": "One-click Fix",
+    "repairing_btn": "Fixing...",
+    "rtt": "RTT",
+    "start_btn": "Start Diagnosis",
+    "start_msg": "Click the button below to start network diagnostics",
+    "title": "Network Diagnostics",
+    "unknown": "Unknown",
+    "yes": "Yes"
+  }
 }

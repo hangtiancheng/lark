@@ -17,7 +17,7 @@ import { type AppContext } from "./app.js";
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
 export const setupMcpRoutes = () => {
-  const router = new Router<any, AppContext>();
+  const router = new Router<unknown, AppContext>();
 
   router.all("/mcp", async (ctx) => {
     // Koa equivalent of hijack

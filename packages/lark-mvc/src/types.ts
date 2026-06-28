@@ -1,19 +1,33 @@
 /**
  * Lark framework type definitions.
- * All shared types are defined here to provide a single source of truth
- * for module interfaces and to enforce type safety across the framework.
  *
- * Lark is a lightweight MVC frontend framework that provides:
- * - View: functional view system via defineView() + ViewCtx + Hooks
- * - Router: history/hash two-phase route confirmation
- * - State: simple cross-view observable singleton (recommended for simple cases)
- * - Store: zustand-aligned state management with createStore/getState/setState/subscribe
- *   (recommended for complex cases)
- * - Service: API request management with caching, queuing, and deduplication
- * - Frame: view frame managing view mount/unmount lifecycle
- * - Updater: view data binding and DOM diff (in-memory real DOM diff) renderer
+ * This module is the **single source of truth** for all shared types across
+ * the framework. Defining them here (rather than inline in each module)
+ * enforces a consistent interface contract and prevents circular type imports.
  *
- * Designed for single-page application (SPA) development.
+ * ## Framework architecture
+ *
+ * Lark is a lightweight MVC frontend framework for single-page applications
+ * and micro-frontend scenarios:
+ *
+ * - **View** — functional view system via `defineView()` + `ViewCtx` + Hooks
+ * - **Router** — history/hash two-phase route confirmation with async guards
+ * - **State** — simple cross-view observable singleton (for lightweight data)
+ * - **Store** — zustand-aligned state management with `createStore` /
+ *   `getState` / `setState` / `subscribe` / `computed` (for complex reactive state)
+ * - **Service** — API request management with LFU caching, deduplication,
+ *   serial queuing, and lifecycle events
+ * - **Frame** — view lifecycle management (mount/unmount, parent-child tree,
+ *   cross-view method invocation)
+ * - **Updater** — per-view data binding with change detection and DOM diff
+ *   (real-DOM diff in string mode, VDOM diff with LIS reconciliation in vdom mode)
+ *
+ * ## Design principles
+ *
+ * - Functional API — no `class`, no `this`, no `prototype`, no `mixin`
+ * - Zero runtime dependencies (Babel is build-time only)
+ * - Real DOM diff via `innerHTML` + keyed comparison (not virtual DOM by default)
+ * - Module Federation support for micro-frontends
  */
 
 // ============================================================
@@ -1072,12 +1086,6 @@ export interface FrameworkConfig {
    * belongs to the current project or a remote project.
    */
   projectName?: string;
-  /**
-   * Cross-site (micro-frontend) configuration list.
-   * Defines remote projects that can be loaded via Module Federation.
-   * Also accessible via `window.crossSites` for build-time injection.
-   */
-  crossSites?: CrossSiteConfig[];
   /** Default false. */
   vdom?: boolean;
   /**
@@ -1095,28 +1103,6 @@ export interface RouteViewConfig {
   view: string;
   /** Additional properties merged into location */
   [k: string]: unknown;
-}
-
-// ============================================================
-// Cross-site (Micro-Frontend) types
-// ============================================================
-
-/**
- * Configuration for a remote (cross-site) project in the micro-frontend setup.
- * Each entry defines how to load views from a different project via Module Federation.
- */
-export interface CrossSiteConfig {
-  /** Project name, used as the prefix in view paths (e.g., "remote-app" in "remote-app/views/home") */
-  projectName: string;
-  /**
-   * Remote source URL or Module Federation remote name.
-   * For Webpack MF: the remote entry URL (e.g., "remote_app@//cdn.example.com/remote-app/remoteEntry.js")
-   */
-  source: string;
-  /** Optional API host for the remote project */
-  apiHost?: string;
-  /** Optional business code for multi-tenant scenarios */
-  bizCode?: string;
 }
 
 // ============================================================

@@ -135,8 +135,10 @@ export function processViewEvents(source: string): string {
 // ─── Phase 2: Art-template syntax → Internal <% %> syntax ────────────────
 
 /**
- * Add line number markers for debug mode.
- * Inserts \x1e + lineNo before forOf {{ tag.
+ * Add line-number markers for debug mode.
+ *
+ * Inserts `SPLITTER + lineNo` before each `{{` tag so that runtime errors
+ * can be traced back to the original template line.
  */
 function addLineMarkers(source: string): string {
   const lines = source.split(/\r\n?|\n/);
@@ -164,7 +166,10 @@ function addLineMarkers(source: string): string {
 }
 
 /**
- * Extract art info (line number + code) from a {{ }} block that has a line marker.
+ * Extract the debug line-marker from a `{{ }}` block.
+ *
+ * Returns `{ line, art }` if the block has a `SPLITTER + digits` prefix
+ * (added by `addLineMarkers`), otherwise `null`.
  */
 function extractArtInfo(art: string): { line: number; art: string } | null {
   const m = art.match(new RegExp(`^${SPLITTER}(\\d+)([\\s\\S]+)`));
@@ -315,7 +320,12 @@ function trimOuterParens(expr: string): string {
   return expr;
 }
 /**
- * Convert art expression to <% %> syntax.
+ * Convert a single art expression (inside `{{ }}`) to `<% %>` internal syntax.
+ *
+ * Dispatches on the keyword: `if`, `else`, `forOf`, `forIn`, `for`, `set`,
+ * and close tags (`/if`, `/forOf`, etc.). Validates the `as` keyword in
+ * `forOf` / `forIn` (a common typo) and maintains a block stack to detect
+ * unclosed blocks.
  */
 function convertArtExpression(
   code: string,

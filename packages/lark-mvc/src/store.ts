@@ -74,17 +74,49 @@ const storeRegistry = new Map<string, StoreApi>();
 
 // ---- create ----------------------------------------------------------------
 
+/**
+ * Create a zustand-aligned store.
+ *
+ * The `creator` function receives `(set, get)` and executes **once** during
+ * store creation. Lark iterates the return value:
+ * - **Functions** become actions (attached to state, unaffected by `setState`)
+ * - **`computed(deps, fn)`** markers occupy derived slots — `fn()` runs once
+ *   for the initial value and recomputes whenever any dep key changes via
+ *   `setState`
+ * - **All other fields** become initial state
+ *
+ * State is a plain object — no Proxy. All writes go through `setState` or
+ * actions. Writing to a computed key via `setState` is silently ignored.
+ *
+ * @param name - Unique store name for the global registry
+ * @param creator - Factory function `(set, get) => initialState`
+ * @returns A `StoreApi` with `getState` / `setState` / `subscribe` / `destroy`
+ */
 export function createStore<T extends object>(name: string, creator: StateCreator<T>): StoreApi<T> {
+  /** Listeners notified on every state change. */
   const listeners = new Set<Listener<T>>();
+  /** Computed-property definitions keyed by state key. */
   const computedDefs = new Map<string, ComputedMarker>();
+  /** Set of keys that are computed (writes ignored by setState). */
   const computedKeys = new Set<string>();
+  /** Set of keys that are actions (writes ignored by setState). */
   const actionKeys = new Set<string>();
 
   let state: T;
   let destroyed = false;
 
+  /** Read the current state snapshot. */
   const getState = (): T => state;
 
+  /**
+   * Shallow-merge `partial` into state and notify listeners.
+   *
+   * Accepts a partial object or an updater function `(prev) => partial`.
+   * Computed keys and action keys are skipped. If no value actually changed
+   * (determined via `Object.is`), the update is a no-op — listeners are NOT
+   * notified. After merging, any computed property whose deps changed is
+   * recomputed before listeners fire.
+   */
   const setState = (partial: Partial<T> | ((prev: T) => Partial<T>)): void => {
     if (destroyed) return;
     const prevState = state;
@@ -101,7 +133,6 @@ export function createStore<T extends object>(name: string, creator: StateCreato
       ) {
         const newVal = Reflect.get(resolved, key);
         if (!Object.is(Reflect.get(prevState, key), newVal)) {
-          // nextState[key] = newVal;
           Reflect.set(nextState, key, newVal);
           changed = true;
         }
@@ -119,6 +150,13 @@ export function createStore<T extends object>(name: string, creator: StateCreato
     }
   };
 
+  /**
+   * Recompute derived (computed) properties whose deps changed in the
+   * latest `setState`.
+   *
+   * Runs after `state` is updated but before listeners are notified, so
+   * listeners always see consistent state + derived values.
+   */
   const recomputeIfNeeded = (prevState: T): void => {
     if (computedDefs.size === 0) return;
 
@@ -139,6 +177,10 @@ export function createStore<T extends object>(name: string, creator: StateCreato
     }
   };
 
+  /**
+   * Subscribe to state changes. The listener receives `(state, prevState)`.
+   * Returns an unsubscribe function.
+   */
   const subscribe = (listener: Listener<T>): (() => void) => {
     listeners.add(listener);
     return () => {
@@ -146,6 +188,10 @@ export function createStore<T extends object>(name: string, creator: StateCreato
     };
   };
 
+  /**
+   * Tear down the store: clear listeners and remove from the global registry.
+   * Further `setState` calls are no-ops.
+   */
   const destroy = (): void => {
     destroyed = true;
     listeners.clear();

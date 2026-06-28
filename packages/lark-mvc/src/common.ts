@@ -1,14 +1,41 @@
 /**
- * Lark framework constants.
+ * Lark framework shared constants and encoding helpers.
+ *
+ * This module is the single source of truth for:
+ * - The `SPLITTER` namespace separator (U+001E) used across refData, event
+ *   attributes, and internal data structures
+ * - Router event name constants
+ * - Regex patterns for URL parsing and tag-name extraction
+ * - Encoding helpers (`strSafe`, `encodeHTML`, `encodeURIExtra`, `encodeQuote`,
+ *   `refFn`) shared by `dom.ts`, `runtime.ts`, and `updater.ts`
+ *
+ * Keeping the canonical implementations here ensures all three consumers
+ * share a single copy rather than duplicating ~400 bytes per module.
  */
 
 /** Global counter for generating unique IDs */
 let globalCounter = 0;
 
-/** Internal splitter character (U+001E Record Separator, invisible, used as namespace separator).
- * Uses String.fromCharCode to survive bundlers that strip control-char literals. */
+/**
+ * Internal splitter character (U+001E Record Separator).
+ *
+ * Invisible control character used as a namespace separator throughout the
+ * framework: refData keys, event attribute encoding, cache key composition,
+ * and view-path delimiters. Chosen because it never appears in user data and
+ * is safe in HTML attributes.
+ *
+ * Uses `String.fromCharCode` rather than a literal `"\x1e"` to survive
+ * bundlers/minifiers that strip control-char literals.
+ */
 export const SPLITTER = String.fromCharCode(0x1e);
 
+/**
+ * Router event name constants.
+ *
+ * - `CHANGE` — pre-change phase (preventable/rejectable)
+ * - `CHANGED` — post-change phase (final notification, framework re-mounts views)
+ * - `PAGE_UNLOAD` — `beforeunload` lifecycle
+ */
 export const RouterEvents = {
   CHANGE: "change",
   CHANGED: "changed",
@@ -90,12 +117,22 @@ const HTML_ENT_MAP: Record<string, string> = {
 
 const HTML_ENT_REGEXP = /[&<>"'`]/g;
 
-/** Null-safe String conversion */
+/**
+ * Null-safe `String(v)` — `null` / `undefined` become `""`.
+ *
+ * Used by the `{{!raw}}` template operator and as the base for `encodeHTML` /
+ * `encodeURIExtra` / `encodeQuote`.
+ */
 export function strSafe(v: unknown): string {
   return String(v == null ? "" : v);
 }
 
-/** HTML entity encoding for safe output */
+/**
+ * HTML-escape a value for safe embedding in markup.
+ *
+ * Encodes `& < > " ' \`` to HTML entities (`&amp;`, `&lt;`, etc.).
+ * Applied to all `{{=escaped}}` and `{{:binding}}` template outputs.
+ */
 export function encodeHTML(v: unknown): string {
   return String(v == null ? "" : v).replace(
     HTML_ENT_REGEXP,
@@ -113,14 +150,24 @@ const URI_ENT_MAP: Record<string, string> = {
 
 const URI_ENT_REGEXP = /[!')(*]/g;
 
-/** URI-encode with extra character encoding */
+/**
+ * URI-encode a value with extra character escaping.
+ *
+ * Extends `encodeURIComponent` with encoding of `! ' ( ) *` for stricter URI
+ * compliance. Applied to values in `@event` URL parameters.
+ */
 export function encodeURIExtra(v: unknown): string {
   return encodeURIComponent(strSafe(v)).replace(URI_ENT_REGEXP, (m: string) => URI_ENT_MAP[m]);
 }
 
 const QUOTE_ENT_REGEXP = /['"\\]/g;
 
-/** Quote-encode for attribute values */
+/**
+ * Backslash-escape quotes and backslashes for attribute string contents.
+ *
+ * Used for safe embedding in single- or double-quoted HTML attribute values
+ * (e.g. `data-json='...'`).
+ */
 export function encodeQuote(v: unknown): string {
   return strSafe(v).replace(QUOTE_ENT_REGEXP, "\\$&");
 }

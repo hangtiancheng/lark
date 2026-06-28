@@ -11,10 +11,24 @@ import { extractGlobalVars } from "./extract-global-vars";
 // ─── Phase 3: Compile to template function ───────────────────────────────
 
 /**
- * Compile internal <% %> syntax to a JS template function string.
+ * Compile internal `<% %>` syntax to a JS template function source string.
  *
- * Output is an arrow function: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)=>{...}
- * that returns the rendered HTML string.
+ * Walks the source with a regex matcher, converting each `<%operate content%>`
+ * block into the corresponding JS expression:
+ * - `<%=expr%>` / `<%:expr%>` → `$encHtml(expr)` (HTML-escaped output)
+ * - `<%!expr%>` → `$strSafe(expr)` (raw output)
+ * - `<%@expr%>` → `$refFn($refAlt, expr)` (reference token)
+ * - `<%code%>` → raw JS statement (if/for/else blocks)
+ *
+ * Plain text between blocks is escaped and appended to `$out`.
+ *
+ * In debug mode, wraps each expression in a `$dbgExpr` assignment so runtime
+ * errors report the original template expression and line number.
+ *
+ * @param source - The `<% %>`-syntax source (from `convertArtSyntax`)
+ * @param debug - Enable debug mode (line tracking + try-catch wrapper)
+ * @param file - Optional file path for debug error messages
+ * @returns An arrow function source string: `($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote) => { ... return $out }`
  */
 function compileToFunction(source: string, debug: boolean, file?: string): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;

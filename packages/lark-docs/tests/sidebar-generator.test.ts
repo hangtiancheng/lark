@@ -18,6 +18,7 @@ function makeRoute(
     filePath: `/project/docs${path.replace("/docs", "")}.md`,
     pageData: {
       title,
+      excerpt: "",
       headings: [],
       relativePath: opts?.relativePath || "",
       sidebarPosition: opts?.sidebarPosition,

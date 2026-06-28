@@ -7,15 +7,7 @@
  */
 import type MarkdownIt from "markdown-it";
 
-export interface CodeBlockOptions {
-  /** Reserved for future line number support. Currently unused. */
-  lineNumbers?: boolean;
-}
-
-export function codeBlockPlugin(
-  md: MarkdownIt,
-  _options?: CodeBlockOptions,
-): void {
+export function codeBlockPlugin(md: MarkdownIt): void {
   md.renderer.rules.fence = (tokens, idx, mdOptions) => {
     const token = tokens[idx];
     const lang = token.info.trim().split(/\s+/)[0] || "";

@@ -2,12 +2,38 @@
  * Sidebar View - navigation tree.
  *
  * Renders the sidebar navigation groups and items.
- * Reads sidebar data from State or passed via init params.
+ * Reads sidebar data from State via a Zod-validated parse.
  */
-
 import { State, Router, defineView } from "@lark.js/mvc";
 import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
-import type { DocsConfig, SidebarItem } from "../types";
+import { z } from "zod";
+import type { SidebarItem } from "../types";
+import { findDataHref } from "../utils/dom";
+
+// Validate only the sidebar slice of the injected DocsConfig.
+const SidebarItemSchema: z.ZodType<SidebarItem> = z.object({
+  text: z.string(),
+  link: z.string().optional(),
+  collapsed: z.boolean().optional(),
+  items: z.lazy(() => z.array(SidebarItemSchema)).optional(),
+  isActive: z.boolean().optional(),
+  itemClass: z.string().optional(),
+});
+const SidebarConfigSchema = z.union([
+  z.literal("auto"),
+  z.array(SidebarItemSchema),
+]);
+const SidebarMapSchema = z.record(z.string(), SidebarConfigSchema);
+const SidebarDocsConfigSchema = z.object({
+  sidebar: SidebarMapSchema.optional(),
+});
+
+function parseSidebar(
+  v: unknown,
+): Record<string, z.infer<typeof SidebarConfigSchema>> {
+  const r = SidebarDocsConfigSchema.safeParse(v);
+  return r.success && r.data.sidebar ? r.data.sidebar : {};
+}
 
 export function createSidebarView(
   template: ViewTemplate | VDomTemplate,
@@ -18,16 +44,12 @@ export function createSidebarView(
     const assign = (): boolean | undefined => {
       ctx.updater.snapshot();
 
-      const docsConfig: DocsConfig = (State.get("docsConfig") ||
-        {}) as DocsConfig;
-      const sidebar = docsConfig.sidebar || {};
+      const sidebar = parseSidebar(State.get("docsConfig"));
       // Normalize trailing slashes for consistent active-item matching.
       const currentPath =
         (Router.parse().path || "").replace(/\/+$/, "") || "/";
 
       // Flatten sidebar groups into sidebarGroups array for the template.
-      // Each prefix becomes a group; nested SidebarItem trees are preserved
-      // so the template can render sub-groups recursively.
       const sidebarGroups: Array<{
         text: string;
         items: SidebarItem[];
@@ -54,8 +76,9 @@ export function createSidebarView(
       assign,
       events: {
         "navigateTo<click>": (e: Event) => {
-          const target = e.target as HTMLElement;
-          const href = target.dataset["href"];
+          // Clicks may land on child elements; walk up to the element
+          // carrying data-href (see findDataHref).
+          const href = findDataHref(e.target);
           if (href) {
             Router.to(href);
           }

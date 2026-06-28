@@ -17,6 +17,7 @@
  * ```
  */
 import fs from "node:fs";
+import { isAbsolute, resolve, dirname } from "node:path";
 import type { DocsConfig } from "./types";
 import { compileMarkdown } from "./compile-markdown";
 import type { Plugin } from "vite";
@@ -58,13 +59,34 @@ export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
     name: "lark-docs",
     enforce: "pre",
 
-    resolveId(source: string) {
+    resolveId(source: string, importer?: string) {
       // Strip query params (Vite 8 may add ?import, ?url, etc.)
       const cleanSource = source.split("?")[0];
-      if (cleanSource.endsWith(".md")) {
-        return cleanSource + MD_SUFFIX;
+      if (!cleanSource.endsWith(".md")) return null;
+      // Don't intercept markdown from node_modules — third-party packages
+      // may import their own README/changelog and those should not be
+      // compiled through the lark-docs pipeline.
+      if (cleanSource.includes("node_modules")) return null;
+      // Resolve to an absolute path so Vite can locate the file regardless
+      // of the importer location. Returning a relative id here caused Vite
+      // to normalize it against an unexpected root, producing
+      // "/docs/index.md" (ENOENT).
+      const abs = isAbsolute(cleanSource)
+        ? cleanSource
+        : importer
+          ? resolve(dirname(importer), cleanSource)
+          : resolve(process.cwd(), cleanSource);
+      // Strip Vite's /@fs prefix so we return a real filesystem path.
+      // Vite will re-add /@fs if the file is outside root. Without this,
+      // returning "/@fs/.../docs/index.md?lark-docs" confused downstream
+      // id normalization.
+      const real = abs.startsWith("/@fs") ? abs.slice("/@fs".length) : abs;
+      if (debug) {
+        console.log(
+          `[@lark.js/docs] resolveId: ${source} -> ${real}${MD_SUFFIX} (importer=${importer ?? "none"})`,
+        );
       }
-      return null;
+      return real + MD_SUFFIX;
     },
 
     async load(id: string) {
@@ -80,6 +102,10 @@ export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
       // Strip Vite's @fs prefix (used for files outside the root)
       if (filePath.startsWith("/@fs")) {
         filePath = filePath.slice("/@fs".length); // "/@fs/path" → "/path"
+      }
+
+      if (debug) {
+        console.log(`[@lark.js/docs] load: id=${id} filePath=${filePath}`);
       }
 
       const source = fs.readFileSync(filePath, "utf-8");

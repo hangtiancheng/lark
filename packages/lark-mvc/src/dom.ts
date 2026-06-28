@@ -1,8 +1,22 @@
 /**
- * DOM Diff Engine.
+ * Real-DOM Diff Engine (string-mode rendering pipeline).
  *
- * Compares old and new DOM trees, computes minimal DOM operations,
- * handles v-lark views, keyed elements, and special elements.
+ * When `FrameworkConfig.vdom` is **false** (the default), the Updater uses
+ * this engine: the compiled template produces an HTML string, which is
+ * parsed into a temporary DOM tree via `document.implementation.createHTMLDocument`,
+ * then diffed against the live DOM using keyed comparison.
+ *
+ * ## Keyed diff algorithm
+ *
+ * `domSetChildNodes` builds a `keyedNodes` map from old children (bucketed by
+ * `compareKey`), then walks new children trying to reuse old nodes by key.
+ * Unmatched old nodes are removed; unmatched new nodes are appended.
+ *
+ * ## Special elements
+ *
+ * `domGetNode` handles context-sensitive tags (`<table>`, `<select>`, `<svg>`,
+ * `<math>`) by wrapping them in the correct parent during parsing — the native
+ * HTML parser handles these for free.
  */
 import { SVG_NS, MATH_NS, TAG_NAME_REGEXP, LARK_VIEW } from "./common";
 import { parseUri } from "./utils";
@@ -57,7 +71,11 @@ const DomSpecials: Record<string, string[]> = {
 // ============================================================
 
 /**
- * Unmount frames within a DOM node.
+ * Unmount child Frames contained within a DOM node before it's removed.
+ *
+ * Checks for an `id` attribute; if present, unmounts the zone and any
+ * matching child Frame so their views are cleaned up before the DOM node
+ * is detached.
  */
 export function domUnmountFrames(frame: FrameObj, node: ChildNode): void {
   if (!(node instanceof Element)) return;
@@ -368,7 +386,13 @@ export function createDomRef(): DomRef {
 }
 
 /**
- * Apply DOM diff operations to the DOM.
+ * Apply a batch of DOM mutation operations.
+ *
+ * Operations are encoded as tuples: `[opCode, parent, child?, refChild?]`.
+ * - `1` → `appendChild`
+ * - `2` → `removeChild`
+ * - `4` → `replaceChild`
+ * - `8` → `insertBefore`
  */
 export function applyDomOps(ops: DomOp[]): void {
   for (const op of ops) {
@@ -390,7 +414,11 @@ export function applyDomOps(ops: DomOp[]): void {
 }
 
 /**
- * Apply ID updates from DOM diff.
+ * Apply element ID changes deferred during the diff.
+ *
+ * ID updates are deferred (rather than applied inline) because changing an
+ * element's ID mid-diff would invalidate `frameGetter` lookups for subsequent
+ * sibling nodes.
  */
 export function applyIdUpdates(updates: [Element, string][]): void {
   for (const [element, newId] of updates) {

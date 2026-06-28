@@ -38,14 +38,16 @@ export function containerPlugin(
           const title = customTitle || label;
           const escapedTitle = escapeHtml(title);
           const alertColor = ALERT_COLOR[type] ?? "";
+          // Avoid a trailing space when alertColor is empty (e.g. details).
+          const alertClass = alertColor ? `alert ${alertColor}` : "alert";
 
           if (type === "details") {
             return `
-            <details role="alert" class="alert ${alertColor}">
+            <details role="alert" class="${alertClass}">
               <summary class="font-semibold">${escapedTitle}</summary>`;
           }
           return `
-          <div role="alert" class="alert ${alertColor}">
+          <div role="alert" class="${alertClass}">
             <div>
               <p class="font-semibold">${escapedTitle}</p>`;
         }

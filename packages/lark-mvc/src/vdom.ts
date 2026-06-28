@@ -1,18 +1,27 @@
 /**
- * VDOM Engine for Lark-MVC.
+ * Virtual DOM Engine for Lark MVC (VDOM-mode rendering pipeline).
  *
- * Provides virtual DOM node creation, diffing, and DOM conversion.
- * Three-phase diff algorithm: head fast-path, tail fast-path, keyMap reconciliation.
+ * When `FrameworkConfig.vdom` is **true**, the Updater uses this engine
+ * instead of the string-based real-DOM diff in `dom.ts`. The compiled template
+ * produces a `VDomNode` tree (via `vdomCreate`), which is then diffed against
+ * the previous tree using a three-phase algorithm with LIS-based reconciliation.
  *
- * When `FrameworkConfig.vdom` is true, the Updater uses this engine
- * instead of the string-based DOM diff in dom.ts.
+ * ## Three-phase diff algorithm
  *
- * Core functions:
- * - vdomCreate: create VDomNode trees (template calls this)
- * - vdomSetChildNodes: diff between old and new VDOM trees
- * - vdomCreateNode: convert a VDomNode to a real DOM node
- * - vdomSetAttributes: diff attributes between VDomNodes
- * - createVDomRef: create a diff operation tracker
+ * `vdomSetChildNodes` processes children in three phases:
+ * 1. **Head fast-path** — match identical nodes from the start (no DOM moves)
+ * 2. **Tail fast-path** — match identical nodes from the end (no DOM moves)
+ * 3. **KeyMap reconciliation** — build a `compareKey → node` index, compute the
+ *    Longest Increasing Subsequence (LIS) to minimize DOM moves, then insert /
+ *    move / remove remaining nodes
+ *
+ * ## Core functions
+ *
+ * - `vdomCreate` — create `VDomNode` trees (compiled templates call this)
+ * - `vdomSetChildNodes` — diff old and new VDOM trees, apply DOM mutations
+ * - `vdomCreateNode` — convert a `VDomNode` to a real DOM node
+ * - `vdomSetAttributes` — diff attributes between two `VDomNode`s
+ * - `createVDomRef` — create a diff operation tracker
  */
 import { SPLITTER, V_TEXT_NODE, VDOM_NS_MAP, LARK_VIEW, encodeHTML } from "./common";
 import { parseUri, hasOwnProperty, callFunction } from "./utils";

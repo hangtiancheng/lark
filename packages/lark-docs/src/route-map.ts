@@ -5,6 +5,7 @@
  * @lark.js/mvc's FrameworkConfig.routes.
  */
 import type { DocsRoute } from "./types";
+import { relative } from "node:path";
 
 /**
  * Generate a routes map object for Framework.boot({ routes }).
@@ -28,12 +29,19 @@ export function generateRouteMap(routes: DocsRoute[]): Record<string, string> {
  *
  * This is emitted as a virtual module by the build plugins.
  */
-export function generateBootModule(routes: DocsRoute[]): string {
+export function generateBootModule(
+  routes: DocsRoute[],
+  projectRoot: string = process.cwd(),
+): string {
+  // Use relative import specifiers so the generated module is portable.
+  // Absolute paths leak the developer's local directory and cannot be
+  // resolved by bundlers on other machines.
   const imports = routes
-    .map(
-      (r, i) => `// @ts-ignore
-    import view${i} from ${JSON.stringify(r.filePath)};`,
-    )
+    .map((r, i) => {
+      const rel = relative(projectRoot, r.filePath).replace(/\\/g, "/");
+      const specifier = rel.startsWith(".") ? rel : "./" + rel;
+      return `import view${i} from ${JSON.stringify(specifier)};`;
+    })
     .join("\n");
 
   const registrations = routes

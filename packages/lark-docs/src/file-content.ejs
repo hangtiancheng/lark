@@ -52,7 +52,7 @@ export async function getSearchIndex() {
       title: pd.title || "",
       link,
       headings: (pd.headings || []).map((h) => h.text || ""),
-      excerpt: pd.description || "",
+      excerpt: pd.excerpt || pd.description || "",
     };
   });
   return _searchIndex;

@@ -2,7 +2,7 @@
 
 A TypeScript MVC framework designed for back-office single-page applications and micro-frontend scenarios.
 
-`@lark.js/mvc` explicitly separates Model, View, and Controller layers: state management aligns with the zustand design (`create` / `getState` / `setState` / `subscribe`), routing supports both history and hash modes, templates compile to functions and render via real DOM diff, and micro-frontends are natively supported through the built-in CrossSite bridge and first-class Webpack Module Federation integration. The framework has zero runtime third-party dependencies; the template runtime helper module weighs approximately 1 KB (`dist/runtime.js` measured at 964 bytes).
+`@lark.js/mvc` explicitly separates Model, View, and Controller layers: state management aligns with the zustand design (`create` / `getState` / `setState` / `subscribe`), routing supports both history and hash modes, templates compile to functions and render via real DOM diff, and micro-frontends are natively supported through the Webpack Module Federation integration. The framework has zero runtime third-party dependencies; the template runtime helper module weighs approximately 1 KB (`dist/runtime.js` measured at 964 bytes).
 
 - Package: `@lark.js/mvc`
 - Version: see `package.json` (currently 0.0.15)
@@ -36,7 +36,7 @@ Lark's trade-offs center around one category of requirements: back-office busine
 
 First, explicit layering. The Model layer provides `State` / `createStore()` (zustand-style) / `createService()`, the View layer provides `defineView()` / `Updater`, and the Controller layer provides `Router` (history/hash dual mode) / `Frame`. These communicate through explicit interfaces and events, allowing new team members to locate code by layer.
 
-Second, native micro-frontend support. The `CrossSite` bridge view + `FrameworkConfig.require` + Module Federation form a complete pipeline. Write `v-lark="remote-app/views/home"` in a template and the remote view loads and mounts automatically, eliminating the need for secondary containers like single-spa or qiankun.
+Second, native micro-frontend support.
 
 Third, zero runtime dependencies. `@babel/parser` / `@babel/types` are used only at build time for template parsing. The runtime helper module `@lark.js/mvc/runtime` contains five functions (`strSafe` / `encHtml` / `encUri` / `encQuote` / `refFn`) and weighs approximately 1 KB as ESM.
 
@@ -759,7 +759,7 @@ Frame instances are plain objects created by `createFrame()`. There is no object
 
 ## Module Federation Micro-Frontend
 
-Lark provides first-class micro-frontend support through Webpack Module Federation (or Rspack's MF implementation). The integration centers on three pieces: `FrameworkConfig.require` (the bridge to MF container APIs), `use()` (Lark's module loader that delegates to `require`), and `CrossSite` (a skeleton-screen bridge view for remote loading).
+Lark provides first-class micro-frontend support through Webpack Module Federation (or Rspack's MF implementation). The integration centers on three pieces: `FrameworkConfig.require` (the bridge to MF container APIs), `use()` (Lark's module loader that delegates to `require`).
 
 ### How it works: the loading pipeline
 
@@ -779,12 +779,6 @@ When a template contains `v-lark="remote-app/views/home"`, the following sequenc
 Framework.boot({
   rootId: "app",
   projectName: "host-app",
-  crossSites: [
-    {
-      projectName: "remote-app",
-      source: "remote_app@//cdn.example.com/remote-app/remoteEntry.js",
-    },
-  ],
   require: async (names: string[]) => {
     await __webpack_init_sharing__("default");
     const container = __webpack_share_scopes__["default"];
@@ -806,29 +800,6 @@ Framework.boot({
 ```
 
 Then write `v-lark="remote-app/views/home"` in templates to trigger async loading and mounting of the remote view.
-
-### CrossSite bridge view
-
-For skeleton screens and remote `prepare` hooks, use `CrossSite`:
-
-```ts
-import { CrossSite, registerViewClass } from "@lark.js/mvc";
-registerViewClass("cross-site", CrossSite);
-```
-
-```html
-<div v-lark="cross-site?view=remote-app/views/home&bizCode=mybiz"></div>
-```
-
-`CrossSite` is a `ViewSetup` function that:
-
-1. Renders a skeleton placeholder (default `Loading…`, overridable via the `skeleton` parameter).
-2. Parses the `view` parameter to extract the project name (`remote-app`) and remote path (`views/home`).
-3. Loads the remote project's `prepare` module via `use("remote-app/prepare", callback)`. The `prepare` module can initialize shared state, register global services, or configure the remote project's API host.
-4. After `prepare` completes, loads the actual remote view via `use(viewPath, callback)`.
-5. Mounts the remote view in a sub-frame via `ctx.owner.mountFrame("mf_" + ctx.id, viewPath, { bizCode, project })`.
-6. Uses a signature counter (`state.sign`) for race condition guards: if the user navigates away during loading, `state.sign` is incremented on destroy, and the pending load callbacks check `currentSign !== state.sign` to bail out.
-7. Re-renders with a hidden container once the remote view is mounted, hiding the skeleton.
 
 ### Webpack / Rspack configuration
 
@@ -1040,7 +1011,6 @@ Similarities: templates compile to functions; reactivity via Proxy; derived data
 | Template syntax       | `v-if` / `v-for` / `:bind`             | `{{if}}` / `{{forOf}}` / `@event` / `v-lark`          |
 | Dependency tracking   | Automatic effect tracking              | subscribe + bindStore + computed                      |
 | Compile optimizations | PatchFlag / hoistStatic / cacheHandler | Only `ldk` / `lak` / `lvk` user-manual markers        |
-| Micro-frontend        | Third-party (qiankun / wujie etc.)     | Built-in `CrossSite` + `FrameworkConfig.require`      |
 | Scheduling            | Microtask batching + nextTick          | Microtask batching + `Framework.task` sliceable queue |
 
 The key difference is render output: Vue uses virtual node patching; Lark generates HTML strings, parses them via innerHTML into a temporary div, then diffs the resulting real DOM. The advantage is that context-sensitive tags (`<table>` / `<select>` / `<svg>`) are handled by the native parser nearly for free; the disadvantage is the absence of PatchFlag-style compile-time annotations (only user-manual `ldk` / `lak` / `lvk`).

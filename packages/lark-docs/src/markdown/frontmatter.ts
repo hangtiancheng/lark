@@ -15,7 +15,10 @@
 import { load as yamlLoad } from "js-yaml";
 import type { FrontmatterResult } from "../types";
 
-const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+// The closing `---` may immediately follow the opening `---\n` for an
+// empty frontmatter block, so the separator before the closing `---` is
+// optional (\r?\n?). This also tolerates a missing trailing newline.
+const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n?---\r?\n?/;
 
 /**
  * Extract YAML frontmatter from a markdown source string.

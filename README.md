@@ -12,10 +12,6 @@ three orthogonal primitives:
 2. A view registry ([view-registry.ts](./packages/lark-mvc/src/view-registry.ts))
    that caches loaded `View` classes by path, turning the second access to a
    remote view into a synchronous lookup.
-3. A bridge view ([cross-site.ts](./packages/lark-mvc/src/cross-site.ts)
-   `CrossSite`) that wraps a remote view path with skeleton rendering,
-   per-project `prepare` preloading, in-place `assign` reuse, and race-protected
-   mounting.
 
 The dispatcher (Frame tree walker) and the lifecycle (`Frame.mountView` →
 `doMountView`) are MF-aware: every async branch is guarded by a per-frame
@@ -27,9 +23,7 @@ network response finally arrives.
 ## Architecture Layers
 
 The dashed boundary between layers means each tier can be replaced
-independently: the loader can be swapped for a SystemJS variant, and
-`CrossSite` can be replaced by direct `v-lark` mounting when prepare hooks are
-unnecessary.
+independently: the loader can be swapped for a SystemJS variant.
 
 ---
 
@@ -40,8 +34,7 @@ unnecessary.
 `module-loader` was deliberately extracted from `framework.ts` to break a
 circular dependency: `frame.ts` needs to call `use()`, but `framework.ts`
 imports `frame.ts`. By owning the framework `config` object — a single mutable
-export — the loader gives both `Frame.mountView` and
-`CrossSite.loadRemoteView` a stable, side-effect-free import target.
+export — the loader gives `Frame.mountView` a stable, side-effect-free import target.
 
 #### 1.1 Shared mutable config
 
@@ -58,7 +51,7 @@ export const config: FrameworkConfig = {
 
 Every framework subsystem mutates this exact object via
 `Framework.setConfig(patch)`. Because the import is a _binding_ and not a
-copy, hot updates of `config.require` or `config.crossSites` are observed by
+copy, hot updates of `config.require` are observed by
 the loader on the next `use()` call without any explicit re-wiring.
 
 #### 1.2 `use(names, callback?)`
@@ -167,12 +160,6 @@ Once the asynchronous load succeeds, `registerViewClass` is called _before_
 `doMountView`, so any subsequent mount of the same path becomes a synchronous
 lookup — the network round-trip is amortized across the lifetime of the page.
 
-### 3. `cross-site.ts` — the bridge view
-
-`CrossSite` is a `View.extend(...)` subclass that, when mounted, behaves as a
-lightweight controller for a remote view. Its lifecycle reads as a state
-machine:
-
 ```
 init(params)         → $sign = 0
                        on('destroy') → $sign = -1
@@ -188,42 +175,6 @@ updateView()         → const sign = ++this.$sign
 ```
 
 #### 3.1 `loadRemoteView`
-
-```ts
-function loadRemoteView(viewPath: string, bizCode?: string): Promise<void> {
-  const crossSites = config.crossSites || window.crossSites;
-  const slashIndex = viewPath.indexOf("/");
-  const projectName =
-    slashIndex > -1 ? viewPath.substring(0, slashIndex) : viewPath;
-
-  if (projectName === (config.projectName || "")) return Promise.resolve();
-
-  if (!preparePromises[projectName]) {
-    if (!projectsMap) projectsMap = toMap(crossSites || [], "projectName");
-    if (!projectsMap[projectName]) {
-      return Promise.reject(
-        new Error(`Cannot find ${projectName} from crossSites`),
-      );
-    }
-
-    preparePromises[projectName] = use(`${projectName}/prepare`)
-      .then((modules) => {
-        let mod = modules[0];
-        if (mod && typeof mod === "object" && (mod as any).__esModule) {
-          mod = (mod as any).default;
-        }
-        if (typeof mod === "function") return (mod as PrepareFn)({ bizCode });
-        return undefined;
-      })
-      .catch((err) => {
-        Reflect.deleteProperty(preparePromises, projectName);
-        throw err;
-      });
-  }
-
-  return preparePromises[projectName];
-}
-```
 
 Four design points:
 

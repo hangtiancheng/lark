@@ -1,52 +1,72 @@
 /**
- * Shared heading and title extraction from markdown content.
+ * Heading and excerpt extraction from markdown content.
  *
- * Both the scanner and compiler need to extract headings and titles
- * from raw markdown. These utilities strip code blocks first to avoid
- * false matches on heading-like syntax inside fenced code blocks.
+ * Uses markdown-it (already a project dependency) to parse content into a
+ * token stream, then walks the tokens to collect plain text — no fragile
+ * regex stripping of inline syntax. Code blocks are naturally excluded
+ * because fence/code_block tokens are never heading_open or inline tokens,
+ * so heading-like or emphasis-like text inside code blocks is ignored.
+ *
+ * The same inlineText() helper is used here and (equivalently) in the
+ * anchor plugin, so anchor slugs and TOC slugs stay consistent.
  */
+import MarkdownIt from "markdown-it";
+import type { Token } from "markdown-it/index.js";
 import type { HeadingInfo } from "../types";
 import { slugify } from "./slugify";
 
+// Shared parser instance — parsing is on the hot path in the scanner.
+const md = new MarkdownIt({ html: true, linkify: true });
+
 /**
- * Strip fenced code blocks (``` ... ```) from markdown content.
+ * Collect plain text from an inline token's children.
  *
- * Prevents regex-based heading extraction from matching lines like
- * `# npm install` inside a code block. Only fenced code blocks are
- * stripped; indented code blocks are left as-is (rare in practice).
+ * Walks the inline token's children and concatenates `text` and
+ * `code_inline` content. Bold/italic/link markers are naturally stripped
+ * because markdown-it emits them as separate open/close tokens wrapping
+ * the text, not as part of the text content.
  */
-export function stripCodeBlocks(content: string): string {
-  return content.replace(/^```[^\n]*\n[\s\S]*?^```\s*$/gm, "");
+function inlineText(token: Token | undefined): string {
+  if (!token || !token.children) return "";
+  return token.children
+    .filter((t) => t.type === "text" || t.type === "code_inline")
+    .map((t) => t.content)
+    .join("");
 }
 
 /**
- * Extract the first h1 heading from markdown content.
+ * Extract the first h1 heading text from markdown content.
  *
- * Code blocks are stripped first so that headings inside fenced
- * code blocks are not mistaken for real document headings.
+ * Returns undefined when the document has no h1. Headings inside fenced
+ * code blocks are not matched because code blocks produce code_block
+ * tokens, not heading_open tokens.
  */
 export function extractFirstHeading(content: string): string | undefined {
-  const stripped = stripCodeBlocks(content);
-  const match = stripped.match(/^#\s+(.+)$/m);
-  return match?.[1] ? cleanInlineMarkdown(match[1].trim()) : undefined;
+  const tokens = md.parse(content, {});
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.type === "heading_open" && t.tag === "h1") {
+      const text = inlineText(tokens[i + 1]);
+      return text || undefined;
+    }
+  }
+  return undefined;
 }
 
 /**
  * Extract h2/h3 headings from markdown content for TOC generation.
- *
- * Code blocks are stripped first so that headings inside fenced
- * code blocks do not appear in the table of contents.
  */
 export function extractHeadings(content: string): HeadingInfo[] {
-  const stripped = stripCodeBlocks(content);
+  const tokens = md.parse(content, {});
   const headings: HeadingInfo[] = [];
-  const regex = /^(#{2,3})\s+(.+)$/gm;
-  let m: RegExpExecArray | null;
-  while ((m = regex.exec(stripped)) !== null) {
-    const rawText = m[2].trim();
-    const text = cleanInlineMarkdown(rawText);
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.type !== "heading_open") continue;
+    if (t.tag !== "h2" && t.tag !== "h3") continue;
+    const text = inlineText(tokens[i + 1]);
+    if (!text) continue;
     headings.push({
-      level: m[1].length,
+      level: t.tag === "h2" ? 2 : 3,
       text,
       slug: slugify(text),
     });
@@ -55,20 +75,25 @@ export function extractHeadings(content: string): HeadingInfo[] {
 }
 
 /**
- * Strip inline markdown syntax from heading text so that the TOC and search
- * index display clean readable text (e.g. `\`@keyframes\` key frames` → `@keyframes key frames`).
+ * Extract a plain-text excerpt from markdown content for search indexing.
  *
- * Handles: inline code, bold, italic, and link text extraction.
- * The order matters: code spans first (to protect their content from
- * bold/italic stripping), then bold, then italic, then links.
+ * Collects text from all inline tokens that are NOT part of a heading
+ * (the inline token immediately following a heading_open is skipped).
+ * Code blocks are naturally excluded — fence/code_block tokens have no
+ * inline children. Whitespace is collapsed and the result is truncated.
  */
-export function cleanInlineMarkdown(text: string): string {
-  return text
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/__([^_]+)__/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/_([^_]+)_/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .trim();
+export function extractExcerpt(content: string, maxLen = 200): string {
+  const tokens = md.parse(content, {});
+  const parts: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.type !== "inline") continue;
+    // Skip the inline token that carries a heading's text — excerpts should
+    // reflect body content, not section titles.
+    const prev = tokens[i - 1];
+    if (prev && prev.type === "heading_open") continue;
+    const text = inlineText(t);
+    if (text) parts.push(text);
+  }
+  return parts.join(" ").replace(/\s+/g, " ").trim().slice(0, maxLen);
 }

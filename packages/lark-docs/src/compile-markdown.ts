@@ -20,9 +20,11 @@ import { getHighlighter, highlightCode } from "./markdown/highlighter";
 import type { CompileMarkdownOptions } from "./types";
 import { deriveTitleFromPath } from "./utils/derive-title";
 import {
+  extractExcerpt,
   extractFirstHeading,
   extractHeadings,
 } from "./utils/heading-extraction";
+import { isAbsolute, relative, resolve } from "node:path";
 
 /**
  * Compile a .md file source into a JS module string.
@@ -63,10 +65,18 @@ export async function compileMarkdown(
   const htmlBody = renderToLarkTemplate(tokens, md);
 
   // 5. Build page metadata
-  const docsPrefix = options.config.docs.replace(/\/+$/, "") + "/";
-  const relativeFilePath = options.filePath.startsWith(docsPrefix)
-    ? options.filePath.slice(docsPrefix.length)
-    : options.filePath;
+  // Resolve relativePath via path.relative so absolute filePath inputs
+  // (as produced by the Vite/Webpack/Rspack loaders) yield the same
+  // "guide/config.md" form the scanner produces — the previous
+  // startsWith(docsPrefix) check failed for absolute paths.
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const docsAbsDir = isAbsolute(options.config.docs)
+    ? options.config.docs
+    : resolve(projectRoot, options.config.docs);
+  const relativeFilePath = relative(docsAbsDir, options.filePath).replace(
+    /\\/g,
+    "/",
+  );
 
   const title =
     (frontmatter["title"] as string) ||
@@ -81,9 +91,12 @@ export async function compileMarkdown(
     (frontmatter["description"] as string) ||
     deriveTitleFromPath(relativeFilePath);
 
+  const excerpt = extractExcerpt(content);
+
   const pageData = {
     title,
     description,
+    excerpt,
     sidebarPosition: frontmatter["sidebar_position"] as number | undefined,
     sidebarLabel: (frontmatter["sidebar_label"] as string) || undefined,
     sidebarGroup: (frontmatter["sidebar_group"] as string) || undefined,

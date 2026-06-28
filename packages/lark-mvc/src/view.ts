@@ -1,12 +1,26 @@
 /**
- * View system (functional factory).
- *
- * Replaces the former `View` class with `defineView()` + `createCtx()`.
- * No `class`, no `this`, no `prototype`, no `mixin`.
+ * View system — functional API for defining and managing views.
  *
  * A view is defined by a setup function that receives a `ViewCtx` and
  * returns `{ template, events, assign? }`. The ctx provides all framework
- * APIs (updater, events, capture/release, observe, etc.) via closures.
+ * APIs (updater, events, capture/release, observe, etc.) via closures — no
+ * `this` binding, no `class`, no `prototype`, no `mixin`.
+ *
+ * ## Lifecycle
+ *
+ * 1. **Setup** — `mountCtx(frame, setup, params)` creates a `ViewCtx`, sets it
+ *    as the current hooks context, runs `setup(ctx, params)`, then wires the
+ *    returned `template` / `events` / `assign` onto the ctx.
+ * 2. **Render** — `ctx.render()` increments `signature`, fires `render`,
+ *    destroys transient resources, and calls `updater.digest()`.
+ * 3. **Destroy** — `unmountCtx(ctx)` runs `useEffect` cleanups, unregisters
+ *    events, destroys all resources, fires `destroy`, and sets `signature = 0`.
+ *
+ * ## Async safety
+ *
+ * `ctx.wrapAsync(fn)` captures `signature` at wrap time; the wrapped function
+ * only executes if `signature` still matches — stale callbacks after a view
+ * re-render or destroy are silently dropped.
  */
 import { VIEW_EVENT_METHOD_REGEXP, RouterEvents } from "./common";
 import { hasOwnProperty, funcWithTry, noop } from "./utils";
@@ -29,9 +43,10 @@ import type {
 } from "./types";
 
 // ============================================================
-// View globals map: maps 'window'/'document' to window/document
+// Global event targets — maps 'window'/'document' to the DOM objects
 // ============================================================
 
+/** Maps global selector names (`window`, `document`) to their DOM objects. */
 const VIEW_GLOBALS: Record<string, EventTarget> = {};
 if (typeof window !== "undefined") {
   VIEW_GLOBALS["window"] = window;
@@ -115,6 +130,19 @@ export function createCtx(frame: FrameObj): ViewCtx {
   }
 
   // ── Resource management ──
+
+  /**
+   * Register a destroyable resource tied to the view lifecycle.
+   *
+   * If `resource` is provided, stores it under `key` (replacing any existing
+   * entry — the old resource's `destroy()` is called first). If `resource` is
+   * omitted, returns the previously stored entity for `key`.
+   *
+   * @param key - Unique resource key
+   * @param resource - Object with a `destroy()` method (omit to read)
+   * @param destroyOnRender - If true, destroyed on the next `render()` call
+   * @returns The stored entity (when reading) or the resource (when writing)
+   */
   function capture(key: string, resource?: unknown, destroyOnRender = false): unknown {
     if (resource !== undefined) {
       destroyResource(resources, key, true, resource);
@@ -126,11 +154,25 @@ export function createCtx(frame: FrameObj): ViewCtx {
     return resource;
   }
 
+  /**
+   * Remove a resource entry and optionally call its `destroy()`.
+   *
+   * @param key - Resource key to remove
+   * @param destroy - If true (default), call `destroy()` on the entity
+   * @returns The removed entity
+   */
   function release(key: string, destroy = true): unknown {
     return destroyResource(resources, key, destroy);
   }
 
   // ── Render lifecycle ──
+
+  /**
+   * Render the view: increment signature, fire `render`, destroy transient
+   * resources, then call `updater.digest()` (or `ctx.renderMethod` if set).
+   *
+   * No-op if the view is destroyed (`signature === 0`).
+   */
   function render(): void {
     if (signature.value > 0) {
       signature.value++;
@@ -145,12 +187,25 @@ export function createCtx(frame: FrameObj): ViewCtx {
   }
 
   // ── Update zones ──
+
+  /**
+   * Begin a zone update: unmount the zone's child frames before re-rendering.
+   *
+   * Called before `assign()` produces new data, so stale child views are
+   * torn down before the new template output is diffed.
+   */
   function beginUpdate(zoneId?: string): void {
     if (signature.value > 0 && mutable.endUpdatePending !== undefined) {
       frame.unmountZone(zoneId);
     }
   }
 
+  /**
+   * End a zone update: re-mount child frames via `frame.mountZone`, then
+   * flush deferred `invoke` calls.
+   *
+   * Marks the view as rendered (`rendered.value = true`) on the first call.
+   */
   function endUpdate(zoneId?: string, inner?: boolean): void {
     if (signature.value > 0) {
       const updateId = zoneId ?? id;
@@ -178,6 +233,15 @@ export function createCtx(frame: FrameObj): ViewCtx {
   }
 
   // ── Async safety ──
+
+  /**
+   * Wrap an async callback with a signature guard.
+   *
+   * Captures `signature` at wrap time. The returned function only executes
+   * `fn` if the view is still alive (`signature > 0`) AND the signature
+   * hasn't changed (no re-render or destroy occurred). Otherwise returns
+   * `undefined` — stale callbacks are silently dropped.
+   */
   function wrapAsync<Fn extends AnyFunc>(
     fn: Fn,
     context?: unknown,
@@ -192,6 +256,16 @@ export function createCtx(frame: FrameObj): ViewCtx {
   }
 
   // ── Location observation ──
+
+  /**
+   * Declare which URL params/path this view observes.
+   *
+   * When any observed key changes (via `Router.to()` or back/forward), the
+   * framework calls `ctx.render()` to re-render the view.
+   *
+   * Accepts a string (`"page,size"`), an array (`["page", "size"]`), or an
+   * options object (`{ params: [...], observePath: true }`).
+   */
   function observeLocation(
     params: string | string[] | Record<string, unknown>,
     observePath = false,
@@ -221,6 +295,13 @@ export function createCtx(frame: FrameObj): ViewCtx {
   }
 
   // ── State observation ──
+
+  /**
+   * Declare which `State` keys this view observes.
+   *
+   * When any observed key changes (via `State.digest()`), the framework calls
+   * `ctx.render()` to re-render the view.
+   */
   function observeState(keys: string | string[]): void {
     if (typeof keys === "string") {
       mutable.observedStateKeys = keys.split(",");
@@ -229,7 +310,15 @@ export function createCtx(frame: FrameObj): ViewCtx {
     }
   }
 
-  // ── Leave tip ──
+  // ── Leave tip (unsaved-changes guard) ──
+
+  /**
+   * Register an unsaved-changes guard.
+   *
+   * When `condition()` returns true, route navigations are prevented (with
+   * `message` shown on `beforeunload`) until `condition()` returns false.
+   * Automatically cleaned up on view destroy.
+   */
   function leaveTip(message: string, condition: () => boolean): void {
     // State tracked via closure (no function-property mutation)
     const changeState: { a: number; b: number } = { a: 0, b: 0 };
@@ -546,7 +635,16 @@ export function runInvokes(frame: FrameObj): void {
 /**
  * Mount a view: create ctx, run setup, register events, render.
  *
- * Called by `frame.mountView` after the setup function is loaded.
+ * Called by `frame.mountView` (via `doMountView`) after the setup function
+ * is loaded. Steps:
+ * 1. Create a `ViewCtx` via `createCtx(frame)`
+ * 2. Set it as the current hooks context (`setCurrentCtx`) so `useState` /
+ *    `useEffect` / `useStore` can access it during setup
+ * 3. Run `setup(ctx, params)` — returns `{ template, events, assign? }`
+ * 4. Wire template/events/assign onto the ctx
+ * 5. Activate: `signature.value = 1`, `frame.view = ctx`
+ * 6. Register events via `registerEvents(ctx)`
+ * 7. Render via `ctx.render()` (or `ctx.endUpdate()` if no template)
  */
 export function mountCtx(frame: FrameObj, setup: ViewSetup, params?: unknown): ViewCtx {
   const ctx = createCtx(frame);
@@ -591,7 +689,10 @@ export function mountCtx(frame: FrameObj, setup: ViewSetup, params?: unknown): V
 }
 
 /**
- * Unmount a view: run cleanups, unregister events, destroy resources.
+ * Unmount a view: run `useEffect` cleanups, unregister events, destroy
+ * resources, fire `destroy`, and set `signature = 0`.
+ *
+ * Called by `frame.unmountView`.
  */
 export function unmountCtx(ctx: ViewCtx): void {
   // Run useEffect cleanups

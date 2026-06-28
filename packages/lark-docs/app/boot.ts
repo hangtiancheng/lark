@@ -38,7 +38,7 @@ const config: FrameworkConfig = {
 // Pass config so registerThemeViews selects the correct template mode
 // (string vs VDOM) based on vdom. Must be called before Framework.boot()
 // so views are registered when the default view is mounted during boot.
-registerThemeViews(config);
+registerThemeViews({ vdom: config.vdom });
 
 // === Inject site data + content loader into State ===
 

@@ -78,8 +78,6 @@ export interface SidebarItem {
 
 /** Markdown processing options. */
 export interface MarkdownOptions {
-  /** Show line numbers in code blocks. Default: false */
-  lineNumbers?: boolean;
   /** Heading anchor options. */
   anchor?: { permalink?: boolean };
   /** TOC extraction levels. Default: [2, 3] */
@@ -108,7 +106,7 @@ export interface SearchOptions {
    *
    * Default: "local"
    */
-  provider?: "local" | "docsearch";
+  provider?: "local" | "docsearch" | "none";
 }
 
 // ============================================================
@@ -121,6 +119,8 @@ export interface PageData {
   title: string;
   /** Page description (from frontmatter). */
   description?: string;
+  /** Plain-text excerpt of the page body, used for search indexing. */
+  excerpt: string;
   /** Sort position in sidebar (from frontmatter sidebar_position). */
   sidebarPosition?: number;
   /** Override sidebar label (from frontmatter sidebar_label). */
@@ -233,4 +233,6 @@ export interface CompileMarkdownOptions {
   filePath: string;
   /** Enable debug line markers. */
   debug?: boolean;
+  /** Project root for resolving relative `config.docs`. Defaults to process.cwd(). */
+  projectRoot?: string;
 }

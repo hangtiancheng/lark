@@ -476,12 +476,20 @@ export const Frame: FrameApi = {
 // Internal helper functions
 // ============================================================
 
-/** Whether the element already has a Frame attached. */
+/**
+ * Check whether a DOM element already has a Frame attached.
+ *
+ * Prevents `mountZone` from re-initializing an element that's already
+ * bound to a child Frame.
+ */
 function htmlElIsBound(element: HTMLElement): boolean {
   return !!Reflect.get(element, "frameBound");
 }
 
-/** Remove frame from registry */
+/**
+ * Remove a frame from the registry, fire the static `remove` event, and
+ * clear the DOM element's frame reference.
+ */
 function removeFrame(id: string, wasCreated: boolean): void {
   const frameInstance = frameRegistry.get(id);
   if (!frameInstance) return;
@@ -499,7 +507,13 @@ function removeFrame(id: string, wasCreated: boolean): void {
   }
 }
 
-/** Notify created event up the frame tree */
+/**
+ * Propagate a `created` event up the Frame tree.
+ *
+ * A frame fires `created` when all its child frames have finished mounting
+ * (`childrenCount === readyCount`). The event bubbles to the parent, which
+ * increments its own `readyCount` and may itself fire `created`.
+ */
 function notifyCreated(frameInstance: FrameObj): void {
   if (
     !frameInstance.childrenCreated &&
@@ -522,7 +536,13 @@ function notifyCreated(frameInstance: FrameObj): void {
   }
 }
 
-/** Notify alter event up the frame tree */
+/**
+ * Propagate an `alter` event up the Frame tree.
+ *
+ * Fires when a child frame's content changes (e.g. before unmounting),
+ * transitioning the parent from `created` to `alter` state. Decrements
+ * the parent's `readyCount` and may bubble further up.
+ */
 function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
   if (!frameInstance.childrenAlter && frameInstance.childrenCreated) {
     frameInstance.childrenCreated = 0;
@@ -545,6 +565,14 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
 // TranslateQuery: translate SPLITTER-prefixed params from parent
 // ============================================================
 
+/**
+ * Translate SPLITTER-prefixed reference tokens in child-view params back to
+ * their original JS values from the parent view's `refData`.
+ *
+ * When a template uses `{{@value}}` inside a `v-lark` attribute, the compiler
+ * emits a SPLITTER-prefixed token instead of the raw value. This function
+ * resolves those tokens so the child view receives the actual objects.
+ */
 function translateQuery(pId: string, src: string, params: Record<string, string>): void {
   const parentFrame = frameRegistry.get(pId);
   const parentView = parentFrame?.view;

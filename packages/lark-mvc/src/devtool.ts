@@ -41,7 +41,7 @@ export interface SerializedViewInfo {
   eventMethodKeys: string[];
   /** Captured resource keys */
   resourceKeys: string[];
-  /** Whether view exposes an assign method (supports CrossSite reuse) */
+  /** Whether view exposes an assign method */
   hasAssign: boolean;
   /** Updater refData snapshot (shallow copy of current data) */
   updaterData: Record<string, unknown> | null;
@@ -100,7 +100,11 @@ export const FrameDevtoolBridge = {
 // ============================================================
 
 /**
- * Serialize a view instance into a JSON-safe object.
+ * Serialize a `ViewCtx` into a JSON-safe snapshot for the Devtool panel.
+ *
+ * Captures the view's ID, render state, signature, observed keys,
+ * template/events/resources presence, and a shallow snapshot of `updater.refData`
+ * (objects are stringified as `[object]` to stay JSON-safe).
  */
 function serializeView(view: ViewCtx): SerializedViewInfo {
   const evtMap = {};
@@ -141,7 +145,10 @@ function serializeView(view: ViewCtx): SerializedViewInfo {
 }
 
 /**
- * Serialize a Frame and its children recursively into a tree structure.
+ * Recursively serialize a Frame and all its descendants into a tree.
+ *
+ * @param frameId - The frame ID to serialize
+ * @returns A `SerializedFrameNode` (with children), or `null` if the frame doesn't exist
  */
 function serializeFrame(frameId: string): SerializedFrameNode | null {
   const frame = Frame.get(frameId);
@@ -261,8 +268,13 @@ export function installFrameDevtoolBridge(): void {
 }
 
 /**
- * Push a frame tree update to the parent window (devtool).
- * Only sends if the tree has actually changed since the last push.
+ * Push a frame-tree delta to the parent window (the Devtool panel).
+ *
+ * Only sends if the serialized tree differs from the last push (compared via
+ * `JSON.stringify`). This prevents flooding the Devtool with redundant
+ * messages when `Frame.on("add"/"remove")` fires without actual changes.
+ *
+ * No-op when the page is not inside an iframe (i.e., `window === window.parent`).
  */
 function pushTreeUpdate(): void {
   if (window === window.parent) return; // Not in iframe

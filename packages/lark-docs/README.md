@@ -289,12 +289,11 @@ Auto-generated sidebars group routes by subdirectory, sort by `sidebarPosition` 
 
 ### MarkdownOptions
 
-| Field              | Type                                | Default    | Description                             |
-| ------------------ | ----------------------------------- | ---------- | --------------------------------------- |
-| `lineNumbers`      | `boolean`                           | `false`    | Reserved for future line number support |
-| `anchor.permalink` | `boolean`                           | `true`     | Add permalink anchors to h1-h3          |
-| `toc.level`        | `number[]`                          | `[2, 3]`   | Heading levels to extract for TOC       |
-| `containers`       | `Record<string, { label: string }>` | (built-in) | Custom container labels                 |
+| Field              | Type                                | Default    | Description                       |
+| ------------------ | ----------------------------------- | ---------- | --------------------------------- |
+| `anchor.permalink` | `boolean`                           | `true`     | Add permalink anchors to h1-h3    |
+| `toc.level`        | `number[]`                          | `[2, 3]`   | Heading levels to extract for TOC |
+| `containers`       | `Record<string, { label: string }>` | (built-in) | Custom container labels           |
 
 ### HighlightOptions
 
@@ -573,7 +572,7 @@ Recursively scans a docs directory and returns route entries. Skips entries star
 
 Maps `route.path` to `route.viewId` for use as the lark-mvc `routes` config.
 
-### `generateBootModule(routes: DocsRoute[]): string`
+### `generateBootModule(routes: DocsRoute[], projectRoot?: string): string`
 
 Generates a JS module source string that imports all `.md` files and calls `registerViewClass()` for each.
 
@@ -662,17 +661,18 @@ Type declarations for `@lark-docs/generated` are provided by the `@lark.js/docs/
 
 - `@docsearch/css` ^4.6.3 -- DocSearch widget styles (dynamic import, only for `"docsearch"` provider)
 - `@docsearch/js` ^4.6.3 -- DocSearch widget (dynamic import, only for `"docsearch"` provider)
+- `@lark.js/mvc` ^0.0.17 -- MVC framework (re-exported by `@lark.js/docs` so consumers do not need to install it separately)
 - `ejs` ^3.1.10 -- Template engine for generated module output
-- `js-yaml` ^5.0.0 -- YAML frontmatter parsing
+- `js-yaml` ^5.2.0 -- YAML frontmatter parsing
 - `lucide-static` ^1.21.0 -- SVG icons via `?raw` import
 - `markdown-it` ^14.2.0 -- Markdown parser
 - `markdown-it-container` ^4.0.0 -- Admonition container syntax
 - `minisearch` ^7.2.0 -- Full-text search engine (same as VitePress)
-- `shiki` ^4.2.0 -- Code syntax highlighting (dynamic import, lazy singleton)
+- `shiki` ^4.3.0 -- Code syntax highlighting (dynamic import, lazy singleton)
+- `zod` ^4.4.3 -- Runtime schema validation for State-injected values
 
 **Peer:**
 
-- `@lark.js/mvc` >=0.0.15 -- MVC framework (defineView, Router, State, Framework)
 - `@tailwindcss/typography` ^0.5.0 -- `prose` class for markdown content
 - `daisyui` ^5.0.0 -- UI component classes
 - `tailwindcss` ^4.0.0 -- Utility-first CSS

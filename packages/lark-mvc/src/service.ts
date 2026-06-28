@@ -38,7 +38,14 @@ function isServiceMetaEntry(v: unknown): v is ServiceMetaEntry {
 }
 
 /**
- * Create a Payload wrapping API response data.
+ * Create a `Payload` — a mutable wrapper around API response data.
+ *
+ * Payloads are the data carriers passed through the Service pipeline:
+ * `before` hooks write to them, `syncFn` populates them, and `after` hooks
+ * transform their contents before they reach view callbacks.
+ *
+ * @param data - Initial data object (defaults to `{}`)
+ * @returns A `PayloadApi` with `get` / `set` / `data` / `cacheInfo`
  */
 export function createPayload(data: Record<string, unknown> = {}): PayloadApi {
   const payloadData = data;
@@ -134,10 +141,18 @@ export interface ServiceApi {
 // ============================================================
 
 /**
- * Create a Service type with a custom sync function.
+ * Create a Service type with a custom request function.
  *
- * Each call creates independent closure state (metaList, payloadCache, etc.),
- * ensuring full isolation between different Service types.
+ * The `syncFn` is the transport-agnostic request executor — typically a
+ * `fetch` wrapper, but any function matching the signature works. Each call
+ * creates independent closure state (`metaList`, `payloadCache`,
+ * `pendingCacheKeys`), ensuring full isolation between different Service
+ * types.
+ *
+ * @param syncFn - Request executor: `(payload, callback) => void`
+ * @param cacheMax - Maximum cache entries before LFU eviction (default: 20)
+ * @param cacheBuffer - Eviction batch size (default: 5)
+ * @returns A `ServiceApi` with `add`, `instance`, `cached`, `clear`, etc.
  */
 export function createService(
   syncFn: (payload: PayloadApi, callback: () => void) => void,
@@ -381,8 +396,15 @@ export function createService(
 // Internal helpers
 // ============================================================
 
+/** WeakMap cache for `JSON.stringify(meta)` — meta objects are stable references. */
 const metaJsonCache = new WeakMap<ServiceMetaEntry, string>();
 
+/**
+ * Get the JSON string of a `ServiceMetaEntry`, cached per-meta-object.
+ *
+ * Caching avoids repeated `JSON.stringify` calls for the same meta on every
+ * cache-key computation.
+ */
 function getMetaJson(meta: ServiceMetaEntry): string {
   let cached = metaJsonCache.get(meta);
   if (cached === undefined) {
@@ -392,10 +414,22 @@ function getMetaJson(meta: ServiceMetaEntry): string {
   return cached;
 }
 
+/**
+ * Build the default cache key for a request: `JSON(attrs) + SPLITTER + JSON(meta)`.
+ *
+ * Combining both the endpoint metadata and the request attributes ensures
+ * that different params or different endpoints produce different keys.
+ */
 function defaultCacheKey(meta: ServiceMetaEntry, attrs: Record<string, unknown>): string {
   return JSON.stringify(attrs) + SPLITTER + getMetaJson(meta);
 }
 
+/**
+ * Coerce a cache config value to a numeric TTL (milliseconds).
+ *
+ * `true` is not supported here — callers should convert `true` to a default
+ * TTL before calling. Returns `0` for non-numeric values (meaning no cache).
+ */
 function toCacheValue(v: unknown): number {
   if (typeof v === "number") return v | 0;
   if (typeof v === "string") {
@@ -406,7 +440,21 @@ function toCacheValue(v: unknown): number {
 }
 
 /**
- * serviceSend: fetch attrs, handle caching and deduplication.
+ * Core request dispatcher: fetch attributes, handle caching and deduplication.
+ *
+ * For each attribute entry in `attrs`:
+ * 1. Resolve the payload via `getPayload` (cache hit → reuse, miss → create)
+ * 2. If an identical request is in-flight (`pendingCacheKeys`), chain the
+ *    callback — the single in-flight request will fan out to all waiters
+ * 3. Otherwise, invoke `syncFn` to execute the request
+ * 4. On completion: populate cache, fire `done`/`fail`/`end` events, and
+ *    invoke the user callback (`all` or `one` mode)
+ *
+ * The `flag` parameter selects the callback style:
+ * - `FETCH_FLAGS_ALL` — callback fires once with `(errors, p1, p2, ...)`
+ * - `FETCH_FLAGS_ONE` — callback fires per-attribute with `(error, payload, isLast, index)`
+ *
+ * `save=true` skips the cache entirely (forces a fresh request).
  */
 function serviceSend(
   service: ServiceInstance,
@@ -514,7 +562,17 @@ function serviceSend(
   }
 }
 
-/** Get or create payload using the service internals */
+/**
+ * Get-or-create a `Payload` for the given request attributes.
+ *
+ * Cache resolution order:
+ * 1. In-flight (`pendingCacheKeys`) — reuse the pending payload entity
+ * 2. Cache hit (`payloadCache`) — reuse if within TTL, otherwise evict
+ * 3. Miss — create a new payload, run `before` hook, fire `begin` event
+ *
+ * @returns `{ entity, needsUpdate }` where `needsUpdate=true` means the
+ *   payload is fresh and `syncFn` must be called to populate it
+ */
 function getPayload(
   internals: ServiceInternals,
   attrs: Record<string, unknown>,

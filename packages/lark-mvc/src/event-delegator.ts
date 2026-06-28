@@ -1,12 +1,32 @@
 /**
  * DOM event delegation system.
  *
- * Core features:
- * - All events delegated to document.body
- * - Selector matching: `$div[data-menu="true"]<click>` pattern
- * - View boundary detection: prevent cross-view event leaking
- * - Range events: stop propagation at view boundaries
- * - Event info caching for performance
+ * All DOM events are delegated to `document.body` in the **capture phase**,
+ * rather than attaching listeners to individual elements. When an event
+ * fires, the delegator walks from `event.target` up to `document.body`,
+ * resolving the owning Frame and matching registered handlers at each level.
+ *
+ * ## Handler naming convention
+ *
+ * Event methods are declared in the `events` map returned by a view's setup
+ * function, keyed by `"name<eventType>"` or `"$selector<eventType>"`:
+ *
+ * | Syntax                     | Meaning                                            |
+ * | -------------------------- | -------------------------------------------------- |
+ * | `handler<click>`           | Event on the view's root element                   |
+ * | `$selector<click>`         | Delegated to child elements matching `.selector`   |
+ * | `$<click>`                 | Empty selector — fires only at the Frame boundary  |
+ * | `$window<resize>`          | Delegated to `window`                               |
+ * | `$document<keydown>`       | Delegated to `document`                             |
+ * | `handler<click,mousedown>` | Multi-event binding                                |
+ * | `name<click><ctrl>`        | Fires only when the Ctrl modifier is held          |
+ *
+ * ## Reference counting
+ *
+ * `bind` / `unbind` use reference counting per event type so that multiple
+ * views registering the same event type on `document.body` don't attach
+ * duplicate listeners, and a single `unbind` doesn't remove a listener still
+ * needed by another view.
  */
 import { EVENT_METHOD_REGEXP } from "./common";
 import { parseUri, funcWithTry, noop, assign } from "./utils";
@@ -79,8 +99,20 @@ function parseEventInfo(eventInfo: string): EventInfo {
 }
 
 /**
- * Find event handlers for a DOM element by walking up the tree.
- * Handles both @event attributes and selector-based events.
+ * Resolve event handlers for a DOM element by walking up the Frame tree.
+ *
+ * Handles two handler sources:
+ * 1. **`@event` attribute** on the current element — parsed into
+ *    `{ id, name, params }` where `id` is the owning Frame ID.
+ * 2. **Selector-based events** registered by ancestor Frames — matched
+ *    via `element.matches(selector)`.
+ *
+ * The walk stops at the first Frame whose view has a template (the view
+ * boundary), preventing cross-view event leaking.
+ *
+ * @param current - The DOM element where the event originated
+ * @param eventType - The DOM event type (e.g. `"click"`)
+ * @returns Array of resolved `EventInfo` entries, ordered innermost-first
  */
 function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
   const eventInfos: EventInfo[] = [];
@@ -203,7 +235,16 @@ function elementMatchesSelector(element: HTMLElement, selector: string): boolean
 // ============================================================
 
 /**
- * Main event handler for delegated DOM events.
+ * Main capture-phase handler for all delegated DOM events.
+ *
+ * Attached to `document.body` via `addEventListener(type, handler, true)`.
+ * When an event fires, walks from `event.target` up to `document.body`,
+ * calling `findFrameInfo` at each level to resolve handlers. Respects
+ * `stopPropagation()` and Frame-boundary range events.
+ *
+ * The extended event object carries `eventTarget` (the original hit element)
+ * and `params` (parsed from the `@event` parameter string) for consumer
+ * access.
  */
 function domEventProcessor(domEvent: Event): void {
   const target = domEvent.target as HTMLElement;
@@ -283,13 +324,21 @@ function domEventProcessor(domEvent: Event): void {
 // ============================================================
 
 /**
- * DOM event delegation system.
- * Delegates events to document body for performance.
+ * DOM event delegation singleton.
  *
+ * Manages capture-phase listeners on `document.body` via reference counting.
+ * Called by the view system during `registerEvents` / `unregisterEvents`.
  */
 export const EventDelegator = {
   /**
-   * Bind a DOM event type to document body.
+   * Register interest in an event type on `document.body`.
+   *
+   * Uses reference counting — the first registration attaches the capture-phase
+   * listener; subsequent registrations just increment the counter. The
+   * listener is only removed when the counter returns to zero via `unbind`.
+   *
+   * @param eventType - DOM event type (e.g. `"click"`, `"input"`)
+   * @param hasSelector - Whether this binding uses CSS-selector delegation
    */
   bind(eventType: string, hasSelector = false): void {
     const counter = rootEvents[eventType] || 0;
@@ -307,7 +356,13 @@ export const EventDelegator = {
   },
 
   /**
-   * Unbind a DOM event type from document body.
+   * Deregister interest in an event type from `document.body`.
+   *
+   * Decrements the reference counter; the capture-phase listener is only
+   * removed when the counter reaches zero.
+   *
+   * @param eventType - DOM event type
+   * @param hasSelector - Whether this binding used CSS-selector delegation
    */
   unbind(eventType: string, hasSelector = false): void {
     const counter = rootEvents[eventType] || 0;
@@ -331,7 +386,12 @@ export const EventDelegator = {
   },
 
   /**
-   * Clean up range events for a destroyed view.
+   * Remove all range-event registrations for a destroyed view.
+   *
+   * Range events stop propagation at view boundaries. When a view is
+   * destroyed, its range-event entries must be cleaned up to prevent leaks.
+   *
+   * @param viewId - The Frame ID of the destroyed view
    */
   clearRangeEvents(viewId: string): void {
     Reflect.deleteProperty(rangeEvents, viewId);
@@ -339,14 +399,21 @@ export const EventDelegator = {
   },
 
   /**
-   * Set the frame getter function (called by Framework.boot).
+   * Inject the Frame lookup function.
+   *
+   * Called by `Framework.boot` so the delegator can resolve DOM element IDs
+   * to `FrameObj` instances without importing `frame.ts` directly (avoiding
+   * a circular dependency).
    */
   setFrameGetter(getter: (id: string) => FrameObj | undefined): void {
     frameGetter = getter;
   },
 
   /**
-   * Get next element GUID.
+   * Allocate the next element GUID for range-event tagging.
+   *
+   * Each element that participates in range events gets a unique numeric ID
+   * so the delegator can track it independently of DOM element identity.
    */
   nextElementGuid(): number {
     return ++elementGuid;

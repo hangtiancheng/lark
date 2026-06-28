@@ -84,7 +84,10 @@ async function scanDir(dir: string, depth: number, results: DiscoveredDist[]): P
         const distStat = await fs.stat(distPath);
         if (distStat.isDirectory()) {
           results.push({
-            name: `${entry}${distName === "dist" ? "" : `:${distName}`}`,
+            // Use `-` (not `:`) so the name stays URL-safe and passes the
+            // projectName regex /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/ enforced by the
+            // zod schema, Mongoose model, and CDN route parser. e.g. "pkg-dist-rsbuild".
+            name: `${entry}${distName === "dist" ? "" : `-${distName}`}`,
             distPath,
             type: distName,
             version: await readDistVersion(distPath),

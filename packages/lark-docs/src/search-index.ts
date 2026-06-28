@@ -20,7 +20,7 @@ export function buildSearchIndex(routes: DocsRoute[]): SearchEntry[] {
       title: route.pageData.title,
       link: route.path,
       headings: route.pageData.headings.map((h) => h.text),
-      excerpt: route.pageData.description || "",
+      excerpt: route.pageData.excerpt || route.pageData.description || "",
     }));
 }
 

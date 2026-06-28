@@ -1,15 +1,29 @@
 /**
  * Router with two-phase change confirmation.
  *
- * Supports two routing modes:
- * - "history" (default): uses history.pushState / popstate for clean URLs
- * - "hash": uses URL hash fragment with #! prefix
+ * Supports two routing modes, configured via `FrameworkConfig.routeMode`:
+ * - `"history"` (default): uses `history.pushState` / `popstate` for clean URLs
+ * - `"hash"`: uses URL hash fragment with `#!` prefix
  *
- * Features:
- * - parse/diff/to/join methods for route management
- * - Two-phase change: change (prevent/resolve/reject) → changed
- * - Cached parsing and diff computation
- * - beforeunload support
+ * ## Two-phase change event
+ *
+ * Navigation follows a two-phase commit protocol:
+ * 1. **`change` phase** — fires before the URL updates. Listeners can call
+ *    `e.prevent()` (suspend), `e.reject()` (rollback URL), or `e.resolve()`
+ *    (commit). If none is called, `resolve` is the default.
+ * 2. **`changed` phase** — fires after the URL is updated. The framework
+ *    re-mounts views here.
+ *
+ * ## Async route guards
+ *
+ * `Router.beforeEach(async (to, from) => boolean)` registers guards that
+ * run in registration order. Any guard returning `false`, throwing, or
+ * rejecting aborts the navigation and reverts the URL.
+ *
+ * ## Caching
+ *
+ * `parse()` and `getChanged()` are cached by href — repeated parses of the
+ * same URL return the cached `Location` without re-parsing.
  */
 import { SPLITTER, URL_TRIM_HASH_REGEXP, URL_TRIM_QUERY_REGEXP, RouterEvents } from "./common";
 import { hasOwnProperty, assign, parseUri, toUri, asRecord } from "./utils";
@@ -76,7 +90,11 @@ const beforeEachGuards: BeforeEachGuard[] = [];
 // Internal helpers
 // ============================================================
 
-/** Create an empty Location object for initial state */
+/**
+ * Create an empty `Location` object for the initial state (before boot).
+ *
+ * The `get` accessor returns the default value or empty string.
+ */
 function createEmptyLocation(): Location {
   return {
     href: "",
@@ -89,13 +107,23 @@ function createEmptyLocation(): Location {
   };
 }
 
-/** Get param from location (used as Location.get implementation) */
+/**
+ * `Location.get` implementation — read a param by key.
+ *
+ * @param key - Parameter name
+ * @param defaultValue - Returned when the key is missing (defaults to `""`)
+ */
 function getParam(this: Location, key: string, defaultValue?: string): string {
   return this["params"][key] || (defaultValue !== undefined ? defaultValue : "");
 }
 
 /**
- * Attach view and path to location based on routes config.
+ * Resolve `loc.view` and `loc.path` from the routes config.
+ *
+ * Called during `parse()` after the framework has booted. Looks up the
+ * raw path (from hash or query depending on mode), applies the optional
+ * `rewrite` function, and maps it to a view via `routes` / `unmatchedView` /
+ * `defaultView`.
  */
 function attachViewAndPath(loc: Location): void {
   if (!frameworkConfig) return;
@@ -130,7 +158,11 @@ function attachViewAndPath(loc: Location): void {
 }
 
 /**
- * Compute diff between two locations.
+ * Compute the diff between two `Location` objects.
+ *
+ * Compares `params`, `path`, and `view` — any value change produces a
+ * `ParamDiff` entry. The result is cached by `(oldHref + newHref)` so repeated
+ * comparisons don't recompute.
  */
 function getChanged(oldLoc: Location, newLoc: Location): { changed: boolean; diff: LocationDiff } {
   const oKey = oldLoc.href;
@@ -194,8 +226,15 @@ function getChanged(oldLoc: Location, newLoc: Location): { changed: boolean; dif
 }
 
 /**
- * Update browser URL using the current routing mode.
- * In hash mode, sets location.hash; in history mode, uses pushState/replaceState.
+ * Update the browser URL using the current routing mode.
+ *
+ * - **History mode**: `history.pushState` / `replaceState` — no event fires,
+ *   so `Router.notify()` must be called manually to trigger change detection.
+ * - **Hash mode**: `location.hash` / `location.replace` — `hashchange` fires
+ *   automatically.
+ *
+ * @param path - The path+query string to navigate to
+ * @param replace - If true, replace the current history entry instead of pushing
  */
 function updateBrowserUrl(path: string, replace?: boolean): void {
   if (routeMode === "history") {
@@ -223,7 +262,11 @@ function updateBrowserUrl(path: string, replace?: boolean): void {
 }
 
 /**
- * Update URL with path and params.
+ * Update the URL with a path and params, then trigger change detection.
+ *
+ * Serializes `path` + `params` via `toUri`, calls `updateBrowserUrl`, and in
+ * history mode manually triggers `Router.notify()` (since `pushState` fires
+ * no event). Sets the `silent` flag if `silentFlag` is true.
  */
 function updateUrl(
   path: string,
@@ -561,12 +604,21 @@ export const Router: RouterApi = {
   },
 };
 
-/** Mark framework as booted (called by Framework.boot) */
+/**
+ * Mark the Router as booted (called by `Framework.boot`).
+ *
+ * After boot, `parse()` starts attaching `view`/`path` to `Location` objects
+ * via `attachViewAndPath`.
+ */
 export function markRouterBooted(): void {
   booted = true;
 }
 
-/** Get current routing mode */
+/**
+ * Get the current routing mode (`"history"` or `"hash"`).
+ *
+ * Set by `Framework.boot` via `Router._setConfig(cfg)`.
+ */
 export function getRouteMode(): "history" | "hash" {
   return routeMode;
 }

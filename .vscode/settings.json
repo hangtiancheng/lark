@@ -36,7 +36,9 @@
     "libheap",
     "libpool",
     "linkify",
+    "macrotask",
     "mbps",
+    "Microtask",
     "minisearch",
     "modelcontextprotocol",
     "monokai",
@@ -73,8 +75,8 @@
     "vitesse",
     "vnode",
     "vnodes",
-    "Yahei",
-    "xxhash"
+    "xxhash",
+    "Yahei"
   ],
   "css.validate": false
 }

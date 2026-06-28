@@ -9,6 +9,7 @@ const mockRoutes: DocsRoute[] = [
     filePath: "/project/docs/index.md",
     pageData: {
       title: "Home",
+      excerpt: "Home excerpt",
       headings: [],
       relativePath: "index.md",
     },
@@ -19,6 +20,7 @@ const mockRoutes: DocsRoute[] = [
     filePath: "/project/docs/guide/index.md",
     pageData: {
       title: "Guide",
+      excerpt: "Guide excerpt",
       headings: [],
       relativePath: "guide/index.md",
     },
@@ -29,6 +31,7 @@ const mockRoutes: DocsRoute[] = [
     filePath: "/project/docs/guide/config.md",
     pageData: {
       title: "Configuration",
+      excerpt: "Configuration excerpt",
       headings: [{ level: 2, text: "Options", slug: "options" }],
       relativePath: "guide/config.md",
     },
@@ -54,18 +57,14 @@ describe("generateRouteMap", () => {
 
 describe("generateBootModule", () => {
   it("generates import and registration statements", () => {
-    const source = generateBootModule(mockRoutes);
+    const source = generateBootModule(mockRoutes, "/project");
 
     expect(source).toContain(
       'import { registerViewClass } from "@lark.js/mvc"',
     );
-    expect(source).toContain('import view0 from "/project/docs/index.md"');
-    expect(source).toContain(
-      'import view1 from "/project/docs/guide/index.md"',
-    );
-    expect(source).toContain(
-      'import view2 from "/project/docs/guide/config.md"',
-    );
+    expect(source).toContain('import view0 from "./docs/index.md"');
+    expect(source).toContain('import view1 from "./docs/guide/index.md"');
+    expect(source).toContain('import view2 from "./docs/guide/config.md"');
     expect(source).toContain('registerViewClass("docs-index", view0)');
     expect(source).toContain('registerViewClass("docs-guide-index", view1)');
     expect(source).toContain('registerViewClass("docs-guide-config", view2)');

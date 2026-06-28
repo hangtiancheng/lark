@@ -28,7 +28,7 @@
 import type { DocsConfig, SidebarConfig } from "./types";
 import { scanDocsDir } from "./scanner";
 import { generateSidebar } from "./sidebar-generator";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import ejs from "ejs";
@@ -84,11 +84,15 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
   // Each .md is compiled by the bundler plugin (larkDocsPlugin) into a module
   // exporting { pageData, contentHtml }. The layout view calls loadContent()
   // on navigation to fetch the matching page.
+  // Use relative paths so the generated file is portable across machines.
+  // Absolute paths leak the developer's local directory and break on CI or
+  // when the repo is cloned elsewhere.
   const loaderEntries = routes
-    .map(
-      (r) =>
-        `${JSON.stringify(r.path)}: () => import(${JSON.stringify(r.filePath)}),`,
-    )
+    .map((r) => {
+      const rel = relative(generatedDir, r.filePath).replace(/\\/g, "/");
+      const specifier = rel.startsWith(".") ? rel : "./" + rel;
+      return `${JSON.stringify(r.path)}: () => import(${JSON.stringify(specifier)}),`;
+    })
     .join("\n");
 
   // Canonical paths of real content routes (excluding virtual index routes).

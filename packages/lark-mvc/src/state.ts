@@ -1,10 +1,21 @@
 /**
  * Observable in-memory data object for cross-view data sharing.
  *
- * State is the recommended choice for SIMPLE cross-view data:
- * lightweight shared values (counters, toggles, page title, session info, etc.)
- * For COMPLEX reactive state — handlers, derived data, multi-instance
- * isolation, or store-internal reactions — prefer `create` from `./store`.
+ * `State` is the recommended choice for **simple** cross-view data:
+ * lightweight shared values (counters, toggles, page title, session info, etc.).
+ * For **complex** reactive state — handlers, derived data, multi-instance
+ * isolation, or store-internal reactions — prefer `createStore` from `./store`.
+ *
+ * ## Lifecycle
+ *
+ * Write: `State.set(data)` + `State.digest()`
+ * Read: `State.get(key)` or `State.get()` (entire object)
+ * Subscribe: `ctx.observeState("keys")` or `State.on("changed", fn)`
+ * Cleanup: `State.clean("keys")(ctx)` — reference-counted, auto-reclaims keys
+ *   when the last observer is destroyed
+ *
+ * `digest()` batches changes — multiple `set()` calls accumulate changed keys,
+ * and a single `digest()` fires one `changed` event with all of them.
  */
 import { RouterEvents } from "./common";
 import { hasOwnProperty, setData, EMPTY_STRING_SET } from "./utils";
@@ -38,7 +49,13 @@ export function markBooted(): void {
   void booted;
 }
 
-/** Increment reference count for keys */
+/**
+ * Increment the reference count for each observed key.
+ *
+ * Called by `State.clean(keys)(ctx)` during view setup. When a key is first
+ * observed (count goes 0→1), it is ready to be set. The reference count
+ * prevents premature cleanup when multiple views observe the same key.
+ */
 function setupKeysRef(keys: string): string[] {
   const keyList = keys.split(",");
   for (const key of keyList) {
@@ -51,7 +68,13 @@ function setupKeysRef(keys: string): string[] {
   return keyList;
 }
 
-/** Decrement reference count for keys, delete data if count reaches 0 */
+/**
+ * Decrement the reference count for each key, deleting data when it reaches 0.
+ *
+ * Called on view destroy (registered by `State.clean`). When the last observer
+ * of a key is destroyed (count goes 1→0), the key's data is deleted from
+ * `appData` to prevent memory leaks.
+ */
 function teardownKeysRef(keyList: string[]): void {
   for (const key of keyList) {
     if (hasOwnProperty(keyRefCounts, key)) {

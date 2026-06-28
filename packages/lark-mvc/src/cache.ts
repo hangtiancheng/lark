@@ -1,8 +1,14 @@
 /**
- * LRU-like cache with frequency-based eviction (functional factory).
+ * LFU-style bounded cache with frequency-based eviction (functional factory).
  *
- * Replaces the former `Cache` class with a `createCache()` factory.
- * No `class`, no `this`, no `prototype`.
+ * Entries are tracked in a flat array (`entries`) plus a `lookup` Map for
+ * O(1) get/set. On `get`, the entry's frequency and last-access timestamp
+ * are bumped. When capacity (`maxSize + bufferSize`) is exceeded, the
+ * `bufferSize` worst entries are evicted in a single pass.
+ *
+ * Eviction uses single-pass partial selection (O(n·k)) instead of sorting the
+ * entire array (O(n log n)). For the typical `bufferSize = 5`, this is
+ * effectively a linear scan with at most 5 in-bucket comparisons per iteration.
  */
 import { SPLITTER, nextCounter } from "./common";
 import type { CacheEntry, CacheApi, CacheOptions } from "./types";
@@ -43,6 +49,7 @@ export function createCache<T = unknown>(options: CacheOptions<T> = {}): CacheAp
     return SPLITTER + key;
   }
 
+  /** Read a value by key, bumping its frequency and timestamp on hit. */
   function get(key: string): T | undefined {
     const prefixedKey = prefixKey(key);
     const entry = lookup.get(prefixedKey);
@@ -52,12 +59,17 @@ export function createCache<T = unknown>(options: CacheOptions<T> = {}): CacheAp
     return entry.value;
   }
 
+  /** Iterate over all cached values in insertion order. */
   function forEach(callback: (value: T | undefined) => void): void {
     for (const entry of entries) {
       callback(entry.value);
     }
   }
 
+  /**
+   * Store a value under `key`. If the key exists, updates the value and bumps
+   * frequency. If the cache is at capacity, evicts the worst entries first.
+   */
   function set(key: string, value: T): void {
     const prefixedKey = prefixKey(key);
     const existing = lookup.get(prefixedKey);
@@ -83,6 +95,9 @@ export function createCache<T = unknown>(options: CacheOptions<T> = {}): CacheAp
     lookup.set(prefixedKey, entry);
   }
 
+  /**
+   * Remove a key from the cache immediately. Fires `onRemove` if configured.
+   */
   function del(key: string): void {
     const prefixedKey = prefixKey(key);
     const entry = lookup.get(prefixedKey);
@@ -97,10 +112,14 @@ export function createCache<T = unknown>(options: CacheOptions<T> = {}): CacheAp
     }
   }
 
+  /** Check whether a key exists in the cache (without bumping frequency). */
   function has(key: string): boolean {
     return lookup.has(prefixKey(key));
   }
 
+  /**
+   * Remove all entries, firing `onRemove` for each if configured.
+   */
   function clear(): void {
     if (onRemove) {
       for (const entry of entries) {
@@ -157,6 +176,7 @@ export function createCache<T = unknown>(options: CacheOptions<T> = {}): CacheAp
     entries = entries.filter((e) => !evictSet.has(e));
   }
 
+  /** Get the current number of cached entries. */
   function getSize(): number {
     return entries.length;
   }

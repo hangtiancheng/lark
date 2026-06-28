@@ -2,9 +2,8 @@
  * SearchView - client-side full-text search dialog (local provider).
  *
  * Uses MiniSearch (same engine as VitePress) for prefix matching, fuzzy
- * matching, and field-weighted scoring. The search index is built at
- * compile time (buildSearchIndex) and embedded in docsConfig.searchIndex;
- * this view lazily constructs a MiniSearch instance on first query.
+ * matching, and field-weighted scoring. The search index is built lazily
+ * from getSearchIndex (injected into State) on the first query.
  *
  * Open/close state is driven by State.searchOpen so the layout's navbar
  * button can toggle this sub-view without a direct reference.
@@ -12,8 +11,24 @@
 import MiniSearch, { type SearchResult } from "minisearch";
 import { State, Router, defineView } from "@lark.js/mvc";
 import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
+import { z } from "zod";
 import { icons as defaultIcons } from "./icons";
 import type { SearchEntry } from "../types";
+
+const SearchEntrySchema = z.object({
+  title: z.string(),
+  link: z.string(),
+  headings: z.array(z.string()),
+  excerpt: z.string(),
+});
+type RuntimeSearchEntry = z.infer<typeof SearchEntrySchema>;
+
+// JS cannot runtime-verify a function's signature; validate it is a function
+// and rely on the declared type at call sites.
+type GetSearchIndexFn = () => Promise<RuntimeSearchEntry[]>;
+const GetSearchIndexSchema = z.custom<GetSearchIndexFn>(
+  (v) => typeof v === "function",
+);
 
 export function createSearchView(
   template: ViewTemplate | VDomTemplate,
@@ -41,20 +56,20 @@ export function createSearchView(
       return ctx.updater.altered();
     };
 
-    // Initial assign
+    // Initial assign so the modal has a baseline state before the first
+    // observeState-triggered render. renderMethod re-assigns on subsequent
+    // toggles; altered() deduplicates no-op updates (P2-14).
     assign();
 
-    // Use renderMethod to hook into the framework's render cycle.
-    // observeState triggers render; we re-read State and focus input here.
     ctx.renderMethod = () => {
       assign();
       ctx.updater.digest();
       if (ctx.updater.get("isOpen")) {
         requestAnimationFrame(() => {
-          const input = document.getElementById(
-            "docs-search-input",
-          ) as HTMLInputElement | null;
-          input?.focus();
+          const el = document.getElementById("docs-search-input");
+          if (el instanceof HTMLInputElement) {
+            el.focus();
+          }
         });
       }
     };
@@ -67,24 +82,27 @@ export function createSearchView(
      */
     async function ensureMiniSearch(): Promise<MiniSearch | null> {
       if (mini) return mini;
-      const getSearchIndex = State.get("getSearchIndex") as
-        | (() => Promise<
-            {
-              title: string;
-              link: string;
-              headings: string[];
-              excerpt: string;
-            }[]
-          >)
-        | undefined;
-      if (!getSearchIndex) return null;
-      const index = await getSearchIndex();
-      if (!index.length) return null;
+      const fnParse = GetSearchIndexSchema.safeParse(
+        State.get("getSearchIndex"),
+      );
+      if (!fnParse.success) {
+        console.warn(
+          "[@lark.js/docs] getSearchIndex not injected — search is unavailable.",
+        );
+        return null;
+      }
+      const rawIndex = await fnParse.data();
+      const indexParse = z.array(SearchEntrySchema).safeParse(rawIndex);
+      if (!indexParse.success) {
+        console.warn(
+          "[@lark.js/docs] search index failed validation — search is unavailable.",
+        );
+        return null;
+      }
+      const index = indexParse.data;
+      if (index.length === 0) return null;
 
-      const docs = index.map((entry, i) => ({
-        ...entry,
-        id: i,
-      }));
+      const docs = index.map((entry, i) => ({ ...entry, id: i }));
       mini = new MiniSearch({
         fields: ["title", "headings", "excerpt"],
         storeFields: ["title", "link", "headings", "excerpt"],
@@ -102,10 +120,11 @@ export function createSearchView(
       template,
       assign,
       events: {
-        "onModalClick<click>": (e: { eventTarget?: HTMLElement }) => {
+        "onModalClick<click>": (e: { eventTarget?: EventTarget | null }) => {
           // Only close when the click lands on the modal backdrop itself,
-          // not on content inside the modal-box (input, results, etc.).
-          if (e.eventTarget?.id === "docs-search-modal") {
+          // not on content inside the modal-box.
+          const t = e.eventTarget;
+          if (t instanceof HTMLElement && t.id === "docs-search-modal") {
             State.set({ searchOpen: false }).digest();
           }
         },
@@ -113,8 +132,8 @@ export function createSearchView(
           // Prevent click propagation from modal-box to modal overlay.
         },
         "onSearchInput<input>": async (e: Event) => {
-          const input = e.target as HTMLInputElement;
-          const query = input?.value || "";
+          const input = e.target instanceof HTMLInputElement ? e.target : null;
+          const query = input?.value ?? "";
 
           if (!query.trim()) {
             ctx.updater
@@ -147,11 +166,9 @@ export function createSearchView(
         "goToResult<click>": (e: Event) => {
           // The click may land on a child element (<p>, <mark>) inside the <a>,
           // so walk up to find the element carrying data-href.
-          let target = e.target as HTMLElement | null;
-          while (target && !target.dataset["href"]) {
-            target = target.parentElement;
-          }
-          const href = target?.dataset["href"];
+          let el = e.target instanceof HTMLElement ? e.target : null;
+          while (el && !el.dataset["href"]) el = el.parentElement;
+          const href = el ? (el.dataset["href"] ?? null) : null;
           if (href) {
             Router.to(href);
             State.set({ searchOpen: false }).digest();

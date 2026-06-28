@@ -72,6 +72,9 @@ export class LarkDocsPlugin {
     const test = this.options.test || /\.md$/;
     const exclude = this.options.exclude || /node_modules/;
 
+    // __filename is injected by the CJS_SHIMS banner (see vite.config.ts)
+    // for chunks that reference __filename/__dirname. Rspack resolves the
+    // loader via this absolute path to the compiled .cjs output.
     compiler.options.module.rules.push({
       test,
       exclude,

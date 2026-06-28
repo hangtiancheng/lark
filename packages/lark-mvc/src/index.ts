@@ -1,6 +1,23 @@
 /**
- * Lark Framework - barrel export.
- * Re-exports public API modules for convenient access.
+ * Lark Framework — public API barrel export.
+ *
+ * Re-exports the complete public surface of `@lark.js/mvc` from a single
+ * entry point. Consumers can `import { defineView, Framework, State, ... }`
+ * from `"@lark.js/mvc"` without knowing the internal module layout.
+ *
+ * ## API surface
+ *
+ * | Category | Exports |
+ * | -------- | ------- |
+ * | Constants | `SPLITTER`, `LARK_VIEW`, `EVENT_METHOD_REGEXP`, `RouterEvents`, `nextCounter` |
+ * | Framework | `Framework`, `defineView`, `createEmitter`, `createCache`, `createUpdater` |
+ * | State | `State`, `createStore`, `computed`, `bindStore`, `useUrlState` |
+ * | Router | `Router`, `markRouterBooted`, `getRouteMode` |
+ * | View | `defineView`, `ViewCtx`, `useState`, `useEffect`, `useStore`, ... |
+ * | Frame | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass` |
+ * | Service | `createService`, `createPayload`, `ServiceApi`, `PayloadApi` |
+ * | HMR | `hotSwapByView`, `hotSwapByTemplate`, `acceptView`, `disposeView`, ... |
+ * | VDOM | `vdomCreate`, `createVDomRef` |
  */
 
 // Constants
@@ -39,9 +56,6 @@ export { registerViewClass, invalidateViewClass } from "./frame";
 
 // Module loader (async view loading via FrameworkConfig.require)
 export { config as frameworkConfig, use } from "./module-loader";
-
-// CrossSite (micro-frontend bridge View)
-export { default as CrossSite, resetProjectsMap } from "./cross-site";
 
 // Updater (per-view data binding — functional factory)
 export { createUpdater } from "./updater";

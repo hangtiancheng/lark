@@ -240,8 +240,11 @@ function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): str
 /**
  * Build a JS props object literal from htmlparser2's parsed `attribs` map.
  *
- * Returns the JS source string (e.g. `{class:'foo',id:'x'+$strSafe(expr)}`)
- * or `"null"` if there are no attributes.
+ * Each attribute value is resolved via `vdomResolveAttrValue` — which handles
+ * template expression placeholders (`\x00N\x00`) and view-ID markers (`\x1f`).
+ *
+ * @returns The JS source string (e.g. `{class:'foo',id:'x'+$strSafe(expr)}`),
+ *   or `"null"` if there are no attributes.
  */
 function vdomBuildPropsFromAttribs(
   attribs: Record<string, string> | undefined,
@@ -327,6 +330,7 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
     children?: HPNode[];
   }
 
+  /** Dispatch a single htmlparser2 node to the appropriate emitter (text or element). */
   function emitNode(node: HPNode, parentVar: string): void {
     const type: string = node.type;
 
@@ -338,6 +342,11 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
     // Skip: comment, directive (DOCTYPE), cdata
   }
 
+  /**
+   * Emit `$vdomCreate` calls for a text node, splitting at `\x00N\x00`
+   * placeholder boundaries so embedded template expressions become separate
+   * VDomNode children.
+   */
   function emitText(text: string, parentVar: string): void {
     // Split text at \x00N\x00 boundaries
     const parts = text.split(/\x00(\d+)\x00/);
@@ -358,6 +367,14 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
     }
   }
 
+  /**
+   * Emit a `$vdomCreate` call for a template expression placeholder.
+   *
+   * - `=`/`:` → text node with `$strSafe(content)`
+   * - `!` → raw-HTML node (children arg = `1` so vdomCreate tags it as SPLITTER)
+   * - `@` → text node with `$refFn($refAlt, content)`
+   * - code block → raw JS statement (if/for/else)
+   */
   function emitExpr(expr: VDomExprEntry, parentVar: string): void {
     if (expr.op === "=" || expr.op === ":") {
       lines.push(`${parentVar}.push($vdomCreate(0,$strSafe(${expr.content})))`);
@@ -384,6 +401,14 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
     }
   }
 
+  /**
+   * Emit `$vdomCreate` calls for an element node and its children.
+   *
+   * Allocates a child-variable array, recurses into children, then emits
+   * the parent `$vdomCreate(tag, props, children)` call. Void elements
+   * (br, img, input, etc.) with no children use `1` as the children arg
+   * (self-closing marker).
+   */
   function emitElement(node: HPNode, parentVar: string): void {
     const tagName: string = node.name || "";
     const children: HPNode[] = node.children || [];

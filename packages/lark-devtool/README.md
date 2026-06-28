@@ -316,7 +316,7 @@ The DetailPanel displays mvc's `SerializedViewInfo`, defined in `lark/src/devtoo
 | `hasTemplate`                  | Whether the View has a template function                                          |
 | `eventMethodKeys`              | Delegated event method names (keys from `$evtObjMap`)                             |
 | `resourceKeys`                 | Resource manager key list                                                         |
-| `hasAssign`                    | Whether the View has an assign method (supports CrossSite reuse)                  |
+| `hasAssign`                    | Whether the View has an assign method                                             |
 | `updaterData`                  | Shallow copy of Updater refData (primitives preserved, objects become `[object]`) |
 
 ---

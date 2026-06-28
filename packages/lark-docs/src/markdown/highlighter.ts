@@ -58,32 +58,54 @@ const DEFAULT_LANGUAGES: BundledLanguage[] = [
   "zsh",
 ];
 
-let highlighter: Highlighter | null = null;
-let initPromise: Promise<Highlighter> | null = null;
+// Cache highlighters by theme+languages so that different configs (e.g. in
+// multi-site builds or tests) get correctly-themed highlighters instead of
+// sharing the first-created singleton.
+const cache = new Map<string, Highlighter>();
+const initPromises = new Map<string, Promise<Highlighter>>();
+
+function cacheKey(
+  theme: string | undefined,
+  languages: string[] | undefined,
+): string {
+  const langs = (languages ?? []).slice().sort().join(",") || "default";
+  return `${theme ?? "github-dark"}:${langs}`;
+}
 
 /**
- * Get or create the Shiki highlighter singleton.
- * Thread-safe: concurrent calls share the same init promise.
+ * Get or create the Shiki highlighter for the given theme+languages.
+ * Thread-safe: concurrent calls with the same key share the init promise.
  */
 export async function getHighlighter(
   theme?: string,
   languages?: string[],
 ): Promise<Highlighter> {
-  if (highlighter) return highlighter;
-  if (initPromise) return initPromise;
+  const key = cacheKey(theme, languages);
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const existing = initPromises.get(key);
+  if (existing) return existing;
 
-  initPromise = (async () => {
+  const promise = (async () => {
     const { createHighlighter } = await import("shiki");
-
-    highlighter = await createHighlighter({
+    const h = await createHighlighter({
       themes: [theme ?? "github-dark"],
       langs: (languages as BundledLanguage[]) ?? DEFAULT_LANGUAGES,
     });
-
-    return highlighter;
+    cache.set(key, h);
+    initPromises.delete(key);
+    return h;
   })();
+  initPromises.set(key, promise);
+  return promise;
+}
 
-  return initPromise;
+/**
+ * Reset the highlighter cache. Useful for tests and config switches.
+ */
+export function resetHighlighter(): void {
+  cache.clear();
+  initPromises.clear();
 }
 
 /**

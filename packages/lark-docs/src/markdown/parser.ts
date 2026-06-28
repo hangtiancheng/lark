@@ -27,7 +27,7 @@ export function createParser(options?: MarkdownOptions): MarkdownIt {
   md.use(anchorPlugin, { permalink: options?.anchor?.permalink ?? true });
   md.use(tocPlugin, { level: options?.toc?.level ?? [2, 3] });
   md.use(containerPlugin, options?.containers);
-  md.use(codeBlockPlugin, { lineNumbers: options?.lineNumbers ?? false });
+  md.use(codeBlockPlugin);
 
   // Override link rendering: internal links get @click for SPA navigation,
   // external links open in a new tab.

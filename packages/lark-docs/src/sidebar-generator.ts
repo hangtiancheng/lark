@@ -19,9 +19,11 @@ import { sortDocsRoutes } from "./utils/route-sorting";
 export function generateSidebar(
   routes: DocsRoute[],
   prefix: string,
-  baseUrl: string,
+  _baseUrl: string,
 ): SidebarItem[] {
-  const normalizedPrefix = normalizePrefix(baseUrl, prefix);
+  // _baseUrl is accepted for API compatibility but not used — prefix already
+  // carries the full path (including baseUrl) from the sidebar config keys.
+  const normalizedPrefix = normalizePrefix(prefix);
   // Exclude virtual index routes (directories without index.md) — they
   // duplicate the first page's content and should not appear in the sidebar.
   // Match routes that equal the prefix or start with prefix + "/".
@@ -78,7 +80,7 @@ export function generateSidebar(
   return items;
 }
 
-function normalizePrefix(_baseUrl: string, prefix: string): string {
+function normalizePrefix(prefix: string): string {
   // Strip trailing slashes so prefix matching works with non-trailing-slash
   // route paths. e.g. "/docs/get-started/" → "/docs/get-started"
   return prefix.replace(/\/+$/, "");

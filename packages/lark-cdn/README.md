@@ -384,7 +384,7 @@ POST /api/publish                   -> 201 ProjectConfig
 ```json
 [
   {
-    "name": "admin",
+    "name": "admin-dist-vite",
     "distPath": "/ws/packages/admin/dist-vite",
     "type": "dist-vite",
     "version": "1.0.0"
@@ -398,7 +398,7 @@ The `version` field is read from `<dist>/../package.json`; if reading fails, it 
 
 ```json
 {
-  "name": "admin",
+  "name": "admin-dist-vite",
   "version": "2.0.0-beta",
   "distPath": "/abs/path/to/admin/dist-vite"
 }
@@ -422,15 +422,15 @@ cd /ws/packages/admin && npm run build
 
 # 2. Discover the build artifact
 curl -s http://localhost:3300/api/discover | jq
-# [ { "name": "admin", "distPath": "/ws/packages/admin/dist-vite", "type": "dist-vite", "version": "1.0.0" } ]
+# [ { "name": "admin-dist-vite", "distPath": "/ws/packages/admin/dist-vite", "type": "dist-vite", "version": "1.0.0" } ]
 
 # 3. Publish (automatically creates the project on first run)
 curl -X POST http://localhost:3300/api/publish \
   -H 'Content-Type: application/json' \
-  -d '{"name":"admin","version":"1.0.0","distPath":"/ws/packages/admin/dist-vite"}'
+  -d '{"name":"admin-dist-vite","version":"1.0.0","distPath":"/ws/packages/admin/dist-vite"}'
 
 # 4. Access immediately
-curl -i http://localhost:3300/cdn/admin/index.html
+curl -i http://localhost:3300/cdn/admin-dist-vite/index.html
 # 200 + X-CDN-Version: 1.0.0 + X-Resolution-Source: weighted-random
 ```
 
@@ -443,8 +443,8 @@ Changes take effect immediately after publish with no restart required. Subseque
 - Starting point: `CDN_WORKSPACE_ROOT` (default `../` relative to the server process cwd)
 - Maximum depth: 3 levels (covers typical monorepo layouts like `packages/foo/dist` and `apps/bar/dist-vite`)
 - Skipped directories (17 items): `.cache` `.git` `.pnpm-store` `.vite` `.vscode` `bin` `build` `coverage` `dist` `dist-ssr` `dist-vite` `dist-webpack` `node_modules` `out` `output` `temp` `tmp`
-- Candidate dist names (by priority): `dist-webpack` > `dist-vite` > `dist`
-- Stops at first match (a single project will not return multiple dist types)
+- Candidate dist names: `dist` / `dist-ssr` / `dist-rsbuild` / `dist-rollup` / `dist-rspack` / `dist-tsup` / `dist-webpack` / `dist-vite`
+- Returns all found dist directories as separate entries (a single project may yield multiple dist types); non-`dist` entries are named `<package>-<distType>` (e.g. `admin-dist-vite`) so the name stays URL-safe and passes the projectName regex
 - Version number read from `<dist>/../package.json`
 
 Note: Adding dist directory names to SKIP_DIRS is intentional -- it prevents the scanner from recursing into a project's inner layer and treating it as an independent project (e.g., `proj/dist/sub/dist`).

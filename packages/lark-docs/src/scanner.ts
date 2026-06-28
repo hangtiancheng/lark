@@ -19,6 +19,7 @@ import type { DocsRoute, PageData } from "./types";
 import { extractFrontmatter } from "./markdown/frontmatter";
 import { deriveTitleFromPath } from "./utils/derive-title";
 import {
+  extractExcerpt,
   extractFirstHeading,
   extractHeadings,
 } from "./utils/heading-extraction";
@@ -89,7 +90,11 @@ export function scanDocsDir(
       // routeSegment: "" for root index, "/guide" for subdir index,
       // "/ch1" for root file, "/guide/config" for subdir file
       const routeSegment = isIndex ? prefix : `${prefix}/${stem}`;
-      const fullRoutePath = effectiveBase + routeSegment || "/";
+      // Explicit precedence: `+` binds tighter than `||`, so the original
+      // `effectiveBase + routeSegment || "/"` was technically correct but
+      // relied on implicit precedence. Make it obvious.
+      const computedPath = effectiveBase + routeSegment;
+      const fullRoutePath = computedPath || "/";
       const viewId = generateViewId(routeSegment, isIndex);
 
       // Read and parse
@@ -107,6 +112,7 @@ export function scanDocsDir(
           extractFirstHeading(content) ||
           derivedTitle,
         description: (frontmatter["description"] as string) || derivedTitle,
+        excerpt: extractExcerpt(content),
         sidebarPosition: frontmatter["sidebar_position"] as number | undefined,
         sidebarLabel: frontmatter["sidebar_label"] as string | undefined,
         sidebarGroup: frontmatter["sidebar_group"] as string | undefined,
@@ -148,7 +154,8 @@ export function scanDocsDir(
     if (!firstRoute) continue;
 
     const routeSegment = prefix; // treated as index
-    const fullRoutePath = effectiveBase + routeSegment || "/";
+    const computedPath = effectiveBase + routeSegment;
+    const fullRoutePath = computedPath || "/";
 
     const virtualRoute: DocsRoute = {
       path: fullRoutePath,

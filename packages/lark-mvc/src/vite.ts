@@ -26,7 +26,7 @@ import type { Plugin as Plugin7 } from "vite7";
 import { dirname, isAbsolute, join, resolve } from "path";
 import { existsSync, readFileSync } from "fs";
 import { compileTemplate, extractGlobalVars } from "./compiler";
-import { injectTemplateHmrSnippet, injectViewHmr } from "./hmr-inject";
+import { injectTemplateHmrSnippet, injectViewHmr, importsHtmlTemplate } from "./hmr-inject";
 
 export interface LarkMvcVitePluginOptions {
   /** Enable debug mode with line tracking (default: false) */
@@ -115,7 +115,11 @@ export function larkMvcPlugin(options: LarkMvcVitePluginOptions = {}): Plugin {
         // Auto-inject HMR: the compiled template module self-accepts, so
         // .html changes hot-swap the template on all mounted views without
         // a full page reload — no user-side code required (like React/Vue).
-        return injectTemplateHmrSnippet(compiled, "vite");
+        //
+        // Return { code, map: null } so Rolldown knows this plugin does not
+        // emit a sourcemap for the compiled output. Returning a bare string
+        // triggers [SOURCEMAP_BROKEN] warnings when build.sourcemap is true.
+        return { code: injectTemplateHmrSnippet(compiled, "vite"), map: null };
       }
       return undefined;
     },
@@ -132,7 +136,18 @@ export function larkMvcPlugin(options: LarkMvcVitePluginOptions = {}): Plugin {
       // Only process .ts files (skip .html, node_modules, etc.)
       if (!/\.[tj]s$/.test(id)) return undefined;
       if (id.includes("node_modules")) return undefined;
-      return injectViewHmr(code, "vite");
+      // Fast-path: skip files that don't import .html templates.
+      // Running injectViewHmr on every .ts file and returning the (unchanged)
+      // string would be treated as a transformation by Rolldown, triggering
+      // [SOURCEMAP_BROKEN] warnings when build.sourcemap is true.
+      if (!importsHtmlTemplate(code)) return undefined;
+      const transformed = injectViewHmr(code, "vite");
+      // If no `export default` was found, injectViewHmr returns the source
+      // unchanged — skip to avoid a no-op transformation.
+      if (transformed === code) return undefined;
+      // Return { code, map: null } so Rolldown knows we don't emit a
+      // sourcemap for the HMR injection, suppressing SOURCEMAP_BROKEN.
+      return { code: transformed, map: null };
     },
   };
 }
@@ -164,7 +179,12 @@ export function larkMvcPluginLegacy(
         const raw = readFileSync(filePath, "utf-8");
         // Auto-extract variables from template for 0-config experience
         const globalVars = await extractGlobalVars(raw);
-        return compileTemplate(raw, { debug, globalVars, virtualDom });
+        const compiled = await compileTemplate(raw, {
+          debug,
+          globalVars,
+          virtualDom,
+        });
+        return { code: compiled, map: null };
       }
       return undefined;
     },

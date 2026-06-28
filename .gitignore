@@ -206,4 +206,4 @@ dist-*
 packages/lark-docs/docs
 **/.lark-docs
 **/@mf-types
-packages/lark-devtool/.mf/diagnostics
+**/.mf/diagnostics

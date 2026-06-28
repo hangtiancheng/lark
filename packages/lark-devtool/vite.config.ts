@@ -42,6 +42,16 @@ export default defineConfig({
         // bundles its own React and the render tree is fully self-contained.
         // The host never touches React, so there is no sharing needed.
       },
+      // Disable the DTS plugin's "dynamic remote type hints" feature in dev.
+      // This feature scans the browser at runtime and discovers remotes that
+      // aren't in the `remotes` config above. In our circular-remote setup
+      // (lark-demo ↔ lark-devtool), it misidentifies the DTS dev worker's own
+      // address (e.g. http://30.248.208.53:<random-port>) as a remote entry,
+      // then repeatedly tries to download @mf-types.zip from it — failing
+      // every time and flooding the console with "Failed to download types
+      // archive" errors. The configured remotes above already provide types
+      // via their `entry` URLs, so dynamic discovery adds no value here.
+      dev: { disableDynamicRemoteTypeHints: true },
     }),
   ],
   root: "./",

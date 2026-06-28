@@ -17,6 +17,24 @@
     "verbatimModuleSyntax": false,
     "noPropertyAccessFromIndexSignature": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+
+    // NOTE: Do NOT put `"./@mf-types"` in `types` here.
+    //
+    // The DTS plugin generates a tsconfig at node_modules/.federation/tsconfig.*.json
+    // and copies the `types` array verbatim. A relative path like `"./@mf-types"`
+    // would be resolved relative to the .federation directory — breaking with
+    // `error TS2688: Cannot find type definition file for './@mf-types'` (TYPE-001).
+    // This blocks type generation, which in turn prevents the remote host
+    // (lark-demo) from downloading @mf-types.zip from this project.
+    //
+    // Instead, @mf-types/index.d.ts is loaded via a triple-slash reference in
+    // src/vite-env.d.ts (relative to the source file, not the tsconfig).
+    // The `paths` mapping below handles `import "lark_devtool/*"` resolution.
+
+    /* Path mappings for Module Federation remote modules */
+    "paths": {
+      "lark_devtool/*": ["./@mf-types/lark_devtool/*"]
+    }
   }
 }

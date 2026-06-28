@@ -44,7 +44,7 @@ export default defineConfig({
       // Lark template processing
       config.plugins = config.plugins ?? [];
       config.plugins.push(
-        new LarkMvcPlugin({ virtualDom: true, exclude: /index\.html$/ }),
+        new LarkMvcPlugin({ vdom: true, exclude: /index\.html$/ }),
       );
 
       // Module Federation (Remote + Consumer)

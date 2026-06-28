@@ -22,7 +22,7 @@ const config: FrameworkConfig = {
   rootId: "app",
   routeMode: "history",
   routes,
-  virtualDom: false,
+  vdom: false,
   defaultPath: "/lark/",
   // All /docs/* routes map to "theme/docs-layout" (see generated routes).
   // The layout stays mounted across navigation; observeLocation triggers
@@ -36,7 +36,7 @@ const config: FrameworkConfig = {
 
 // === Register theme views ===
 // Pass config so registerThemeViews selects the correct template mode
-// (string vs VDOM) based on virtualDom. Must be called before Framework.boot()
+// (string vs VDOM) based on vdom. Must be called before Framework.boot()
 // so views are registered when the default view is mounted during boot.
 registerThemeViews(config);
 

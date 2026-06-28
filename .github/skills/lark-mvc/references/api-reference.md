@@ -905,7 +905,7 @@ CrossSite renders a skeleton, loads the remote `prepare` module via `use("projec
 
 ## VDOM
 
-Virtual DOM types and functions. Used when `FrameworkConfig.virtualDom` is `true`.
+Virtual DOM types and functions. Used when `FrameworkConfig.vdom` is `true`.
 
 ```ts
 import { vdomCreate, createVDomRef } from "@lark.js/mvc";
@@ -1017,12 +1017,12 @@ function compileTemplate(
     debug?: boolean;
     globalVars?: string[];
     file?: string;
-    virtualDom?: boolean;
+    vdom?: boolean;
   },
 ): string;
 ```
 
-The output imports runtime helpers from `@lark.js/mvc/runtime` and exports a default function `(data, viewId, refData) => string` (or `=> VDomNode` when `virtualDom: true`).
+The output imports runtime helpers from `@lark.js/mvc/runtime` and exports a default function `(data, viewId, refData) => string` (or `=> VDomNode` when `vdom: true`).
 
 ### extractGlobalVars(source)
 
@@ -1078,7 +1078,7 @@ import { larkMvcPlugin } from "@lark.js/mvc/vite"
 
 larkMvcPlugin(options?: {
   debug?: boolean
-  virtualDom?: boolean
+  vdom?: boolean
 }): Plugin
 ```
 
@@ -1110,7 +1110,7 @@ Rspack plugin that auto-registers the loader rule. The loader returns a Promise 
 
 ```js
 export default {
-  plugins: [new LarkMvcPlugin({ virtualDom: true })],
+  plugins: [new LarkMvcPlugin({ vdom: true })],
 };
 ```
 
@@ -1144,7 +1144,7 @@ interface FrameworkConfig {
   skipViewRendered?: boolean;
   projectName?: string;
   crossSites?: CrossSiteConfig[];
-  virtualDom?: boolean;
+  vdom?: boolean;
 }
 ```
 
@@ -2690,7 +2690,7 @@ export default HomeView;
 
 ## VDOM
 
-Virtual DOM types and functions. Used when `FrameworkConfig.virtualDom` is `true`. Imported via `import { vdomCreate, createVDomRef } from '@lark.js/mvc'`.
+Virtual DOM types and functions. Used when `FrameworkConfig.vdom` is `true`. Imported via `import { vdomCreate, createVDomRef } from '@lark.js/mvc'`.
 
 ### VDomNode
 
@@ -2830,7 +2830,7 @@ function compileTemplate(
     debug?: boolean; // inject line markers + try-catch wrapper for debugging
     globalVars?: string[]; // pre-declared global variable names (destructured from $data)
     file?: string; // file path used in error messages
-    virtualDom?: boolean; // generate VDOM output instead of HTML string (default: false)
+    vdom?: boolean; // generate VDOM output instead of HTML string (default: false)
   },
 ): string;
 ```
@@ -2842,7 +2842,7 @@ import { encHtml as __larkEncHtml, strSafe as __larkStrSafe, encUri as __larkEnc
 export default function(data, viewId, refData) { ... }
 ```
 
-When `virtualDom: true`, the output imports `vdomCreate` from `@lark.js/mvc` and produces a function returning `VDomNode` instead of a string. The VDOM function signature has 7 parameters (no `$encHtml`): `($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote) => VDomNode`.
+When `vdom: true`, the output imports `vdomCreate` from `@lark.js/mvc` and produces a function returning `VDomNode` instead of a string. The VDOM function signature has 7 parameters (no `$encHtml`): `($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote) => VDomNode`.
 
 ### extractGlobalVars(source)
 
@@ -2898,7 +2898,7 @@ Vite plugin. `enforce: "pre"`. Tags `.html` imports with `?lark-template`, then 
 ```ts
 larkMvcPlugin(options?: {
   debug?: boolean;       // enable debug line markers
-  virtualDom?: boolean;  // generate VDOM template output
+  vdom?: boolean;  // generate VDOM template output
 }): Plugin
 ```
 

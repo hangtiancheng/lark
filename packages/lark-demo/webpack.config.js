@@ -71,7 +71,7 @@ export default {
           {
             loader: "@lark.js/mvc/webpack",
             options: {
-              virtualDom: true,
+              vdom: true,
             },
           },
         ],

@@ -11,7 +11,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   plugins: [
     react(),
-    larkMvcPlugin({ virtualDom: true }),
+    larkMvcPlugin({ vdom: true }),
     federation({
       name: "lark_demo", // Module federation name
       filename: "remoteEntry.js", // Entry point

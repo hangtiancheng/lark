@@ -47,7 +47,7 @@ Any task that names or clearly implies Lark:
 - Embedding remote views via Module Federation (`CrossSite`, `FrameworkConfig.require`).
 - API request layers using `createService`, `service.all/one/save`, `cleanKeys`.
 - Hot module replacement: `acceptView(hot, viewPath)`, `disposeView(hot, viewPath)`, `reloadViews(viewPath)`.
-- Choosing between the real-DOM diff renderer and the virtual-DOM diff renderer (`config.virtualDom`).
+- Choosing between the real-DOM diff renderer and the virtual-DOM diff renderer (`config.vdom`).
 
 ## Architecture
 
@@ -140,7 +140,7 @@ export default defineConfig({
 });
 ```
 
-Options: `{ debug?: boolean, virtualDom?: boolean }`.
+Options: `{ debug?: boolean, vdom?: boolean }`.
 
 **Webpack:**
 
@@ -466,7 +466,7 @@ At mount time, `Frame.mountZone` scans `v-lark` attributes, creates child Frames
 
 ## Defining the Framework Boot
 
-`Framework.boot(config)` accepts a `FrameworkConfig` with `rootId` (required), `routeMode` ("history" | "hash"), `defaultView`, `routes`, `unmatchedView`, `require` (async View loader), `virtualDom` (boolean), and more. After boot, use `Framework.getConfig(key)` for reads and `Framework.setConfig(patch)` for writes.
+`Framework.boot(config)` accepts a `FrameworkConfig` with `rootId` (required), `routeMode` ("history" | "hash"), `defaultView`, `routes`, `unmatchedView`, `require` (async View loader), `vdom` (boolean), and more. After boot, use `Framework.getConfig(key)` for reads and `Framework.setConfig(patch)` for writes.
 
 ## Router
 

@@ -566,7 +566,7 @@ export interface ViewCtx {
   /** EndUpdate pending flag (accessed via getEndUpdatePending/setEndUpdatePending) */
   getEndUpdatePending(): number | undefined;
   setEndUpdatePending(v: number | undefined): void;
-  /** Last rendered VDOM tree (only used when virtualDom is enabled) */
+  /** Last rendered VDOM tree (only used when vdom is enabled) */
   vdom?: VDomNode;
   /** Wrapped render method */
   renderMethod?: AnyFunc;
@@ -1079,7 +1079,7 @@ export interface FrameworkConfig {
    */
   crossSites?: CrossSiteConfig[];
   /** Default false. */
-  virtualDom?: boolean;
+  vdom?: boolean;
   /**
    * Enable Frame Devtool Bridge (default: true).
    * When true, installs a postMessage listener so the Lark DevTool browser
@@ -1156,5 +1156,5 @@ export interface CompileOptions {
   /** File path for debug error messages (default: undefined) */
   file?: string;
   /** Generate VDOM output instead of HTML string (default: false) */
-  virtualDom?: boolean;
+  vdom?: boolean;
 }

@@ -29,7 +29,7 @@
  *   plugins: [
  *     new LarkMvcPlugin({
  *       debug: process.env.NODE_ENV !== 'production',
- *       virtualDom: false,
+ *       vdom: false,
  *     }),
  *   ],
  * };
@@ -42,7 +42,7 @@
  *     rules: [{
  *       test: /\.html$/,
  *       loader: '@lark.js/mvc/webpack',
- *       options: { debug: false, virtualDom: false },
+ *       options: { debug: false, vdom: false },
  *     }],
  *   },
  * };
@@ -82,13 +82,13 @@ export interface LarkMvcWebpackPluginOptions extends LarkMvcWebpackLoaderOptions
 async function larkMvcLoader(this: LoaderContext, source: string): Promise<string> {
   try {
     const options = this.getOptions() || {};
-    const { debug = false, virtualDom = false } = options;
+    const { debug = false, vdom = false } = options;
 
     const globalVars = await extractGlobalVars(source);
     const compiled = await compileTemplate(source, {
       debug,
       globalVars,
-      virtualDom,
+      vdom,
     });
     // Auto-inject HMR: the compiled template module self-accepts, so
     // .html changes hot-swap the template on all mounted views without
@@ -116,7 +116,7 @@ async function larkMvcLoader(this: LoaderContext, source: string): Promise<strin
  *   plugins: [
  *     new LarkMvcPlugin({
  *       debug: true,
- *       virtualDom: false,
+ *       vdom: false,
  *     }),
  *   ],
  * };
@@ -128,7 +128,7 @@ class LarkMvcPlugin {
   constructor(options: LarkMvcWebpackPluginOptions = {}) {
     this.options = {
       debug: false,
-      virtualDom: false,
+      vdom: false,
       test: /\.html$/,
       exclude: /node_modules/,
       ...options,
@@ -146,7 +146,7 @@ class LarkMvcPlugin {
       };
     };
   }): void {
-    const { debug, virtualDom, test, exclude } = this.options;
+    const { debug, vdom, test, exclude } = this.options;
 
     // Push the loader rule into webpack's module.rules
     compiler.options.module = compiler.options.module || {};
@@ -165,7 +165,7 @@ class LarkMvcPlugin {
           // __filename is provided by tsup's ESM shim (shims: true) in ESM output,
           // and is a native CJS global in CJS output.
           loader: __filename,
-          options: { debug, virtualDom },
+          options: { debug, vdom },
         },
       ],
     });

@@ -49,10 +49,10 @@ const MD_SUFFIX = "?lark-docs";
  * 1. lark-docs: compiles .md files to JS modules
  * 2. lark-template (from @lark.js/mvc): compiles .html templates
  *
- * The virtualDom option is read from `config.virtualDom` automatically.
+ * The vdom option is read from `config.vdom` automatically.
  */
 export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
-  const { config, debug = false, virtualDom = false } = options;
+  const { config, debug = false, vdom = false } = options;
 
   const docsPlugin: Plugin = {
     name: "lark-docs",
@@ -94,7 +94,7 @@ export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
 
   // The lark-mvc template plugin handles .html template compilation.
   // We integrate it internally so consumers don't need to configure it separately.
-  const mvcPlugin = larkMvcPlugin({ debug, virtualDom });
+  const mvcPlugin = larkMvcPlugin({ debug, vdom });
 
   return [docsPlugin, mvcPlugin as Plugin];
 }

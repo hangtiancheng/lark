@@ -4,8 +4,8 @@
 // functions at build time. The default export is a function, not a string.
 //
 // The return type is `any` because the same template function returns:
-// - `string` when virtualDom is disabled (HTML string rendering path)
-// - `VDomNode` when virtualDom is enabled (VDOM rendering path)
+// - `string` when vdom is disabled (HTML string rendering path)
+// - `VDomNode` when vdom is enabled (VDOM rendering path)
 //
 // Using `any` here avoids the union-type incompatibility with ViewSetup's
 // `template?: ViewTemplate | VDomTemplate` — the two function signatures
@@ -42,7 +42,7 @@ declare module "*.html" {
  *   __vdom — VDOM-mode:   (data, viewId, refData) => VDomNode
  *
  * registerThemeViews() selects the correct function based on the
- * consumer's FrameworkConfig.virtualDom setting at runtime.
+ * consumer's FrameworkConfig.vdom setting at runtime.
  *
  * Virtual modules (virtual:lark-docs/*) are used instead of direct .html
  * imports to avoid conflicts with larkMvcPlugin7 which intercepts all .html

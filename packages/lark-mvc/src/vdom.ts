@@ -4,7 +4,7 @@
  * Provides virtual DOM node creation, diffing, and DOM conversion.
  * Three-phase diff algorithm: head fast-path, tail fast-path, keyMap reconciliation.
  *
- * When `FrameworkConfig.virtualDom` is true, the Updater uses this engine
+ * When `FrameworkConfig.vdom` is true, the Updater uses this engine
  * instead of the string-based DOM diff in dom.ts.
  *
  * Core functions:

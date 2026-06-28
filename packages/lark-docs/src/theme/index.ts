@@ -7,7 +7,7 @@
  *
  * Templates are pre-compiled in BOTH string and VDOM modes during the
  * lib build. registerThemeViews selects the correct version based on
- * the consumer's FrameworkConfig.virtualDom setting.
+ * the consumer's FrameworkConfig.vdom setting.
  */
 import { Framework } from "@lark.js/mvc";
 import { registerViewClass } from "@lark.js/mvc";
@@ -39,13 +39,13 @@ import { createSearchView } from "./search";
 /**
  * Options for registerThemeViews.
  *
- * When called BEFORE Framework.boot(), pass { virtualDom } to indicate
+ * When called BEFORE Framework.boot(), pass { vdom } to indicate
  * which rendering mode the templates should be compiled for. When called
  * AFTER boot, the FrameworkConfig is auto-detected.
  */
 interface RegisterThemeViewsOptions {
   /** Whether to register VDOM-mode templates (default: auto-detect from config, fallback false) */
-  virtualDom?: boolean;
+  vdom?: boolean;
 }
 
 /**
@@ -54,7 +54,7 @@ interface RegisterThemeViewsOptions {
  *
  * ```ts
  * // Before Framework.boot() — pass config explicitly:
- * const config: FrameworkConfig = { ..., virtualDom: true };
+ * const config: FrameworkConfig = { ..., vdom: true };
  * registerThemeViews(View, config);
  * Framework.boot(config);
  *
@@ -68,17 +68,17 @@ interface RegisterThemeViewsOptions {
  */
 export function registerThemeViews(options?: RegisterThemeViewsOptions): void {
   // Determine rendering mode: explicit option > Framework config > default
-  const virtualDom =
-    options?.virtualDom ??
+  const vdom =
+    options?.vdom ??
     (Framework.isBooted()
-      ? Framework.getConfig<boolean | undefined>("virtualDom")
+      ? Framework.getConfig<boolean | undefined>("vdom")
       : undefined) ??
     false;
 
-  const docLayout = virtualDom ? docLayoutVdom : docLayoutStr;
-  const sidebar = virtualDom ? sidebarVdom : sidebarStr;
-  const toc = virtualDom ? tocVdom : tocStr;
-  const search = virtualDom ? searchVdom : searchStr;
+  const docLayout = vdom ? docLayoutVdom : docLayoutStr;
+  const sidebar = vdom ? sidebarVdom : sidebarStr;
+  const toc = vdom ? tocVdom : tocStr;
+  const search = vdom ? searchVdom : searchStr;
 
   registerViewClass("theme/docs-layout", createDocsLayoutView(docLayout));
   registerViewClass("theme/sidebar", createSidebarView(sidebar));

@@ -166,7 +166,7 @@ export async function compileTemplate(
   source: string,
   options: CompileOptions = {},
 ): Promise<string> {
-  const { debug = false, file, virtualDom = false } = options;
+  const { debug = false, file, vdom = false } = options;
 
   const globalVars = options.globalVars ?? (await extractGlobalVars(source));
 
@@ -187,7 +187,7 @@ export async function compileTemplate(
   // Build the variable declarations string from globalVars
   const varDeclarations = globalVars.map((key) => `,${key}=$data.${key}`).join("");
 
-  if (virtualDom) {
+  if (vdom) {
     // ── VDOM mode ──
     const funcBody = compileToVDomFunction(finalSource, debug, file);
     const funcWithVars = funcBody.replace("{{VARS}}", () => varDeclarations);

@@ -515,7 +515,7 @@ If AST parsing fails (malformed templates), a fallback regex-based extraction is
 
 ## VDOM Compilation Mode
 
-When `virtualDom: true` is passed to `compileTemplate` (or via the Vite plugin `larkMvcPlugin({ virtualDom: true })`), the compiler produces VDOM output instead of HTML strings. The compilation pipeline uses `htmlparser2` to parse the intermediate HTML and emit `vdomCreate()` call trees.
+When `vdom: true` is passed to `compileTemplate` (or via the Vite plugin `larkMvcPlugin({ vdom: true })`), the compiler produces VDOM output instead of HTML strings. The compilation pipeline uses `htmlparser2` to parse the intermediate HTML and emit `vdomCreate()` call trees.
 
 ### VDOM compilation steps
 

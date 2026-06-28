@@ -1,6 +1,6 @@
 {
   "name": "@lark.js/docs",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Documentation site generator for @lark.js/mvc",
   "keywords": [
     "@lark.js",
@@ -115,7 +115,7 @@
   "dependencies": {
     "@docsearch/css": "^4.6.3",
     "@docsearch/js": "^4.6.3",
-    "@lark.js/mvc": "workspace:^",
+    "@lark.js/mvc": "^0.0.17",
     "ejs": "^3.1.10",
     "js-yaml": "^5.2.0",
     "lucide-static": "^1.21.0",

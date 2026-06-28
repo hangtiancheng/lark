@@ -23,7 +23,7 @@ import type { FrameObj } from "../src/types";
 /**
  * Simple template function factory for testing.
  * Renders a div with a class label and the current count value.
- * Works with the string-rendering path (virtualDom disabled in tests).
+ * Works with the string-rendering path (vdom disabled in tests).
  */
 function makeTemplate(label: string): (data: unknown) => string {
   return (data: unknown) => {

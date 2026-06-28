@@ -236,7 +236,7 @@ function mergeImports(allImports: string[]): string[] {
 /**
  * Vite plugin: compiles theme .html templates in BOTH string and VDOM modes
  * so the bundled theme.js can serve either at runtime depending on the
- * consumer's FrameworkConfig.virtualDom setting.
+ * consumer's FrameworkConfig.vdom setting.
  *
  * Uses virtual modules (virtual:lark-docs/<name>) to avoid conflicts with
  * larkMvcPlugin7 which intercepts all .html imports via resolveId. Virtual
@@ -295,8 +295,8 @@ function themeDualMode(options?: { debug?: boolean }): PluginOption {
       const globalVars = await extractGlobalVars(raw);
 
       const [strResult, vdomResult] = await Promise.all([
-        compileTemplate(raw, { globalVars, virtualDom: false }),
-        compileTemplate(raw, { globalVars, virtualDom: true }),
+        compileTemplate(raw, { globalVars, vdom: false }),
+        compileTemplate(raw, { globalVars, vdom: true }),
       ]);
 
       debugLog({ step: "compile", name, strResult, vdomResult });
@@ -394,7 +394,7 @@ function docsConfig(options?: { isDev?: boolean }): UserConfig {
       themeDualMode({ debug: isDev }) as PluginOption,
       ...larkDocsPlugin({
         config: larkDocsConfig,
-        virtualDom: false,
+        vdom: false,
         debug: true,
       }),
       tailwindcss() as PluginOption,
@@ -473,6 +473,7 @@ function docsConfig(options?: { isDev?: boolean }): UserConfig {
       alias: {
         "@lark-docs/generated": resolve(PKG_DIR, ".lark-docs/generated"),
         "@lark.js/docs": resolve(PKG_DIR, "src"),
+        "@lark.js/mvc": resolve(PKG_DIR, "../lark-mvc/dist"),
       },
     },
     build: {

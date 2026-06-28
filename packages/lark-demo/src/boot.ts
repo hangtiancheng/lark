@@ -61,7 +61,7 @@ const config: FrameworkConfig = {
   },
   unmatchedView: "404",
   rootId: "app",
-  virtualDom: true,
+  vdom: true,
   devtool: true,
   error(e: Error) {
     console.error("Lark application error:", e);

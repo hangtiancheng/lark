@@ -21,7 +21,7 @@ async function compileAndRun(
   globalVars: string[] = [],
 ): Promise<VDomNode> {
   const moduleSource = await compileTemplate(template, {
-    virtualDom: true,
+    vdom: true,
     globalVars,
   });
 
@@ -49,7 +49,7 @@ async function compileSource(
   template: string,
   options: { debug?: boolean; globalVars?: string[] } = {},
 ): Promise<string> {
-  return compileTemplate(template, { virtualDom: true, ...options });
+  return compileTemplate(template, { vdom: true, ...options });
 }
 
 // ===== Tests =====
@@ -522,7 +522,7 @@ describe("VDOM Compiler", () => {
 
   // ===== F. String mode regression =====
   describe("string mode (regression)", () => {
-    it("still generates HTML string output when virtualDom is false", async () => {
+    it("still generates HTML string output when vdom is false", async () => {
       const src = await compileTemplate("<div>{{=name}}</div>", {
         globalVars: ["name"],
       });
@@ -531,7 +531,7 @@ describe("VDOM Compiler", () => {
       expect(src).toContain("$out");
     });
 
-    it("still generates HTML string when virtualDom is not specified", async () => {
+    it("still generates HTML string when vdom is not specified", async () => {
       const src = await compileTemplate("<p>hello</p>");
       expect(src).toContain("encHtml");
       expect(src).not.toContain("vdomCreate");

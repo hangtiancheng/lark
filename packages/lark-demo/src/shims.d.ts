@@ -7,7 +7,6 @@
 // `types` path would break there. Triple-slash paths are resolved relative to
 // the source file, so they work regardless of tsconfig location.
 
-
 // CSS module type declarations
 // Regular .css files return a string (the CSS text)
 declare module "*.css" {
@@ -27,8 +26,8 @@ declare module "*.module.css" {
 // functions at build time. The default export is a function, not a string.
 //
 // The return type is `any` because the same template function returns:
-// - `string` when virtualDom is disabled (HTML string rendering path)
-// - `VDomNode` when virtualDom is enabled (VDOM rendering path)
+// - `string` when vdom is disabled (HTML string rendering path)
+// - `VDomNode` when vdom is enabled (VDOM rendering path)
 //
 // Using `any` here avoids the union-type incompatibility with ViewSetup's
 // `template?: ViewTemplate | VDomTemplate` — the two function signatures

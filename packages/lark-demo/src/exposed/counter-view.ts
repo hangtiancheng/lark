@@ -66,15 +66,15 @@ export function mountCounter(container: HTMLElement): () => void {
   // so this block always executes — which is fine because config()
   // just merges config and EventDelegator.setFrameGetter is idempotent.
   //
-  // virtualDom: true MUST match the build-time loader option.
-  // Templates in this remote module are compiled with virtualDom: true,
+  // vdom: true MUST match the build-time loader option.
+  // Templates in this remote module are compiled with vdom: true,
   // so they return VDomNode objects instead of HTML strings. If the
-  // runtime config has virtualDom: false (default), the updater takes
+  // runtime config has vdom: false (default), the updater takes
   // the string rendering path and treats VDomNode objects as HTML
   // strings → "[object Object]" in the DOM.
   Framework.setConfig({
     rootId: containerId,
-    virtualDom: true,
+    vdom: true,
     error(e: Error) {
       console.error("[MF Counter View]", e);
     },

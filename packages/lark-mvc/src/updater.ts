@@ -61,7 +61,7 @@ export function createUpdater(viewId: string): UpdaterApi {
   /** Snapshot of `version` taken by `snapshot()`, used by `altered()`. */
   let snapshotVersion: number | undefined;
 
-  /** Last rendered VDOM tree (only used when virtualDom is enabled) */
+  /** Last rendered VDOM tree (only used when vdom is enabled) */
   let vdom: VDomNode | undefined;
 
   // Initial digest always triggers

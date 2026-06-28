@@ -28,8 +28,7 @@ if (typeof module !== "undefined" && module.hot) {
   });
   module.hot.accept(function () {
     var __larkNew = "${TEMPLATE_VAR}";
-    var __larkOld =
-      module.hot && module.hot.data && module.hot.data.oldTemplate;
+    var __larkOld = module.hot && module.hot.data && module.hot.data.oldTemplate;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
       import("@lark.js/mvc").then(function (m) {
         if (m && m.hotSwapByTemplate) m.hotSwapByTemplate(__larkOld, __larkNew);

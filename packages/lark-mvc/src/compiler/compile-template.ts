@@ -16,11 +16,7 @@ import { extractGlobalVars } from "./extract-global-vars";
  * Output is an arrow function: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)=>{...}
  * that returns the rendered HTML string.
  */
-function compileToFunction(
-  source: string,
-  debug: boolean,
-  file?: string,
-): string {
+function compileToFunction(source: string, debug: boolean, file?: string): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
   let funcSource = `$out+='`;
@@ -40,25 +36,18 @@ function compileToFunction(
 
     if (debug) {
       // Debug mode: extract expression and art info for error reporting
-      let expr = source.substring(
-        index - match.length + 2 + (operate ? 1 : 0),
-        index - 2,
-      );
+      let expr = source.substring(index - match.length + 2 + (operate ? 1 : 0), index - 2);
       // Use String.fromCharCode to safely construct regexp with \x11 control character
       const x11 = String.fromCharCode(0x11);
       const artRegExp = new RegExp(`^'(\\d+)${x11}([^${x11}]+)${x11}'$`);
       const artM = expr.match(artRegExp);
       let art = "";
-      let line = -1;
 
       if (artM) {
         expr = expr.replace(artRegExp, "");
         art = artM[2];
-        line = parseInt(artM[1], 10);
       } else {
-        expr = expr
-          .replace(escapeSlashRegExp, "\\$&")
-          .replace(escapeBreakReturnRegExp, "\\n");
+        expr = expr.replace(escapeSlashRegExp, "\\$&").replace(escapeBreakReturnRegExp, "\\n");
       }
 
       if (operate === "@") {
@@ -74,8 +63,8 @@ function compileToFunction(
         }
         funcSource += `'+($dbgExpr='<%${operate + expr}%>',${content})+'`;
       } else if (content) {
-        if (line > -1) {
-          funcSource += `';$dbgLine=${line};$dbgArt='${art}';`;
+        if (artM) {
+          funcSource += `';$dbgArt='${art}';`;
           content = "";
         } else {
           funcSource += `';`;
@@ -128,7 +117,7 @@ function compileToFunction(
 
   if (debug) {
     const filePart = file ? `\\r\\n\\tat file:${file}` : "";
-    funcSource = `let $dbgExpr,$dbgArt,$dbgLine;try{${funcSource}}catch(e){let msg='render error:'+(e.message||e);if($dbgArt)msg+='\\r\\n\\tsrc art:{{'+$dbgArt+'}}\\r\\n\\tat line:'+$dbgLine;msg+='\\r\\n\\t'+($dbgArt?'translate to:':'expr:');msg+=$dbgExpr+'${filePart}';throw msg;}`;
+    funcSource = `let $dbgExpr,$dbgArt;try{${funcSource}}catch(e){let msg='render error:'+(e.message||e);if($dbgArt)msg+='\\r\\n\\tsrc art:{{'+$dbgArt+'}};msg+='\\r\\n\\t'+($dbgArt?'translate to:':'expr:');msg+=$dbgExpr+'${filePart}';throw msg;}`;
   }
 
   // ─── View ID injection: \x1f → '+$viewId+' ────────────────────────
@@ -196,9 +185,7 @@ export async function compileTemplate(
   const finalSource = restoreComments(viewEventProcessed, comments);
 
   // Build the variable declarations string from globalVars
-  const varDeclarations = globalVars
-    .map((key) => `,${key}=$data.${key}`)
-    .join("");
+  const varDeclarations = globalVars.map((key) => `,${key}=$data.${key}`).join("");
 
   if (virtualDom) {
     // ── VDOM mode ──

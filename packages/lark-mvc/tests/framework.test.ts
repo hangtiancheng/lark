@@ -20,9 +20,7 @@ describe("Framework", () => {
     });
 
     it("getConfig(missingKey) returns undefined", () => {
-      expect(
-        Framework.getConfig("definitelyNotARealConfigKey_xyzzy"),
-      ).toBeUndefined();
+      expect(Framework.getConfig("definitelyNotARealConfigKey_xyzzy")).toBeUndefined();
     });
 
     it("setConfig merges and returns the merged config", () => {
@@ -171,9 +169,7 @@ describe("Framework", () => {
       child.id = "inside-child-test";
       parent.appendChild(child);
       document.body.appendChild(parent);
-      expect(
-        Framework.nodeInside("inside-child-test", "inside-parent-test"),
-      ).toBe(true);
+      expect(Framework.nodeInside("inside-child-test", "inside-parent-test")).toBe(true);
       parent.remove();
     });
   });
@@ -494,10 +490,7 @@ describe("Framework", () => {
     });
 
     it("resolves with WAIT_TIMEOUT_OR_NOT_FOUND for unknown viewId", async () => {
-      const result = await Framework.waitZoneViewsRendered(
-        "non-existent-view-id",
-        100,
-      );
+      const result = await Framework.waitZoneViewsRendered("non-existent-view-id", 100);
       expect(result).toBe(Framework.WAIT_TIMEOUT_OR_NOT_FOUND);
     });
   });

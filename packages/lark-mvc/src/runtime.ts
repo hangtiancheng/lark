@@ -12,13 +12,7 @@
  * and updater.ts all share a single copy.
  */
 
-import {
-  strSafe as commonStrSafe,
-  encodeHTML,
-  encodeURIExtra,
-  encodeQuote,
-  refFn,
-} from "./common";
+import { strSafe as commonStrSafe, encodeHTML, encodeURIExtra, encodeQuote, refFn } from "./common";
 
 /** Null-safe `String(value)` — `null`/`undefined` become `""`. */
 export const strSafe = commonStrSafe;

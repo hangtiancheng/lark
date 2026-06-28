@@ -311,17 +311,11 @@ export function domSetNode(
   const newAsEl = newNode instanceof Element ? newNode : null;
 
   const equalAsNodes =
-    oldAsEl !== null &&
-    newAsEl !== null &&
-    oldAsEl.isEqualNode &&
-    oldAsEl.isEqualNode(newAsEl);
+    oldAsEl !== null && newAsEl !== null && oldAsEl.isEqualNode && oldAsEl.isEqualNode(newAsEl);
 
   if (domSpecialDiff(oldNode, newNode) || !equalAsNodes) {
     // Same type (same nodeName and nodeType) → diff in place
-    if (
-      oldNode.nodeType === newNode.nodeType &&
-      oldNode.nodeName === newNode.nodeName
-    ) {
+    if (oldNode.nodeType === newNode.nodeType && oldNode.nodeName === newNode.nodeName) {
       if (oldAsEl !== null && newAsEl !== null) {
         const oldEl = oldAsEl;
         const newEl = newAsEl;

@@ -8,14 +8,7 @@
  * Each View has an Updater instance that tracks data changes,
  * digests them, and triggers DOM re-rendering when needed.
  */
-import {
-  setData,
-  hasOwnProperty,
-  noop,
-  getById,
-  funcWithTry,
-  EMPTY_STRING_SET,
-} from "./utils";
+import { setData, hasOwnProperty, noop, getById, funcWithTry, EMPTY_STRING_SET } from "./utils";
 import {
   SPLITTER,
   isRefToken,
@@ -25,13 +18,7 @@ import {
   encodeURIExtra,
   encodeQuote,
 } from "./common";
-import {
-  domGetNode,
-  domSetChildNodes,
-  applyDomOps,
-  applyIdUpdates,
-  createDomRef,
-} from "./dom";
+import { domGetNode, domSetChildNodes, applyDomOps, applyIdUpdates, createDomRef } from "./dom";
 import { vdomSetChildNodes, createVDomRef } from "./vdom";
 import type { UpdaterApi, VDomNode } from "./types";
 import { Frame } from "./frame";
@@ -91,16 +78,8 @@ export function createUpdater(viewId: string): UpdaterApi {
     return result as T;
   }
 
-  function set(
-    newData: Record<string, unknown>,
-    excludes?: ReadonlySet<string>,
-  ): UpdaterApi {
-    const changed = setData(
-      newData,
-      data,
-      changedKeys,
-      excludes || EMPTY_STRING_SET,
-    );
+  function set(newData: Record<string, unknown>, excludes?: ReadonlySet<string>): UpdaterApi {
+    const changed = setData(newData, data, changedKeys, excludes || EMPTY_STRING_SET);
     if (changed) {
       version++;
       hasChangedFlag = 1;

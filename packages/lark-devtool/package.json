@@ -26,8 +26,8 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@module-federation/vite": "^1.16.11",
-    "@rsbuild/core": "^2.1.0",
+    "@module-federation/vite": "^1.16.12",
+    "@rsbuild/core": "^2.1.1",
     "@rsbuild/plugin-react": "^2.1.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@tailwindcss/vite": "^4.3.1",

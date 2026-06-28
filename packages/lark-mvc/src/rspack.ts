@@ -51,14 +51,8 @@
 import type { Compiler, RspackPluginInstance } from "@rspack/core";
 import { compileTemplate, extractGlobalVars } from "./compiler";
 import { injectTemplateHmrSnippet } from "./hmr-inject";
-import type {
-  LarkMvcWebpackLoaderOptions,
-  LarkMvcWebpackPluginOptions,
-} from "./webpack";
-export type {
-  LarkMvcWebpackLoaderOptions,
-  LarkMvcWebpackPluginOptions,
-} from "./webpack";
+import type { LarkMvcWebpackLoaderOptions, LarkMvcWebpackPluginOptions } from "./webpack";
+export type { LarkMvcWebpackLoaderOptions, LarkMvcWebpackPluginOptions } from "./webpack";
 
 /** Rspack loader context */
 interface LoaderContext {
@@ -77,10 +71,7 @@ interface LoaderContext {
  * an async function causes "callback already called" errors because the
  * resolved promise also signals completion.
  */
-export async function larkMvcLoader(
-  this: LoaderContext,
-  source: string,
-): Promise<string> {
+export async function larkMvcLoader(this: LoaderContext, source: string): Promise<string> {
   try {
     const options = this.getOptions();
     const { debug = false, virtualDom = false } = options;

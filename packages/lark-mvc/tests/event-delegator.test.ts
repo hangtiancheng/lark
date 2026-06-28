@@ -17,11 +17,7 @@ describe("EventDelegator", () => {
       const addSpy = vi.spyOn(document.body, "addEventListener");
       EventDelegator.bind("test-bind-1");
       boundTypes.push("test-bind-1");
-      expect(addSpy).toHaveBeenCalledWith(
-        "test-bind-1",
-        expect.any(Function),
-        true,
-      );
+      expect(addSpy).toHaveBeenCalledWith("test-bind-1", expect.any(Function), true);
       addSpy.mockRestore();
     });
 
@@ -38,11 +34,7 @@ describe("EventDelegator", () => {
 
       // Second unbind should remove (ref count = 0)
       EventDelegator.unbind("test-bind-ref");
-      expect(removeSpy).toHaveBeenCalledWith(
-        "test-bind-ref",
-        expect.any(Function),
-        true,
-      );
+      expect(removeSpy).toHaveBeenCalledWith("test-bind-ref", expect.any(Function), true);
       removeSpy.mockRestore();
       boundTypes.length = 0; // Already cleaned up
     });
@@ -88,9 +80,7 @@ describe("EventDelegator", () => {
   describe("setFrameGetter", () => {
     it("accepts a getter function", () => {
       expect(() => {
-        EventDelegator.setFrameGetter(
-          (_id: string, _unused: void) => undefined,
-        );
+        EventDelegator.setFrameGetter((_id: string, _unused: void) => undefined);
       }).not.toThrow();
     });
   });

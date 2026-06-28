@@ -62,24 +62,18 @@ describe("compileTemplate", () => {
 
   describe("{{forOf}} loop", () => {
     it("basic array iteration", async () => {
-      const result = await render(
-        "{{forOf list as item}}<span>{{=item}}</span>{{/forOf}}",
-        {
-          list: ["a", "b", "c"],
-        },
-      );
+      const result = await render("{{forOf list as item}}<span>{{=item}}</span>{{/forOf}}", {
+        list: ["a", "b", "c"],
+      });
       expect(result).toContain("<span>a</span>");
       expect(result).toContain("<span>b</span>");
       expect(result).toContain("<span>c</span>");
     });
 
     it("array iteration with index", async () => {
-      const result = await render(
-        "{{forOf list as item idx}}[{{=idx}}:{{=item}}]{{/forOf}}",
-        {
-          list: ["x", "y"],
-        },
-      );
+      const result = await render("{{forOf list as item idx}}[{{=idx}}:{{=item}}]{{/forOf}}", {
+        list: ["x", "y"],
+      });
       expect(result).toContain("[0:x]");
       expect(result).toContain("[1:y]");
     });
@@ -157,12 +151,9 @@ describe("compileTemplate", () => {
 
   describe("{{forIn}} object iteration", () => {
     it("iterates over object properties", async () => {
-      const result = await render(
-        "{{forIn obj as val key}}[{{=key}}:{{=val}}]{{/forIn}}",
-        {
-          obj: { x: 1, y: 2 },
-        },
-      );
+      const result = await render("{{forIn obj as val key}}[{{=key}}:{{=val}}]{{/forIn}}", {
+        obj: { x: 1, y: 2 },
+      });
       expect(result).toContain("[x:1]");
       expect(result).toContain("[y:2]");
     });
@@ -186,20 +177,14 @@ describe("compileTemplate", () => {
 
   describe("@event attribute handling", () => {
     it("@click event binding", async () => {
-      const result = await render(
-        '<div @click="handlerName()">click</div>',
-        {},
-      );
+      const result = await render('<div @click="handlerName()">click</div>', {});
       // @event attribute should include viewId prefix
       expect(result).toContain("@click=");
       expect(result).toContain("handlerName()");
     });
 
     it("@click with arguments", async () => {
-      const result = await render(
-        "<div @click=\"handlerName({key: 'value'})\">click</div>",
-        {},
-      );
+      const result = await render("<div @click=\"handlerName({key: 'value'})\">click</div>", {});
       expect(result).toContain("@click=");
       expect(result).toContain("handlerName(");
     });
@@ -207,13 +192,10 @@ describe("compileTemplate", () => {
 
   describe("HTML comment protection", () => {
     it("template syntax inside comments is not transformed", async () => {
-      const result = await render(
-        "<!-- {{=shouldNotRender}} --><p>{{=text}}</p>",
-        {
-          text: "visible",
-          shouldNotRender: "hidden",
-        },
-      );
+      const result = await render("<!-- {{=shouldNotRender}} --><p>{{=text}}</p>", {
+        text: "visible",
+        shouldNotRender: "hidden",
+      });
       expect(result).toContain("visible");
       // Comment content should remain unchanged
       expect(result).toContain("shouldNotRender");
@@ -304,9 +286,7 @@ describe("extractGlobalVars", () => {
   });
 
   it("extracts variables from each loop", async () => {
-    const vars = await extractGlobalVars(
-      "{{forOf list as item}}{{=item}}{{/forOf}}",
-    );
+    const vars = await extractGlobalVars("{{forOf list as item}}{{=item}}{{/forOf}}");
     expect(vars).toContain("list");
   });
 

@@ -146,10 +146,7 @@ function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
               };
               if (selectorName) {
                 // Non-empty selector: check if current element matches
-                if (
-                  !backtrace &&
-                  elementMatchesSelector(current, selectorName)
-                ) {
+                if (!backtrace && elementMatchesSelector(current, selectorName)) {
                   eventInfos.push(entry);
                 }
               } else if (backtrace) {
@@ -193,10 +190,7 @@ function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
 /**
  * Check if an element matches a CSS selector.
  */
-function elementMatchesSelector(
-  element: HTMLElement,
-  selector: string,
-): boolean {
+function elementMatchesSelector(element: HTMLElement, selector: string): boolean {
   try {
     return element.matches?.(selector) ?? false;
   } catch {
@@ -227,9 +221,7 @@ function domEventProcessor(domEvent: Event): void {
         if (lastFrameId !== frameId) {
           if (
             lastFrameId &&
-            (
-              domEvent as Event & { isPropagationStopped?: () => boolean }
-            ).isPropagationStopped?.()
+            (domEvent as Event & { isPropagationStopped?: () => boolean }).isPropagationStopped?.()
           ) {
             break;
           }
@@ -245,9 +237,8 @@ function domEventProcessor(domEvent: Event): void {
           // looked up $evtObjMap on the prototype — that no longer exists.
           const eventKey = handlerName + "<" + eventType + ">";
           const events =
-            typeof (
-              view as { getEvents?: () => Record<string, AnyFunc> | undefined }
-            ).getEvents === "function"
+            typeof (view as { getEvents?: () => Record<string, AnyFunc> | undefined }).getEvents ===
+            "function"
               ? (
                   view as {
                     getEvents: () => Record<string, AnyFunc> | undefined;
@@ -279,11 +270,7 @@ function domEventProcessor(domEvent: Event): void {
       }
     }
 
-    if (
-      (
-        domEvent as Event & { isPropagationStopped?: () => boolean }
-      ).isPropagationStopped?.()
-    ) {
+    if ((domEvent as Event & { isPropagationStopped?: () => boolean }).isPropagationStopped?.()) {
       break;
     }
 

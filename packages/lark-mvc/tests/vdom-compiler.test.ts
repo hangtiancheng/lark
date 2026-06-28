@@ -59,9 +59,7 @@ describe("VDOM Compiler", () => {
   describe("module output format", () => {
     it("imports vdomCreate from @lark.js/mvc", async () => {
       const src = await compileSource("<div>hi</div>");
-      expect(src).toContain(
-        'import { vdomCreate as __larkVdomCreate } from "@lark.js/mvc"',
-      );
+      expect(src).toContain('import { vdomCreate as __larkVdomCreate } from "@lark.js/mvc"');
     });
 
     it("imports runtime helpers from @lark.js/mvc/runtime", async () => {
@@ -85,9 +83,7 @@ describe("VDOM Compiler", () => {
 
     it("inner function has 7 params (no $encHtml)", async () => {
       const src = await compileSource("<div>hi</div>");
-      expect(src).toContain(
-        "$data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote",
-      );
+      expect(src).toContain("$data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote");
     });
 
     it("includes globalVars destructuring", async () => {
@@ -111,9 +107,7 @@ describe("VDOM Compiler", () => {
     });
 
     it("compiles element with static attributes", async () => {
-      const root = await compileAndRun(
-        '<div class="container" id="main">content</div>',
-      );
+      const root = await compileAndRun('<div class="container" id="main">content</div>');
       expect(root).toBeDefined();
     });
 
@@ -134,15 +128,8 @@ describe("VDOM Compiler", () => {
     // arr.push(span)) and silently dropped earlier siblings, leading to
     // duplicated/missing output. With >30 elements all content must survive.
     it("renders all siblings when template exceeds 30 elements", async () => {
-      const spans = Array.from(
-        { length: 35 },
-        (_, i) => `<span>item${i}</span>`,
-      ).join("");
-      const root = await compileAndRun(
-        `<div class="container">${spans}</div>`,
-        {},
-        [],
-      );
+      const spans = Array.from({ length: 35 }, (_, i) => `<span>item${i}</span>`).join("");
+      const root = await compileAndRun(`<div class="container">${spans}</div>`, {}, []);
 
       const texts: string[] = [];
       function walk(node: VDomNode) {
@@ -210,19 +197,17 @@ describe("VDOM Compiler", () => {
   // ===== D. Control flow =====
   describe("control flow", () => {
     it("compiles {{if}}...{{/if}}", async () => {
-      const src = await compileSource(
-        "<div>{{if show}}<span>visible</span>{{/if}}</div>",
-        { globalVars: ["show"] },
-      );
+      const src = await compileSource("<div>{{if show}}<span>visible</span>{{/if}}</div>", {
+        globalVars: ["show"],
+      });
       expect(src).toContain("if(show)");
       expect(src).toContain("visible");
     });
 
     it("compiles {{if}}...{{else}}...{{/if}}", async () => {
-      const src = await compileSource(
-        "<div>{{if a}}<p>yes</p>{{else}}<p>no</p>{{/if}}</div>",
-        { globalVars: ["a"] },
-      );
+      const src = await compileSource("<div>{{if a}}<p>yes</p>{{else}}<p>no</p>{{/if}}</div>", {
+        globalVars: ["a"],
+      });
       expect(src).toContain("if(a)");
       expect(src).toContain("}else{");
     });
@@ -246,10 +231,9 @@ describe("VDOM Compiler", () => {
     });
 
     it("compiles {{set}} variable declaration", async () => {
-      const src = await compileSource(
-        "<div>{{set x = 42}}<span>{{=x}}</span></div>",
-        { globalVars: [] },
-      );
+      const src = await compileSource("<div>{{set x = 42}}<span>{{=x}}</span></div>", {
+        globalVars: [],
+      });
       expect(src).toContain("let x = 42");
     });
   });
@@ -263,10 +247,9 @@ describe("VDOM Compiler", () => {
   // builds and returns the attribute string via statement-based accumulation.
   describe("control flow in attributes", () => {
     it("compiles {{if}} inside attribute value as IIFE (not $strSafe(if())", async () => {
-      const src = await compileSource(
-        '<div class="base {{if show}}extra{{/if}}">x</div>',
-        { globalVars: ["show"] },
-      );
+      const src = await compileSource('<div class="base {{if show}}extra{{/if}}">x</div>', {
+        globalVars: ["show"],
+      });
       // Must NOT produce the buggy $strSafe(if(...)) wrapping
       expect(src).not.toContain("$strSafe(if(");
       // Must produce an IIFE that accumulates into $s
@@ -378,11 +361,9 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders dynamic text from data", async () => {
-      const root = await compileAndRun(
-        "<p>{{=message}}</p>",
-        { message: "Hello World" },
-        ["message"],
-      );
+      const root = await compileAndRun("<p>{{=message}}</p>", { message: "Hello World" }, [
+        "message",
+      ]);
       expect(root.tag).toBe("test-view");
       expect(root.html).toContain("Hello World");
       const pChild = root.children![0] as VDomNode;
@@ -464,9 +445,7 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders null/undefined as empty string in {{=}}", async () => {
-      const root = await compileAndRun("<p>{{=val}}</p>", { val: null }, [
-        "val",
-      ]);
+      const root = await compileAndRun("<p>{{=val}}</p>", { val: null }, ["val"]);
       const p = root.children![0] as VDomNode;
       const textNode = p.children![0] as VDomNode;
       expect(textNode.html).toBe("");
@@ -497,11 +476,9 @@ describe("VDOM Compiler", () => {
       //
       // Before the fix, {{!}} produced a V_TEXT_NODE whose html was
       // escaped via encodeHTML, so <b>bold</b> became &lt;b&gt;bold&lt;/b&gt;.
-      const root = await compileAndRun(
-        "<div>{{!rawHtml}}</div>",
-        { rawHtml: "<b>bold</b>" },
-        ["rawHtml"],
-      );
+      const root = await compileAndRun("<div>{{!rawHtml}}</div>", { rawHtml: "<b>bold</b>" }, [
+        "rawHtml",
+      ]);
       const div = root.children![0] as VDomNode;
       const rawNode = div.children![0] as VDomNode;
 
@@ -573,11 +550,7 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders {{set}} and uses the declared variable", async () => {
-      const root = await compileAndRun(
-        "<div>{{set x = 42}}<span>{{=x}}</span></div>",
-        {},
-        [],
-      );
+      const root = await compileAndRun("<div>{{set x = 42}}<span>{{=x}}</span></div>", {}, []);
       expect(root.html).toContain("42");
     });
 

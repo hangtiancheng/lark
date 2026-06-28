@@ -25,9 +25,7 @@ function sortCacheEntries<T>(a: CacheEntry<T>, b: CacheEntry<T>): number {
  * cache.has('user'); // true
  * cache.del('user');
  */
-export function createCache<T = unknown>(
-  options: CacheOptions<T> = {},
-): CacheApi<T> {
+export function createCache<T = unknown>(options: CacheOptions<T> = {}): CacheApi<T> {
   /** Cache entries array */
   let entries: CacheEntry<T>[] = [];
 

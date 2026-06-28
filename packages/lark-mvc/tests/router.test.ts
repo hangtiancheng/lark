@@ -51,9 +51,7 @@ describe("Router", () => {
     });
 
     it("parses URL with both query and hash", () => {
-      const result = Router.parse(
-        "https://a.b.c.com/?p0=000#!/d/e?p1=111&p2=aaa",
-      );
+      const result = Router.parse("https://a.b.c.com/?p0=000#!/d/e?p1=111&p2=aaa");
 
       expect(result.href).toBe("https://a.b.c.com/?p0=000#!/d/e?p1=111&p2=aaa");
       expect(result.srcQuery).toBe("/?p0=000");

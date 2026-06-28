@@ -18,12 +18,7 @@ import { createCache } from "./cache";
 import type { CacheApi } from "./types";
 import { createEmitter } from "./event-emitter";
 import type { EmitterApi } from "./types";
-import type {
-  AnyFunc,
-  ServiceMetaEntry,
-  PendingCacheEntry,
-  PayloadApi,
-} from "./types";
+import type { AnyFunc, ServiceMetaEntry, PendingCacheEntry, PayloadApi } from "./types";
 
 export type { PayloadApi } from "./types";
 // ============================================================
@@ -53,10 +48,7 @@ export function createPayload(data: Record<string, unknown> = {}): PayloadApi {
     return payloadData[key] as T;
   }
 
-  function set(
-    keyOrData: string | Record<string, unknown>,
-    value?: unknown,
-  ): PayloadApi {
+  function set(keyOrData: string | Record<string, unknown>, value?: unknown): PayloadApi {
     if (typeof keyOrData === "string") {
       payloadData[keyOrData] = value;
     } else {
@@ -98,24 +90,15 @@ export interface ServiceInstance {
   destroyed: number;
   emitter: EmitterApi;
   all(
-    attrs:
-      | string
-      | Record<string, unknown>
-      | (string | Record<string, unknown>)[],
+    attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
     done: AnyFunc,
   ): ServiceInstance;
   one(
-    attrs:
-      | string
-      | Record<string, unknown>
-      | (string | Record<string, unknown>)[],
+    attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
     done: AnyFunc,
   ): ServiceInstance;
   save(
-    attrs:
-      | string
-      | Record<string, unknown>
-      | (string | Record<string, unknown>)[],
+    attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
     done: AnyFunc,
   ): ServiceInstance;
   enqueue(callback: AnyFunc): ServiceInstance;
@@ -192,8 +175,7 @@ export function createService(
   }
 
   function meta(attrs: string | Record<string, unknown>): ServiceMetaEntry {
-    const name =
-      typeof attrs === "string" ? attrs : String(attrs["name"] ?? "");
+    const name = typeof attrs === "string" ? attrs : String(attrs["name"] ?? "");
     const known = metaList[name];
     if (known) return known;
     // When attrs is a valid ServiceMetaEntry, return it as-is
@@ -269,9 +251,7 @@ export function createService(
   }
 
   function clear(names: string | string[]): void {
-    const nameSet = new Set(
-      (typeof names === "string" ? names : names.join(",")).split(","),
-    );
+    const nameSet = new Set((typeof names === "string" ? names : names.join(",")).split(","));
     const keysToDelete: string[] = [];
     payloadCache.forEach((payload) => {
       const info = payload?.cacheInfo;
@@ -308,10 +288,7 @@ export function createService(
     // `inst.destroyed` directly.
 
     function all(
-      attrs:
-        | string
-        | Record<string, unknown>
-        | (string | Record<string, unknown>)[],
+      attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
       done: AnyFunc,
     ): ServiceInstance {
       serviceSend(inst, attrs, done, FETCH_FLAGS_ALL, false, internals);
@@ -319,10 +296,7 @@ export function createService(
     }
 
     function one(
-      attrs:
-        | string
-        | Record<string, unknown>
-        | (string | Record<string, unknown>)[],
+      attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
       done: AnyFunc,
     ): ServiceInstance {
       serviceSend(inst, attrs, done, FETCH_FLAGS_ONE, false, internals);
@@ -330,10 +304,7 @@ export function createService(
     }
 
     function save(
-      attrs:
-        | string
-        | Record<string, unknown>
-        | (string | Record<string, unknown>)[],
+      attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
       done: AnyFunc,
     ): ServiceInstance {
       serviceSend(inst, attrs, done, FETCH_FLAGS_ALL, true, internals);
@@ -379,10 +350,7 @@ export function createService(
       return inst;
     }
 
-    function fireInst(
-      event: string,
-      data?: Record<string, unknown>,
-    ): ServiceInstance {
+    function fireInst(event: string, data?: Record<string, unknown>): ServiceInstance {
       instEmitter.fire(event, data);
       return inst;
     }
@@ -424,10 +392,7 @@ function getMetaJson(meta: ServiceMetaEntry): string {
   return cached;
 }
 
-function defaultCacheKey(
-  meta: ServiceMetaEntry,
-  attrs: Record<string, unknown>,
-): string {
+function defaultCacheKey(meta: ServiceMetaEntry, attrs: Record<string, unknown>): string {
   return JSON.stringify(attrs) + SPLITTER + getMetaJson(meta);
 }
 
@@ -445,10 +410,7 @@ function toCacheValue(v: unknown): number {
  */
 function serviceSend(
   service: ServiceInstance,
-  attrs:
-    | string
-    | Record<string, unknown>
-    | (string | Record<string, unknown>)[],
+  attrs: string | Record<string, unknown> | (string | Record<string, unknown>)[],
   done: AnyFunc,
   flag: number,
   save: boolean,
@@ -456,8 +418,7 @@ function serviceSend(
 ): void {
   if (service.destroyed) return;
   if (service.busy) {
-    const queued: AnyFunc = () =>
-      serviceSend(service, attrs, done, flag, save, internals);
+    const queued: AnyFunc = () => serviceSend(service, attrs, done, flag, save, internals);
     service.enqueue(queued);
     return;
   }
@@ -513,8 +474,7 @@ function serviceSend(
   for (const attr of attrList) {
     if (!attr) continue;
 
-    const attrObj: Record<string, unknown> =
-      typeof attr === "string" ? { name: attr } : attr;
+    const attrObj: Record<string, unknown> = typeof attr === "string" ? { name: attr } : attr;
     const payloadInfo = internals
       ? getPayload(internals, attrObj, save)
       : { entity: createPayload(), needsUpdate: true };
@@ -563,8 +523,7 @@ function getPayload(
   const metaList = internals.metaList;
   const name = String(attrs["name"] ?? "");
   const known = metaList[name];
-  const m: ServiceMetaEntry =
-    known ?? (isServiceMetaEntry(attrs) ? attrs : { name, url: "" });
+  const m: ServiceMetaEntry = known ?? (isServiceMetaEntry(attrs) ? attrs : { name, url: "" });
   const cache = toCacheValue(attrs["cache"]) || m.cache || 0;
   let cacheKey = "";
   if (cache) {

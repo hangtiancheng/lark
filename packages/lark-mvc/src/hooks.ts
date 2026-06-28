@@ -59,10 +59,7 @@ function getCtx(): ViewCtx {
  * // In event handler:
  * "incr<click>": (e) => setCount(getCount() + 1)
  */
-export function useState<T>(
-  key: string,
-  initial: T,
-): [() => T, (v: T) => void] {
+export function useState<T>(key: string, initial: T): [() => T, (v: T) => void] {
   const ctx = getCtx();
 
   // Set initial value if not already present
@@ -99,10 +96,7 @@ export function useState<T>(
  *   return () => clearInterval(timer);
  * });
  */
-export function useEffect(
-  fn: () => (() => void) | void,
-  _deps?: unknown[],
-): void {
+export function useEffect(fn: () => (() => void) | void, _deps?: unknown[]): void {
   const ctx = getCtx();
   const cleanup = fn();
   if (typeof cleanup === "function") {
@@ -215,11 +209,7 @@ export function useTimeout(fn: () => void, delay: number): void {
  * const service = createService(syncFn);
  * useResource('myService', service.instance(), true);
  */
-export function useResource(
-  key: string,
-  resource: unknown,
-  destroyOnRender = false,
-): void {
+export function useResource(key: string, resource: unknown, destroyOnRender = false): void {
   const ctx = getCtx();
   ctx.capture(key, resource, destroyOnRender);
 }

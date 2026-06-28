@@ -64,10 +64,7 @@ function vdomEscapeStr(s: string): string {
  *     return $s;
  *   })()
  */
-function vdomResolveAttrValueIIFE(
-  rawValue: string,
-  exprStore: VDomExprEntry[],
-): string {
+function vdomResolveAttrValueIIFE(rawValue: string, exprStore: VDomExprEntry[]): string {
   const stmts: string[] = [];
   let remaining = rawValue;
 
@@ -151,10 +148,7 @@ function vdomResolveAttrValueIIFE(
  * `compileToFunction`, where `if/else/for` statements naturally wrap
  * `$out+=...` concatenation statements.
  */
-function vdomResolveAttrValue(
-  rawValue: string,
-  exprStore: VDomExprEntry[],
-): string {
+function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): string {
   const hasPlaceholders = rawValue.includes("\x00");
   const hasViewId = rawValue.includes("\x1f");
 
@@ -280,11 +274,7 @@ function vdomBuildPropsFromAttribs(
  *   `($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote)=>{...}`
  * that returns the root VDomNode.
  */
-export function compileToVDomFunction(
-  source: string,
-  debug: boolean,
-  file?: string,
-): string {
+export function compileToVDomFunction(source: string, debug: boolean, file?: string): string {
   const lines: string[] = [];
   let varCounter = 0;
   let propsCounter = 0;
@@ -357,9 +347,7 @@ export function compileToVDomFunction(
         // Regular text segment
         const trimmed = parts[i];
         if (trimmed.trim()) {
-          lines.push(
-            `${parentVar}.push($vdomCreate(0,'${vdomEscapeStr(trimmed)}'))`,
-          );
+          lines.push(`${parentVar}.push($vdomCreate(0,'${vdomEscapeStr(trimmed)}'))`);
         }
       } else {
         // Placeholder index
@@ -386,14 +374,10 @@ export function compileToVDomFunction(
       if (expr.content.startsWith("$encUri(") && expr.content.endsWith(")")) {
         lines.push(`${parentVar}.push($vdomCreate(0,${expr.content},1))`);
       } else {
-        lines.push(
-          `${parentVar}.push($vdomCreate(0,$strSafe(${expr.content}),1))`,
-        );
+        lines.push(`${parentVar}.push($vdomCreate(0,$strSafe(${expr.content}),1))`);
       }
     } else if (expr.op === "@") {
-      lines.push(
-        `${parentVar}.push($vdomCreate(0,$refFn($refAlt,${expr.content})))`,
-      );
+      lines.push(`${parentVar}.push($vdomCreate(0,$refFn($refAlt,${expr.content})))`);
     } else if (expr.content) {
       // Code block — emit raw JS (if/for/else/etc.)
       lines.push(expr.content);
@@ -419,9 +403,7 @@ export function compileToVDomFunction(
     const isVoid = VOID_ELEMENTS.has(tagName) && children.length === 0;
     const childrenArg = isVoid ? "1" : childVar;
 
-    lines.push(
-      `${parentVar}.push($vdomCreate('${tagName}',${propsKey},${childrenArg}))`,
-    );
+    lines.push(`${parentVar}.push($vdomCreate('${tagName}',${propsKey},${childrenArg}))`);
   }
 
   // Walk root-level children
@@ -447,7 +429,7 @@ export function compileToVDomFunction(
   let funcBody = body;
   if (debug) {
     const filePart = file ? `\\r\\n\\tat file:${file}` : "";
-    funcBody = `let $dbgExpr,$dbgArt,$dbgLine;try{${body}}catch(e){let msg='render error:'+(e.message||e);msg+='${filePart}';throw msg;}`;
+    funcBody = `let $dbgExpr,$dbgArt;try{${body}}catch(e){let msg='render error:'+(e.message||e);msg+='${filePart}';throw msg;}`;
   }
 
   // View ID injection: any remaining \x1f in code blocks → '+$viewId+'

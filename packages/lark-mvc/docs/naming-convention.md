@@ -157,15 +157,15 @@ The wrapper passes arguments in this exact order. The `$` prefix prevents collis
 
 ## Compiled template inner function locals
 
-| Name                              | Mode              | Purpose                                                     |
-| --------------------------------- | ----------------- | ----------------------------------------------------------- |
-| `$out`                            | Both              | HTML output string accumulator                              |
-| `$splitter`                       | Both              | `'\x1e'` (SPLITTER character), used as namespace separator  |
-| `$tmp`                            | Both              | Temporary scratch variable                                  |
-| `$vdomCreate`                     | VDOM              | Alias for `__larkVdomCreate`, used in `$vdomCreate()` calls |
-| `$v0`, `$v1`, ..., `$vN`          | VDOM              | Child node arrays, allocated on demand                      |
-| `__p0`, `__p1`, ..., `__pN`       | VDOM              | Props objects for `$vdomCreate(tag, props, children)` calls |
-| `$dbgExpr`, `$dbgArt`, `$dbgLine` | Both (debug only) | Error reporting: expression, art-template name, line number |
+| Name                        | Mode              | Purpose                                                     |
+| --------------------------- | ----------------- | ----------------------------------------------------------- |
+| `$out`                      | Both              | HTML output string accumulator                              |
+| `$splitter`                 | Both              | `'\x1e'` (SPLITTER character), used as namespace separator  |
+| `$tmp`                      | Both              | Temporary scratch variable                                  |
+| `$vdomCreate`               | VDOM              | Alias for `__larkVdomCreate`, used in `$vdomCreate()` calls |
+| `$v0`, `$v1`, ..., `$vN`    | VDOM              | Child node arrays, allocated on demand                      |
+| `__p0`, `__p1`, ..., `__pN` | VDOM              | Props objects for `$vdomCreate(tag, props, children)` calls |
+| `$dbgExpr`, `$dbgArt`       | Both (debug only) | Error reporting: expression, art-template name, line number |
 
 The `$vN` variables are declared on demand (no fixed cap). The `__pN` variables use a `__` prefix (not `$`) to distinguish props objects from node arrays.
 

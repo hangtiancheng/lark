@@ -91,13 +91,9 @@ export const State: StateApi = {
   /**
    * Set data to state.
    */
-  set(
-    data: Record<string, unknown>,
-    excludes?: ReadonlySet<string>,
-  ): typeof State {
+  set(data: Record<string, unknown>, excludes?: ReadonlySet<string>): typeof State {
     dataIsChanged =
-      setData(data, appData, changedKeys, excludes || EMPTY_STRING_SET) ||
-      dataIsChanged;
+      setData(data, appData, changedKeys, excludes || EMPTY_STRING_SET) || dataIsChanged;
     return State;
   },
 
@@ -129,9 +125,7 @@ export const State: StateApi = {
    * Create a cleanup function for state keys on view destroy.
    * Call inside setup: `State.clean("keys")(ctx)` or `useEvent("destroy", State.clean("keys"))`
    */
-  clean(
-    keys: string,
-  ): (ctx: { on: (event: string, handler: () => void) => void }) => void {
+  clean(keys: string): (ctx: { on: (event: string, handler: () => void) => void }) => void {
     return (ctx) => {
       const keyList = setupKeysRef(keys);
       ctx.on("destroy", () => {
@@ -159,11 +153,7 @@ export const State: StateApi = {
   /**
    * Fire event.
    */
-  fire(
-    event: string,
-    data?: Record<string, unknown>,
-    remove?: boolean,
-  ): typeof State {
+  fire(event: string, data?: Record<string, unknown>, remove?: boolean): typeof State {
     emitter.fire(event, data, remove);
     return State;
   },

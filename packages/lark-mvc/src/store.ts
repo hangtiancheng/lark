@@ -42,11 +42,7 @@ interface ComputedMarker<T = unknown> {
 }
 
 function isComputedMarker(val: unknown): val is ComputedMarker {
-  return (
-    val !== null &&
-    typeof val === "object" &&
-    Reflect.get(val, COMPUTED_BRAND) === true
-  );
+  return val !== null && typeof val === "object" && Reflect.get(val, COMPUTED_BRAND) === true;
 }
 
 /**
@@ -78,10 +74,7 @@ const storeRegistry = new Map<string, StoreApi>();
 
 // ---- create ----------------------------------------------------------------
 
-export function createStore<T extends object>(
-  name: string,
-  creator: StateCreator<T>,
-): StoreApi<T> {
+export function createStore<T extends object>(name: string, creator: StateCreator<T>): StoreApi<T> {
   const listeners = new Set<Listener<T>>();
   const computedDefs = new Map<string, ComputedMarker>();
   const computedKeys = new Set<string>();
@@ -95,8 +88,7 @@ export function createStore<T extends object>(
   const setState = (partial: Partial<T> | ((prev: T) => Partial<T>)): void => {
     if (destroyed) return;
     const prevState = state;
-    const resolved =
-      typeof partial === "function" ? partial(prevState) : partial;
+    const resolved = typeof partial === "function" ? partial(prevState) : partial;
 
     const nextState = { ...prevState };
     let changed = false;
@@ -249,10 +241,7 @@ export function bindStore<T>(
     if (selector) return selector(s);
     const result: Record<string, unknown> = {};
     for (const key in s) {
-      if (
-        Object.prototype.hasOwnProperty.call(s, key) &&
-        typeof s[key] !== "function"
-      ) {
+      if (Object.prototype.hasOwnProperty.call(s, key) && typeof s[key] !== "function") {
         result[key] = s[key];
       }
     }

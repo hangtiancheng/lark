@@ -42,9 +42,7 @@ describe("State", () => {
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler.mock.calls[0][0]).toHaveProperty("keys");
     expect(handler.mock.calls[0][0]["keys"]).toBeInstanceOf(Set);
-    expect(
-      (handler.mock.calls[0][0]["keys"] as Set<string>).has("digestTest"),
-    ).toBe(true);
+    expect((handler.mock.calls[0][0]["keys"] as Set<string>).has("digestTest")).toBe(true);
 
     State.off("changed", handler);
   });

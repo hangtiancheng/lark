@@ -11,12 +11,7 @@
  * - Cached parsing and diff computation
  * - beforeunload support
  */
-import {
-  SPLITTER,
-  URL_TRIM_HASH_REGEXP,
-  URL_TRIM_QUERY_REGEXP,
-  RouterEvents,
-} from "./common";
+import { SPLITTER, URL_TRIM_HASH_REGEXP, URL_TRIM_QUERY_REGEXP, RouterEvents } from "./common";
 import { hasOwnProperty, assign, parseUri, toUri, asRecord } from "./utils";
 import { createCache } from "./cache";
 import { createEmitter } from "./event-emitter";
@@ -61,11 +56,7 @@ let cachedUnmatchedView: string | undefined;
 let cachedDefaultView: string | undefined;
 let cachedDefaultPath: string | undefined;
 let cachedRewrite:
-  | ((
-      path: string,
-      params: Record<string, string>,
-      routes: Record<string, string>,
-    ) => string)
+  | ((path: string, params: Record<string, string>, routes: Record<string, string>) => string)
   | undefined;
 
 /** Default document title */
@@ -78,10 +69,7 @@ let frameworkConfig: FrameworkConfig | undefined;
 let routeMode: "history" | "hash" = "history";
 
 /** Async navigation guards registered via Router.beforeEach. */
-type BeforeEachGuard = (
-  to: Location,
-  from: Location,
-) => boolean | Promise<boolean>;
+type BeforeEachGuard = (to: Location, from: Location) => boolean | Promise<boolean>;
 const beforeEachGuards: BeforeEachGuard[] = [];
 
 // ============================================================
@@ -103,9 +91,7 @@ function createEmptyLocation(): Location {
 
 /** Get param from location (used as Location.get implementation) */
 function getParam(this: Location, key: string, defaultValue?: string): string {
-  return (
-    this["params"][key] || (defaultValue !== undefined ? defaultValue : "")
-  );
+  return this["params"][key] || (defaultValue !== undefined ? defaultValue : "");
 }
 
 /**
@@ -124,32 +110,19 @@ function attachViewAndPath(loc: Location): void {
 
   if (!loc.view) {
     const rawPath =
-      routeMode === "history"
-        ? loc.query["path"] || loc.hash["path"]
-        : loc.hash["path"];
+      routeMode === "history" ? loc.query["path"] || loc.hash["path"] : loc.hash["path"];
     let path = rawPath || cachedDefaultPath || "/";
     // When root path "/" has no matching route, fall back to defaultPath
     // (e.g. visiting "/" should show the default view like "/home", not 404)
-    if (
-      !cachedRoutes[path] &&
-      path === "/" &&
-      cachedDefaultPath &&
-      cachedDefaultPath !== "/"
-    ) {
+    if (!cachedRoutes[path] && path === "/" && cachedDefaultPath && cachedDefaultPath !== "/") {
       path = cachedDefaultPath;
     }
     if (cachedRewrite) {
-      path = cachedRewrite(
-        path,
-        loc["params"],
-        cachedRoutes as Record<string, string>,
-      );
+      path = cachedRewrite(path, loc["params"], cachedRoutes as Record<string, string>);
     }
-    const viewEntry =
-      cachedRoutes[path] || cachedUnmatchedView || cachedDefaultView;
+    const viewEntry = cachedRoutes[path] || cachedUnmatchedView || cachedDefaultView;
     loc["path"] = path;
-    loc.view =
-      typeof viewEntry === "string" ? viewEntry : viewEntry?.view || "";
+    loc.view = typeof viewEntry === "string" ? viewEntry : viewEntry?.view || "";
     if (typeof viewEntry === "object" && viewEntry) {
       assign(loc, viewEntry);
     }
@@ -159,10 +132,7 @@ function attachViewAndPath(loc: Location): void {
 /**
  * Compute diff between two locations.
  */
-function getChanged(
-  oldLoc: Location,
-  newLoc: Location,
-): { changed: boolean; diff: LocationDiff } {
+function getChanged(oldLoc: Location, newLoc: Location): { changed: boolean; diff: LocationDiff } {
   const oKey = oldLoc.href;
   const nKey = newLoc.href;
   const tKey = oKey + SPLITTER + nKey;
@@ -175,11 +145,7 @@ function getChanged(
   let hasChanged = false;
   const changedParams: Record<string, ParamDiff> = {};
 
-  const setDiff = (
-    key: string,
-    oldVal: string | undefined,
-    newVal: string | undefined,
-  ): void => {
+  const setDiff = (key: string, oldVal: string | undefined, newVal: string | undefined): void => {
     const from = oldVal || "";
     const to = newVal || "";
     if (from !== to) {
@@ -470,11 +436,7 @@ export const Router: RouterApi = {
   },
 
   /** Fire event */
-  fire(
-    event: string,
-    data?: Record<string, unknown>,
-    remove?: boolean,
-  ): typeof Router {
+  fire(event: string, data?: Record<string, unknown>, remove?: boolean): typeof Router {
     emitter.fire(event, data, remove);
     return Router;
   },

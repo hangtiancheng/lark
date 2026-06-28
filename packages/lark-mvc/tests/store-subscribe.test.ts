@@ -117,9 +117,7 @@ describe("bindStore", () => {
 
     bindStore(view, store);
 
-    expect(setSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ count: 0, step: 1 }),
-    );
+    expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({ count: 0, step: 1 }));
     expect(digestSpy).toHaveBeenCalled();
 
     store.destroy();

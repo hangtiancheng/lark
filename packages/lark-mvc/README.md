@@ -606,9 +606,7 @@ const AppService = createService(
     fetch(payload.get<string>("url"), {
       method: payload.get<string>("method") || "GET",
       headers: { "Content-Type": "application/json" },
-      body: payload.get("data")
-        ? JSON.stringify(payload.get("data"))
-        : undefined,
+      body: payload.get("data") ? JSON.stringify(payload.get("data")) : undefined,
     })
       .then((r) => r.json())
       .then((data) => {
@@ -628,10 +626,7 @@ AppService.add([
     url: "/api/users/:id",
     cache: 30_000,
     before(payload) {
-      payload.set(
-        "url",
-        payload.get<string>("url").replace(":id", payload.get<string>("id")),
-      );
+      payload.set("url", payload.get<string>("url").replace(":id", payload.get<string>("id")));
     },
     after(payload) {
       const data = payload.get("data");
@@ -700,11 +695,10 @@ Template files use the `.html` extension and are compiled at build time by `lark
 ### Control Flow
 
 ```html
-{{if condition}}...{{else if other}}...{{else}}...{{/if}} {{forOf list as item}}
-... {{/forOf}} {{forOf list as item idx}} {{=idx}}: {{=item.name}} {{/forOf}}
-{{forOf list as {name, age} idx last first}} ... {{/forOf}} {{forIn object as
-value key}} ... {{/forIn}} {{for (let i = 0; i < n; i++)}} ... {{/for}} {{set
-localVar = expr}}
+{{if condition}}...{{else if other}}...{{else}}...{{/if}} {{forOf list as item}} ... {{/forOf}}
+{{forOf list as item idx}} {{=idx}}: {{=item.name}} {{/forOf}} {{forOf list as {name, age} idx last
+first}} ... {{/forOf}} {{forIn object as value key}} ... {{/forIn}} {{for (let i = 0; i < n; i++)}}
+... {{/for}} {{set localVar = expr}}
 ```
 
 `forOf` requires the `as` keyword. `{{forOf list item}}` is a compile-time error; the correct form is `{{forOf list as item}}`.

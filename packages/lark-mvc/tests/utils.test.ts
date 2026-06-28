@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  parseUri,
-  toUri,
-  setData,
-  translateData,
-  EMPTY_STRING_SET,
-} from "../src/utils";
+import { parseUri, toUri, setData, translateData, EMPTY_STRING_SET } from "../src/utils";
 
 describe("utils", () => {
   describe("parseUri", () => {
@@ -61,9 +55,7 @@ describe("utils", () => {
       // Without keepEmpty: all params are kept (legacy behavior).
       expect(toUri("/x", { a: "", b: "v" })).toBe("/x?a=&b=v");
       // With keepEmpty: empty values dropped UNLESS the key is whitelisted.
-      expect(toUri("/x", { a: "", b: "v", c: "" }, new Set(["a"]))).toBe(
-        "/x?a=&b=v",
-      );
+      expect(toUri("/x", { a: "", b: "v", c: "" }, new Set(["a"]))).toBe("/x?a=&b=v");
     });
 
     it("returns the path unchanged when there are no params", () => {

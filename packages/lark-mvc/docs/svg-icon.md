@@ -92,9 +92,7 @@ The raw output operator `{{!expr}}` emits the string without HTML escaping. Sinc
 ```html
 <!-- src/components/nav-bar.html -->
 <button @click="goSessions()">
-  <span class="h-5 w-5 [&>svg]:h-full [&>svg]:w-full">
-    {{!icons.messageSquare}}
-  </span>
+  <span class="h-5 w-5 [&>svg]:h-full [&>svg]:w-full"> {{!icons.messageSquare}} </span>
 </button>
 ```
 
@@ -106,19 +104,13 @@ Because the SVG is inlined as a DOM element (not an `<img>` or background), it i
 
 ```html
 <!-- Green icon -->
-<span class="h-5 w-5 text-green-700 [&>svg]:h-full [&>svg]:w-full">
-  {{!icons.shield}}
-</span>
+<span class="h-5 w-5 text-green-700 [&>svg]:h-full [&>svg]:w-full"> {{!icons.shield}} </span>
 
 <!-- Red icon -->
-<span class="h-5 w-5 text-red-400 [&>svg]:h-full [&>svg]:w-full">
-  {{!icons.logOut}}
-</span>
+<span class="h-5 w-5 text-red-400 [&>svg]:h-full [&>svg]:w-full"> {{!icons.logOut}} </span>
 
 <!-- Large icon -->
-<span class="h-16 w-16 [&>svg]:h-full [&>svg]:w-full">
-  {{!icons.messageSquare}}
-</span>
+<span class="h-16 w-16 [&>svg]:h-full [&>svg]:w-full"> {{!icons.messageSquare}} </span>
 ```
 
 ### Complete View Example
@@ -152,14 +144,10 @@ export default defineView((ctx) => {
 <!-- src/views/chat.html -->
 <div class="flex gap-2">
   <button @click="attach()">
-    <span class="h-4 w-4 [&>svg]:h-full [&>svg]:w-full">
-      {{!icons.paperclip}}
-    </span>
+    <span class="h-4 w-4 [&>svg]:h-full [&>svg]:w-full"> {{!icons.paperclip}} </span>
   </button>
   <button @click="startCall()">
-    <span class="h-4 w-4 [&>svg]:h-full [&>svg]:w-full">
-      {{!icons.video}}
-    </span>
+    <span class="h-4 w-4 [&>svg]:h-full [&>svg]:w-full"> {{!icons.video}} </span>
   </button>
 </div>
 ```

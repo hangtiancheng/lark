@@ -8,12 +8,10 @@ import dts from "rollup-plugin-dts";
 import { defineConfig } from "rollup";
 
 const deps = Object.keys(
-  (await import("./package.json", { with: { type: "json" } })).default
-    .dependencies ?? {},
+  (await import("./package.json", { with: { type: "json" } })).default.dependencies ?? {},
 );
 const peerDeps = Object.keys(
-  (await import("./package.json", { with: { type: "json" } })).default
-    .peerDependencies ?? {},
+  (await import("./package.json", { with: { type: "json" } })).default.peerDependencies ?? {},
 );
 
 // Entries where @babel/parser and @babel/types are bundled (not external),
@@ -21,16 +19,15 @@ const peerDeps = Object.keys(
 // `umd` controls whether UMD/AMD browser bundles are generated — build-tool
 // plugin entries (vite/webpack/rspack) depend on Node.js built-ins and must
 // not be wrapped in a browser-targeted UMD/AMD format.
-const /** @type{({ name: string, external: boolean, umd: boolean }[])} */ entries =
-    [
-      { name: "index", external: true, umd: true },
-      { name: "compiler", external: false, umd: false },
-      { name: "webpack", external: false, umd: false },
-      { name: "rspack", external: false, umd: false },
-      { name: "vite", external: false, umd: false },
-      { name: "runtime", external: true, umd: true },
-      { name: "devtool", external: true, umd: false },
-    ];
+const /** @type{({ name: string, external: boolean, umd: boolean }[])} */ entries = [
+    { name: "index", external: true, umd: true },
+    { name: "compiler", external: false, umd: false },
+    { name: "webpack", external: false, umd: false },
+    { name: "rspack", external: false, umd: false },
+    { name: "vite", external: false, umd: false },
+    { name: "runtime", external: true, umd: true },
+    { name: "devtool", external: true, umd: false },
+  ];
 
 /** Externalize deps/peerDeps except @babel packages when the entry bundles them. */
 
@@ -50,9 +47,7 @@ const makeExternal = (external) => (/** @type {string} */ id) => {
   ) {
     return false;
   }
-  const pkg = id.startsWith("@")
-    ? id.split("/").slice(0, 2).join("/")
-    : id.split("/")[0];
+  const pkg = id.startsWith("@") ? id.split("/").slice(0, 2).join("/") : id.split("/")[0];
   return deps.includes(pkg) || peerDeps.includes(pkg);
 };
 
@@ -147,9 +142,7 @@ const cjsShimsEntries = new Set(["vite", "webpack", "rspack"]);
 // --- JS bundles (ESM + CJS + optional UMD/AMD) ---
 const /** @type {import("rollup").OutputOptions[]} */ jsConfigs = entries.map(
     ({ name, external, umd }) => {
-      const outputs = umd
-        ? [...baseOutputConfigs, ...umdOutputConfigs(name)]
-        : baseOutputConfigs;
+      const outputs = umd ? [...baseOutputConfigs, ...umdOutputConfigs(name)] : baseOutputConfigs;
       return {
         input: `src/${name}.ts`,
         output: outputs.map((o) => ({
@@ -169,26 +162,23 @@ const /** @type {import("rollup").OutputOptions[]} */ jsConfigs = entries.map(
   );
 
 // --- Type declarations (.d.ts for ESM consumers) ---
-const /** @type {import("rollup").RollupOptions[]} */ dtsConfigs = entries.map(
-    ({ name }) => ({
-      input: `src/${name}.ts`,
-      output: {
-        file: `dist/${name}.d.ts`,
-        format: "es",
-      },
-      plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
-    }),
-  );
+const /** @type {import("rollup").RollupOptions[]} */ dtsConfigs = entries.map(({ name }) => ({
+    input: `src/${name}.ts`,
+    output: {
+      file: `dist/${name}.d.ts`,
+      format: "es",
+    },
+    plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
+  }));
 
 // --- Type declarations (.d.cts for CJS consumers) ---
-const /** @type {import("rollup").RollupOptions[]} */ dtsCjsConfigs =
-    entries.map(({ name }) => ({
-      input: `src/${name}.ts`,
-      output: {
-        file: `dist/${name}.d.cts`,
-        format: "es",
-      },
-      plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
-    }));
+const /** @type {import("rollup").RollupOptions[]} */ dtsCjsConfigs = entries.map(({ name }) => ({
+    input: `src/${name}.ts`,
+    output: {
+      file: `dist/${name}.d.cts`,
+      format: "es",
+    },
+    plugins: [dts({ tsconfig: "./tsconfig.build.json" })],
+  }));
 
 export default defineConfig([...jsConfigs, ...dtsConfigs, ...dtsCjsConfigs]);

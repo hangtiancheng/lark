@@ -106,9 +106,7 @@ describe("Updater", () => {
     const updater = createUpdater("viewId1");
     const SPLITTER = "\x1e";
     // not all-digits after SPLITTER → not a ref, returned as-is
-    expect(updater.translate(`${SPLITTER}user-input`)).toBe(
-      `${SPLITTER}user-input`,
-    );
+    expect(updater.translate(`${SPLITTER}user-input`)).toBe(`${SPLITTER}user-input`);
     // SPLITTER alone → not enough characters, returned as-is
     expect(updater.translate(SPLITTER)).toBe(SPLITTER);
   });

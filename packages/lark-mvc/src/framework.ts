@@ -106,10 +106,7 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
         scheduleTaskChunk();
         return;
       }
-    } else if (
-      Date.now() - startTime > CALL_BREAK_TIME &&
-      taskList.length > taskIndex + 3
-    ) {
+    } else if (Date.now() - startTime > CALL_BREAK_TIME && taskList.length > taskIndex + 3) {
       // Fixed: 48ms budget, and there are more tasks remaining
       scheduleTaskChunk();
       return;
@@ -204,10 +201,7 @@ function viewIsObserveChanged(view: ViewCtx): boolean {
 /**
  * Check if a view's observed state keys have changed.
  */
-function stateIsObserveChanged(
-  view: ViewCtx,
-  stateKeys: ReadonlySet<string>,
-): boolean {
+function stateIsObserveChanged(view: ViewCtx, stateKeys: ReadonlySet<string>): boolean {
   const observedKeys = view.getObservedStateKeys();
   if (!observedKeys) return false;
   for (const key of observedKeys) {
@@ -225,10 +219,7 @@ function stateIsObserveChanged(
  * frame is processed after the promise resolves; sibling subtrees keep
  * draining the stack synchronously meanwhile.
  */
-function dispatcherUpdate(
-  frame: FrameObj,
-  stateKeys?: ReadonlySet<string>,
-): void {
+function dispatcherUpdate(frame: FrameObj, stateKeys?: ReadonlySet<string>): void {
   const stack: FrameObj[] = [frame];
 
   const drain = (s: FrameObj[]): void => {
@@ -252,12 +243,7 @@ function dispatcherUpdate(
 
       let renderPromise: PromiseLike<void> | undefined;
       if (isChanged) {
-        const renderResult = funcWithTry(
-          view.renderMethod ?? view.render,
-          [],
-          view,
-          noop,
-        );
+        const renderResult = funcWithTry(view.renderMethod ?? view.render, [], view, noop);
         if (isThenable(renderResult)) {
           renderPromise = renderResult;
         }
@@ -321,11 +307,7 @@ function dispatcherNotifyChange(e: ChangeEvent): void {
 /**
  * Fire a custom DOM event on a target element.
  */
-function dispatchEvent(
-  target: EventTarget,
-  eventType: string,
-  eventInit?: CustomEventInit,
-): void {
+function dispatchEvent(target: EventTarget, eventType: string, eventInit?: CustomEventInit): void {
   const event = new CustomEvent(eventType, {
     bubbles: true,
     cancelable: true,
@@ -347,10 +329,7 @@ export const WAIT_TIMEOUT_OR_NOT_FOUND = 0;
 /**
  * Wait for all views in a zone to be rendered.
  */
-function waitZoneViewsRendered(
-  viewId: string,
-  timeout?: number,
-): Promise<number> {
+function waitZoneViewsRendered(viewId: string, timeout?: number): Promise<number> {
   if (timeout == null) {
     timeout = 30 * 1000;
   }
@@ -382,9 +361,7 @@ function waitZoneViewsRendered(
  */
 function getConfigImpl(): FrameworkConfig;
 function getConfigImpl<T = unknown>(key: string): T | undefined;
-function getConfigImpl<T = unknown>(
-  key?: string,
-): FrameworkConfig | T | undefined {
+function getConfigImpl<T = unknown>(key?: string): FrameworkConfig | T | undefined {
   if (key === undefined) return config;
   // Generic retrieval from config — cast is unavoidable
   return Reflect.get(config, key) as T | undefined;

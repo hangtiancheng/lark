@@ -41,16 +41,7 @@ describe("VDOM html short-circuit optimization", () => {
     const divNew = vdomCreate("div", { class: "new" }, [spanNew]);
     const containerNew = vdomCreate("section", null, [divNew]);
 
-    vdomSetChildNodes(
-      el,
-      containerOld,
-      containerNew,
-      ref,
-      frame,
-      new Set(),
-      view,
-      () => {},
-    );
+    vdomSetChildNodes(el, containerOld, containerNew, ref, frame, new Set(), view, () => {});
 
     // div class updated (attrs differ → attribute diff ran)
     expect(divBefore.getAttribute("class")).toBe("new");
@@ -82,16 +73,7 @@ describe("VDOM html short-circuit optimization", () => {
     const spanNew = vdomCreate("span", { class: "new" }, [textNew]);
     const containerNew = vdomCreate("div", null, [spanNew]);
 
-    vdomSetChildNodes(
-      el,
-      containerOld,
-      containerNew,
-      ref,
-      frame,
-      new Set(),
-      view,
-      () => {},
-    );
+    vdomSetChildNodes(el, containerOld, containerNew, ref, frame, new Set(), view, () => {});
 
     // Attribute diff ran: class updated from "old" to "new"
     expect(el.querySelector("span")!.getAttribute("class")).toBe("new");
@@ -120,36 +102,21 @@ describe("VDOM html short-circuit optimization", () => {
     const ref = createVDomRef("html-sc-3");
 
     // Old: container has just the input
-    const inputOld = vdomCreate(
-      "input",
-      { type: "text", value: "hello" },
-      null,
-      { value: "value" },
-    );
+    const inputOld = vdomCreate("input", { type: "text", value: "hello" }, null, {
+      value: "value",
+    });
     const containerOld = vdomCreate("div", null, [inputOld]);
 
     // New: container has input + a new sibling span (forces container html
     // to differ so the container-level short-circuit does not fire, allowing
     // the input's vdomSetNode fast path to be reached)
-    const inputNew = vdomCreate(
-      "input",
-      { type: "text", value: "hello" },
-      null,
-      { value: "value" },
-    );
+    const inputNew = vdomCreate("input", { type: "text", value: "hello" }, null, {
+      value: "value",
+    });
     const sibling = vdomCreate("span", null, [vdomCreate(0, "new")]);
     const containerNew = vdomCreate("div", null, [inputNew, sibling]);
 
-    vdomSetChildNodes(
-      el,
-      containerOld,
-      containerNew,
-      ref,
-      frame,
-      new Set(),
-      view,
-      () => {},
-    );
+    vdomSetChildNodes(el, containerOld, containerNew, ref, frame, new Set(), view, () => {});
 
     // vdomSyncFormState sets DOM properties directly (not via ref.nodeProps),
     // so the value should already be synced after vdomSetChildNodes returns.
@@ -165,8 +132,7 @@ describe("VDOM html short-circuit optimization", () => {
 
   it("skips both attribute and child diff for deeply unchanged subtrees", () => {
     const el = document.createElement("ul");
-    el.innerHTML =
-      '<li id="a"><span>same</span></li><li id="b"><em>changed</em></li>';
+    el.innerHTML = '<li id="a"><span>same</span></li><li id="b"><em>changed</em></li>';
     const liABefore = el.querySelector("#a")!;
     const spanBefore = el.querySelector("#a span")!;
     const liBBefore = el.querySelector("#b")!;
@@ -222,26 +188,13 @@ describe("VDOM html short-circuit optimization", () => {
     const view = { rendered: true, endUpdate: () => {} } as any;
     const ref = createVDomRef("html-sc-no-skip");
 
-    const spanOld = vdomCreate("span", { class: "same" }, [
-      vdomCreate(0, "old text"),
-    ]);
+    const spanOld = vdomCreate("span", { class: "same" }, [vdomCreate(0, "old text")]);
     const containerOld = vdomCreate("div", null, [spanOld]);
 
-    const spanNew = vdomCreate("span", { class: "same" }, [
-      vdomCreate(0, "new text"),
-    ]);
+    const spanNew = vdomCreate("span", { class: "same" }, [vdomCreate(0, "new text")]);
     const containerNew = vdomCreate("div", null, [spanNew]);
 
-    vdomSetChildNodes(
-      el,
-      containerOld,
-      containerNew,
-      ref,
-      frame,
-      new Set(),
-      view,
-      () => {},
-    );
+    vdomSetChildNodes(el, containerOld, containerNew, ref, frame, new Set(), view, () => {});
 
     // Same span DOM node (tag match, in-place update)
     expect(el.querySelector("span")).toBe(spanBefore);
@@ -266,34 +219,19 @@ describe("VDOM html short-circuit optimization", () => {
     const ref = createVDomRef("html-sc-specials");
 
     // Old and new have identical attrs and html
-    const inputOld = vdomCreate(
-      "input",
-      { type: "text", value: "original" },
-      null,
-      { value: "value" },
-    );
+    const inputOld = vdomCreate("input", { type: "text", value: "original" }, null, {
+      value: "value",
+    });
     const containerOld = vdomCreate("div", null, [inputOld]);
 
-    const inputNew = vdomCreate(
-      "input",
-      { type: "text", value: "original" },
-      null,
-      { value: "value" },
-    );
+    const inputNew = vdomCreate("input", { type: "text", value: "original" }, null, {
+      value: "value",
+    });
     // Add a sibling to prevent container-level short-circuit
     const sibling = vdomCreate("span", null, [vdomCreate(0, "x")]);
     const containerNew = vdomCreate("div", null, [inputNew, sibling]);
 
-    vdomSetChildNodes(
-      el,
-      containerOld,
-      containerNew,
-      ref,
-      frame,
-      new Set(),
-      view,
-      () => {},
-    );
+    vdomSetChildNodes(el, containerOld, containerNew, ref, frame, new Set(), view, () => {});
 
     // Form state should be synced: input.value should be restored to "original"
     // even though attrs+html were equal, because hasSpecials triggers vdomSyncFormState
@@ -304,8 +242,7 @@ describe("VDOM html short-circuit optimization", () => {
 
   it("short-circuit preserves deeply nested unchanged DOM nodes", () => {
     const el = document.createElement("div");
-    el.innerHTML =
-      '<div class="wrapper"><ul><li id="a"><span>deep</span></li></ul></div>';
+    el.innerHTML = '<div class="wrapper"><ul><li id="a"><span>deep</span></li></ul></div>';
     const deepSpan = el.querySelector("#a span")!;
     const liA = el.querySelector("#a")!;
 
@@ -326,16 +263,7 @@ describe("VDOM html short-circuit optimization", () => {
     const wrapperNew = vdomCreate("div", { class: "wrapper" }, [ulNode2]);
     const containerNew = vdomCreate("div", null, [wrapperNew]);
 
-    vdomSetChildNodes(
-      el,
-      containerOld,
-      containerNew,
-      ref,
-      frame,
-      new Set(),
-      view,
-      () => {},
-    );
+    vdomSetChildNodes(el, containerOld, containerNew, ref, frame, new Set(), view, () => {});
 
     // All deeply nested nodes should be the exact same DOM references
     expect(el.querySelector("#a")).toBe(liA);

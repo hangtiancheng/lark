@@ -89,18 +89,8 @@ export { createStore, computed, bindStore } from "./store";
 export type { StoreApi } from "./store";
 
 // HMR (import.meta.hot support)
-export {
-  reloadViews,
-  hotSwapView,
-  hotSwapFrames,
-  hotSwapByTemplate,
-  hotSwapByView,
-} from "./hmr";
-export {
-  injectTemplateHmrSnippet,
-  injectViewHmr,
-  importsHtmlTemplate,
-} from "./hmr-inject";
+export { reloadViews, hotSwapView, hotSwapFrames, hotSwapByTemplate, hotSwapByView } from "./hmr";
+export { injectTemplateHmrSnippet, injectViewHmr, importsHtmlTemplate } from "./hmr-inject";
 export type { HotContext } from "./hmr";
 export type { Bundler } from "./hmr-inject";
 

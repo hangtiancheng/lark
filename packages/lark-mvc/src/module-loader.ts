@@ -55,8 +55,7 @@ export function use(
     return Promise.all(
       nameList.map((name) => {
         // Normalize path for dynamic import
-        const importPath =
-          name.startsWith(".") || name.startsWith("/") ? name : `./${name}`;
+        const importPath = name.startsWith(".") || name.startsWith("/") ? name : `./${name}`;
         return import(/* @vite-ignore */ /* webpackIgnore: true */ importPath)
           .then((mod: Record<string, unknown>) => {
             // Extract default export for ESM compatibility.

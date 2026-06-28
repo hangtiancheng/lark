@@ -13,12 +13,7 @@
  */
 import { use, config } from "./module-loader";
 import { parseUri } from "./utils";
-import type {
-  CrossSiteConfig,
-  ViewCtx,
-  ViewSetup,
-  ViewTemplate,
-} from "./types";
+import type { CrossSiteConfig, ViewCtx, ViewSetup, ViewTemplate } from "./types";
 
 // ============================================================
 // Project config registry

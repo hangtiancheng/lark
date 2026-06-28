@@ -32,9 +32,7 @@ describe("common", () => {
       expect(encodeHTML("a`b")).toBe("a&#96;b");
     });
     it("escapes multiple entities", () => {
-      expect(encodeHTML('<a href="x">&y</a>')).toBe(
-        "&lt;a href=&#34;x&#34;&gt;&amp;y&lt;/a&gt;",
-      );
+      expect(encodeHTML('<a href="x">&y</a>')).toBe("&lt;a href=&#34;x&#34;&gt;&amp;y&lt;/a&gt;");
     });
     it("returns empty string for null", () => {
       expect(encodeHTML(null)).toBe("");

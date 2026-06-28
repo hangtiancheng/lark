@@ -1,6 +1,6 @@
 {
   "name": "@lark.js/docs",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Documentation site generator for @lark.js/mvc",
   "keywords": [
     "@lark.js",

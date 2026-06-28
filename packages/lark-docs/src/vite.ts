@@ -21,7 +21,7 @@ import type { DocsConfig } from "./types";
 import { compileMarkdown } from "./compile-markdown";
 import type { Plugin } from "vite";
 import {
-  larkMvcPlugin7,
+  larkMvcPlugin,
   type LarkMvcVitePluginOptions,
 } from "@lark.js/mvc/vite";
 
@@ -94,7 +94,7 @@ export function larkDocsPlugin(options: LarkDocsVitePluginOptions): Plugin[] {
 
   // The lark-mvc template plugin handles .html template compilation.
   // We integrate it internally so consumers don't need to configure it separately.
-  const mvcPlugin = larkMvcPlugin7({ debug, virtualDom });
+  const mvcPlugin = larkMvcPlugin({ debug, virtualDom });
 
-  return [docsPlugin, mvcPlugin];
+  return [docsPlugin, mvcPlugin as Plugin];
 }

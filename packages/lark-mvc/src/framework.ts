@@ -32,6 +32,7 @@ import { Frame } from "./frame";
 import type { FrameObj } from "./types";
 import { EventDelegator } from "./event-delegator";
 import { defineView } from "./view";
+import { hotSwapByTemplate, hotSwapByView } from "./hmr";
 import { installFrameDevtoolBridge } from "./devtool";
 import type {
   AnyFunc,
@@ -126,11 +127,11 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
  * Priority: scheduler.postTask > requestIdleCallback > setTimeout
  */
 function scheduleTaskChunk(): void {
-  const scheduler = window.scheduler;
+  const scheduler = globalThis.scheduler;
   if (scheduler && typeof scheduler.postTask === "function") {
     scheduler.postTask(() => executeTaskChunk(), { priority: "background" });
-  } else if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(executeTaskChunk);
+  } else if (typeof globalThis.requestIdleCallback === "function") {
+    globalThis.requestIdleCallback(executeTaskChunk);
   } else {
     setTimeout(executeTaskChunk, 0);
   }
@@ -396,6 +397,16 @@ export const Framework: FrameworkApi = {
    * Boot the framework.
    */
   boot(cfg?: FrameworkConfig): void {
+    // Register HMR swap functions on globalThis so that auto-injected HMR
+    // snippets (in compiled .html/.ts modules) can call them WITHOUT
+    // importing @lark.js/mvc (which would create MF shared-consumer side
+    // effects and trigger ChunkLoadError). Done in boot() rather than at
+    // hmr.ts module load to guarantee execution — webpack tree-shaking can
+    // drop hmr.ts's top-level side-effect when its exports are unused by the
+    // app (e.g. boot.ts only imports Framework + registerViewClass).
+    if (typeof globalThis !== "undefined" && !globalThis.__LARK_HMR__) {
+      globalThis["__LARK_HMR__"] = { hotSwapByTemplate, hotSwapByView };
+    }
     // Merge configuration
     if (cfg && typeof cfg === "object") {
       assign(config, cfg);

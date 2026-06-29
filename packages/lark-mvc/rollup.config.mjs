@@ -19,14 +19,14 @@ const peerDeps = Object.keys(
 // `umd` controls whether UMD/AMD browser bundles are generated — build-tool
 // plugin entries (vite/webpack/rspack) depend on Node.js built-ins and must
 // not be wrapped in a browser-targeted UMD/AMD format.
-const /** @type{({ name: string, external: boolean, umd: boolean }[])} */ entries = [
-    { name: "index", external: true, umd: true },
-    { name: "compiler", external: false, umd: false },
-    { name: "webpack", external: false, umd: false },
-    { name: "rspack", external: false, umd: false },
-    { name: "vite", external: false, umd: false },
-    { name: "runtime", external: true, umd: true },
-    { name: "devtool", external: true, umd: false },
+const /** @type{({ name: string, external: boolean }[])} */ entries = [
+    { name: "index", external: true },
+    { name: "compiler", external: false },
+    { name: "webpack", external: false },
+    { name: "rspack", external: false },
+    { name: "vite", external: false },
+    { name: "runtime", external: true },
+    { name: "devtool", external: true },
   ];
 
 /** Externalize deps/peerDeps except @babel packages when the entry bundles them. */
@@ -94,46 +94,10 @@ function prebuildPlugin() {
   };
 }
 
-/**
- * UMD global variable names for external dependencies.
- * @param {string} id Module specifier (e.g. "htmlparser2", "@babel/parser").
- * @returns {string} Global variable name for UMD wrapper.
- */
-const umdGlobals = (id) => {
-  if (id.startsWith("@")) return id.replace("@", "").replace(/\//g, "_");
-  return id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-};
-
 // Base formats — generated for all entries.
-const baseOutputConfigs = [
+const outputConfigs = [
   { file: "dist/[name].js", format: "es" },
   { file: "dist/[name].cjs", format: "cjs", exports: "named" },
-];
-
-// Browser formats — only for entries that don't depend on Node.js built-ins.
-// `name` is the entry name (e.g. "index", "runtime"). rollup's `output.amd.id`
-// accepts a STRING ONLY — passing a function makes rollup serialize the function
-// source via String(fn) and emit it verbatim as the AMD module ID, producing a
-// broken `define('(_chunk, outputOptions) => { ... }', ...)` call that no AMD
-// loader can resolve. So we compute the static ID per entry here instead.
-const umdOutputConfigs = (/** @type {string} */ name) => [
-  {
-    file: "dist/[name].umd.js",
-    format: "umd",
-    name: "LarkMvc",
-    exports: "named",
-    globals: umdGlobals,
-  },
-  {
-    file: "dist/[name].amd.js",
-    format: "amd",
-    exports: "named",
-    globals: umdGlobals,
-    amd: {
-      // Derive AMD module ID from the entry name, e.g. "index" -> "lark-mvc/index".
-      id: `lark-mvc/${name}`,
-    },
-  },
 ];
 
 // Entries that use __filename (vite/webpack/rspack plugin loaders) need the shim.
@@ -141,8 +105,8 @@ const cjsShimsEntries = new Set(["vite", "webpack", "rspack"]);
 
 // --- JS bundles (ESM + CJS + optional UMD/AMD) ---
 const /** @type {import("rollup").OutputOptions[]} */ jsConfigs = entries.map(
-    ({ name, external, umd }) => {
-      const outputs = umd ? [...baseOutputConfigs, ...umdOutputConfigs(name)] : baseOutputConfigs;
+    ({ name, external }) => {
+      const outputs = outputConfigs;
       return {
         input: `src/${name}.ts`,
         output: outputs.map((o) => ({

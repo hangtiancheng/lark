@@ -165,8 +165,9 @@ export function hotSwapFrames(viewPath: string, newSetup: ViewSetup): void {
  * @param oldTemplate - The previous template function reference
  * @param newTemplate - The new template function reference
  */
-export function hotSwapByTemplate(oldTemplate: ViewTemplate, newTemplate: ViewTemplate): void {
-  if (!oldTemplate || !newTemplate || oldTemplate === newTemplate) return;
+export function hotSwapByTemplate(oldTemplate: ViewTemplate, newTemplate: ViewTemplate): boolean {
+  if (!oldTemplate || !newTemplate || oldTemplate === newTemplate) return false;
+  let swapped = false;
   for (const [, frame] of Frame.getAll()) {
     const view = frame.view;
     if (!view || view.getTemplate() !== oldTemplate) continue;
@@ -177,7 +178,9 @@ export function hotSwapByTemplate(oldTemplate: ViewTemplate, newTemplate: ViewTe
       destroyAllResources(view, false);
       view.updater.forceDigest();
     }
+    swapped = true;
   }
+  return swapped;
 }
 
 /**
@@ -191,12 +194,13 @@ export function hotSwapByTemplate(oldTemplate: ViewTemplate, newTemplate: ViewTe
  * @param oldSetup - The previous setup function reference
  * @param newSetup - The new setup function reference
  */
-export function hotSwapByView(oldSetup: ViewSetup, newSetup: ViewSetup): void {
-  if (!oldSetup || !newSetup || oldSetup === newSetup) return;
+export function hotSwapByView(oldSetup: ViewSetup, newSetup: ViewSetup): boolean {
+  if (!oldSetup || !newSetup || oldSetup === newSetup) return false;
   const reg = getViewClassRegistry();
   for (const path in reg) {
     if (reg[path] === oldSetup) reg[path] = newSetup;
   }
+  let swapped = false;
   for (const [, frame] of Frame.getAll()) {
     const view = frame.view;
     const vp = frame.getViewPath();
@@ -204,9 +208,11 @@ export function hotSwapByView(oldSetup: ViewSetup, newSetup: ViewSetup): void {
       const parsed = parseUri(vp);
       if (reg[parsed.path] === newSetup) {
         hotSwapView(frame, newSetup);
+        swapped = true;
       }
     }
   }
+  return swapped;
 }
 
 /** Type guard: verify a dynamic module export is a ViewSetup function */
@@ -266,4 +272,33 @@ export function disposeView(hot: HotContext, viewPath: string): void {
   hot.dispose(() => {
     invalidateViewClass(viewPath);
   });
+}
+
+// ─── Global HMR handle ────────────────────────────────────────────────
+// Expose hotSwapByTemplate / hotSwapByView on globalThis so that the
+// auto-injected HMR snippets (see ./hmr-inject.ts) can call them WITHOUT
+// importing "@lark.js/mvc".
+//
+// Why a global instead of import/require("@lark.js/mvc"):
+// Under Module Federation (@lark.js/mvc shared singleton), ANY reference
+// to @lark.js/mvc inside an HMR accept callback registers the calling
+// module (compiled .html template / .ts view) as a shared consumer.
+// Webpack then marks the main chunk — which initializes the MF shared
+// scope — as needing a hot-update. But since main's code didn't actually
+// change, no main.<hash>.hot-update.js is emitted, so the HMR runtime
+// request 404s:
+//   ChunkLoadError: Loading hot update chunk main failed.
+//   (missing: http://localhost:<port>/main.<hash>.hot-update.js)
+// The accept callback never runs → UI never updates.
+//
+// globalThis.__LARK_HMR__ sidesteps module resolution entirely: no import,
+// no require, no chunk-graph side effect. Set once when this module loads
+// (which happens before any HMR callback can fire, since the framework
+// boots before views mount). Functions are hoisted (function declarations),
+// so they are already defined when this top-level code runs.
+if (typeof globalThis !== "undefined" && !globalThis.__LARK_HMR__) {
+  globalThis.__LARK_HMR__ = {
+    hotSwapByTemplate,
+    hotSwapByView,
+  };
 }

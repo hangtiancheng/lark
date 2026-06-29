@@ -20,10 +20,13 @@ import type {
 import type { Frame } from "./frame";
 import type { View } from "./view";
 declare global {
-  interface Window {
-    /** Scheduler API (Chrome 94+) — used by `Framework.task` for time-slicing. */
-    scheduler?: Scheduler;
-  }
+  /** Scheduler API (Chrome 94+) — used by `Framework.task` for time-slicing. */
+  var scheduler: Scheduler;
+  var __LARK_HMR__: {
+    hotSwapByTemplate: (oldTemplate: ViewTemplate, newTemplate: ViewTemplate) => boolean;
+    hotSwapByView: (oldSetup: ViewSetup, newSetup: ViewSetup) => boolean;
+  };
+
   interface ImportMeta {
     /** HMR context provided by Vite / webpack dev server. Undefined in production. */
     hot?: {

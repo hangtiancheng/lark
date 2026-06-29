@@ -59,8 +59,8 @@ Network inspection (via DevTools) reveals that **every** async chunk
 belonging to `lark-demo` is requested from `http://localhost:5173/...`:
 
 ```
-reqid=71 GET http://localhost:5173/static/js/async/js/view-counter.xxx.js   [200, text/html]
-reqid=73 GET http://localhost:5173/static/js/async/js/comp-counter-store…   [200, text/html]
+reqId=71 GET http://localhost:5173/static/js/async/js/view-counter.xxx.js   [200, text/html]
+reqId=73 GET http://localhost:5173/static/js/async/js/comp-counter-store…   [200, text/html]
 ```
 
 The host dev server returns `index.html` for these paths (SPA fallback),
@@ -131,7 +131,7 @@ let meta = BasicStatsMetaData {
 
 When `output.publicPath` is `Auto`, rspack serializes the **string
 literal `"auto"`** into `manifest.metaData.publicPath`. It does **not**
-emit a runtime publicPath-inferral stub (unlike webpack 5).
+emit a runtime publicPath stub (unlike webpack 5).
 
 ### Why webpack-dev-server is unaffected
 

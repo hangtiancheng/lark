@@ -65,11 +65,20 @@ const TEMPLATE_VAR = "__larkTemplate";
  * 1. On `dispose`: saves the current `__larkTemplate` reference into
  *    `hot.data` so the accept callback can retrieve the OLD function.
  * 2. On `accept`: determines the NEW template function, then calls
- *    `hotSwapByTemplate(old, new)` via a dynamic `import("@lark.js/mvc")`.
+ *    `hotSwapByTemplate(old, new)` to update all mounted views.
  *
- * The dynamic import avoids pulling the entire framework into the template
- * module's dependency graph at build time. In production builds, the entire
- * `if` block is dead code (HMR API is undefined) and gets tree-shaken.
+ * Access to the framework's HMR swap functions is via `globalThis.__LARK_HMR__`
+ * (registered by ./hmr.ts at module-load time), NOT via import/require of
+ * "@lark.js/mvc". Under Module Federation (`@lark.js/mvc` shared singleton),
+ * ANY import/require of @lark.js/mvc inside the accept callback registers the
+ * calling module as a shared consumer, which causes webpack to mark the main
+ * chunk (shared-scope initializer) as needing a hot-update. Since main's code
+ * didn't actually change, no main.<hash>.hot-update.js is emitted →
+ * `ChunkLoadError: Loading hot update chunk main failed` → accept callback
+ * never runs → UI never updates. globalThis sidesteps all module resolution.
+ *
+ * In production builds, the entire `if` block is dead code (the HMR API is
+ * undefined) and gets tree-shaken.
  */
 function getTemplateHmrSnippet(bundler: Bundler): string {
   if (bundler === "vite") {
@@ -83,9 +92,8 @@ if (import.meta.hot) {
     var __larkNew = __larkNewModule && __larkNewModule.default;
     var __larkOld = import.meta.hot.data && import.meta.hot.data.oldTemplate;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      import("@lark.js/mvc").then(function(m) {
-        if (m && m.hotSwapByTemplate) m.hotSwapByTemplate(__larkOld, __larkNew);
-      });
+      var __hmr = globalThis.__LARK_HMR__;
+      if (__hmr && __hmr.hotSwapByTemplate) __hmr.hotSwapByTemplate(__larkOld, __larkNew);
     }
   });
 }
@@ -96,6 +104,16 @@ if (import.meta.hot) {
   // The accept callback does NOT receive the new module namespace — the
   // module has already re-executed by the time the callback runs, so
   // `__larkTemplate` in the callback scope IS the new function.
+  //
+  // HMR swap functions are accessed via globalThis.__LARK_HMR__ (registered
+  // by ./hmr.ts) rather than import/require("@lark.js/mvc"): under Module
+  // Federation (shared singleton), ANY reference to @lark.js/mvc inside the
+  // accept callback registers the template module as a shared consumer,
+  // which causes webpack to mark the main chunk (shared-scope initializer)
+  // as needing a hot-update — but since main didn't actually change, no
+  // .hot-update.js is emitted, producing ChunkLoadError. globalThis avoids
+  // all module-resolution / chunk-graph side effects. See the
+  // getTemplateHmrSnippet doc comment above for the full rationale.
   return `
 // ── Lark template HMR (auto-injected by larkMvcPlugin — ${bundler}) ──
 if (typeof module !== "undefined" && module.hot) {
@@ -106,9 +124,12 @@ if (typeof module !== "undefined" && module.hot) {
     var __larkNew = ${TEMPLATE_VAR};
     var __larkOld = module.hot && module.hot.data && module.hot.data.oldTemplate;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      import("@lark.js/mvc").then(function(m) {
-        if (m && m.hotSwapByTemplate) m.hotSwapByTemplate(__larkOld, __larkNew);
-      });
+      var __hmr = globalThis.__LARK_HMR__;
+      var __swapped = false;
+      if (__hmr && __hmr.hotSwapByTemplate) __swapped = __hmr.hotSwapByTemplate(__larkOld, __larkNew);
+      // Fallback: if no mounted view matched oldTemplate (HMR state corrupted
+      // by a prior ChunkLoadError on the main chunk), full-reload to reset.
+      if (!__swapped && typeof globalThis !== "undefined" && globalThis.location) globalThis.location.reload();
     }
   });
 }
@@ -157,16 +178,18 @@ if (import.meta.hot) {
     var __larkNew = __larkNewModule && __larkNewModule.default;
     var __larkOld = import.meta.hot.data && import.meta.hot.data.oldClass;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      import("@lark.js/mvc").then(function(m) {
-        if (m && m.hotSwapByView) m.hotSwapByView(__larkOld, __larkNew);
-      });
+      var __hmr = globalThis.__LARK_HMR__;
+      if (__hmr && __hmr.hotSwapByView) __hmr.hotSwapByView(__larkOld, __larkNew);
     }
   });
 }
 `;
   }
 
-  // Webpack / Rspack
+  // Webpack / Rspack — globalThis.__LARK_HMR__ access; see
+  // getTemplateHmrSnippet above for the full rationale (any import/require
+  // of @lark.js/mvc inside the accept callback registers the module as a
+  // shared consumer → main chunk flagged for hot-update → ChunkLoadError).
   return `
 // ── Lark view class HMR (auto-injected by larkMvcPlugin — ${bundler}) ──
 if (typeof module !== "undefined" && module.hot) {
@@ -177,9 +200,12 @@ if (typeof module !== "undefined" && module.hot) {
     var __larkNew = ${VIEW_VAR};
     var __larkOld = module.hot && module.hot.data && module.hot.data.oldClass;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      import("@lark.js/mvc").then(function(m) {
-        if (m && m.hotSwapByView) m.hotSwapByView(__larkOld, __larkNew);
-      });
+      var __hmr = globalThis.__LARK_HMR__;
+      var __swapped = false;
+      if (__hmr && __hmr.hotSwapByView) __swapped = __hmr.hotSwapByView(__larkOld, __larkNew);
+      // Fallback: if no mounted frame matched (HMR state corrupted by a prior
+      // ChunkLoadError on the main chunk), full-reload to reset.
+      if (!__swapped && globalThis.location) globalThis.location.reload();
     }
   });
 }

@@ -241,23 +241,23 @@ function updateBrowserUrl(path: string, replace?: boolean): void {
     const url = path || "/";
     // Skip if URL is already the target to avoid duplicate history entries
     // (e.g. when resolve() calls updateBrowserUrl after pushState already set the URL)
-    const currentUrl = window.location.pathname + window.location.search;
+    const currentUrl = globalThis.location.pathname + globalThis.location.search;
     if (url === currentUrl) {
       return;
     }
     if (replace) {
-      window.history.replaceState(null, "", url);
+      globalThis.history.replaceState(null, "", url);
     } else {
-      window.history.pushState(null, "", url);
+      globalThis.history.pushState(null, "", url);
     }
     return;
   }
   const hashbang = frameworkConfig?.hashbang || "#!";
   const fullPath = path === "" ? "" : hashbang + path;
   if (replace) {
-    window.location.replace(fullPath);
+    globalThis.location.replace(fullPath);
   } else {
-    window.location.hash = fullPath;
+    globalThis.location.hash = fullPath;
   }
 }
 
@@ -304,10 +304,10 @@ function updateUrl(
 export const Router: RouterApi = {
   /**
    * Parse href into Location object.
-   * Defaults to window.location.href.
+   * Defaults to globalThis.location.href.
    */
   parse(href?: string): Location {
-    href = href || window.location.href;
+    href = href || globalThis.location.href;
 
     const cached = hrefCache.get(href);
     if (cached) {
@@ -321,7 +321,7 @@ export const Router: RouterApi = {
 
     if (routeMode === "history") {
       try {
-        const urlObj = new URL(href, window.location.origin);
+        const urlObj = new URL(href, globalThis.location.origin);
         srcQuery = urlObj.pathname + urlObj.search;
         srcHash = urlObj.hash ? urlObj.hash.replace(/^#!?/, "") : "";
         query = parseUri(srcQuery);
@@ -419,7 +419,7 @@ export const Router: RouterApi = {
     }
 
     if (tPath) {
-      if (routeMode === "hash" && !hasOwnProperty(window, "history")) {
+      if (routeMode === "hash" && typeof globalThis.history === "undefined") {
         for (const qKey of lQuery) {
           if (!hasOwnProperty(tParams, qKey)) {
             tParams[qKey] = "";
@@ -495,7 +495,7 @@ export const Router: RouterApi = {
 
     const getLocationKey = (): string => {
       if (routeMode === "history") {
-        return window.location.pathname + window.location.search;
+        return globalThis.location.pathname + globalThis.location.search;
       }
       return Router.parse().srcHash;
     };
@@ -578,12 +578,12 @@ export const Router: RouterApi = {
     Router.notify = watchChange;
 
     if (routeMode === "history") {
-      window.addEventListener("popstate", watchChange as EventListener);
+      globalThis.addEventListener("popstate", watchChange as EventListener);
     } else {
-      window.addEventListener("hashchange", watchChange as EventListener);
-      window.addEventListener("popstate", watchChange as EventListener);
+      globalThis.addEventListener("hashchange", watchChange as EventListener);
+      globalThis.addEventListener("popstate", watchChange as EventListener);
     }
-    window.addEventListener("beforeunload", (domEvent: BeforeUnloadEvent) => {
+    globalThis.addEventListener("beforeunload", (domEvent: BeforeUnloadEvent) => {
       const data: Record<string, unknown> = {};
       Router.fire(RouterEvents.PAGE_UNLOAD, data);
       const msg = data["msg"];

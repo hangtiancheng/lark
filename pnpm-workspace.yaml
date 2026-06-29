@@ -18,6 +18,3 @@ allowBuilds:
   protobufjs: true
   vue-demi: true
   es5-ext: true
-
-minimumReleaseAgeExclude:
-  - '@lark.js/sentry@0.0.6'

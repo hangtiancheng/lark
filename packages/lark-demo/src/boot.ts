@@ -87,7 +87,7 @@ const config: FrameworkConfig = {
         const loader = VIEW_MODULES[name];
         if (!loader) {
           console.warn(`[Lark] Unknown view path: ${name}`);
-          return { name, ViewClass: undefined as unknown };
+          return { name, ViewClass: undefined };
         }
         const mod = await loader();
 

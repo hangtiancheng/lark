@@ -80,8 +80,6 @@ export function mountCounter(container: HTMLElement): () => void {
     },
   });
   EventDelegator.setFrameGetter((id: string) => Frame.get(id));
-  Reflect.set(Router, "_booted", true);
-  Reflect.set(State, "_booted", true);
 
   // Create an INDEPENDENT Frame for this container.
   // Do NOT use Frame.createRoot() — it is a singleton that always returns the

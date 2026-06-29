@@ -67,7 +67,6 @@
     "git:precommit": "rm -rf ./.claude && ln -s ./.github ./.claude",
     "git:push": "pnpm git:commit && git push origin main",
     "git:push:ci": "pnpm git:commit:ci && git push origin main",
-    "postinstall": "node scripts/patch-mf-vite.cjs",
     "prepare": "husky"
   },
   "type": "module"

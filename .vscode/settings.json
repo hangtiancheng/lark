@@ -30,6 +30,7 @@
     "heapify",
     "heappop",
     "heappush",
+    "htmlparser",
     "jsapi",
     "keyup",
     "langchain",
@@ -76,7 +77,8 @@
     "vnode",
     "vnodes",
     "xxhash",
-    "Yahei"
+    "Yahei",
+    "zustand"
   ],
   "css.validate": false
 }

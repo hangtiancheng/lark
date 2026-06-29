@@ -83,8 +83,9 @@ export default (env, argv) => {
         name: "lark_devtool",
         filename: "remoteEntry.js",
         remotes: {
-          lark_demo: "lark_demo@http://localhost:3000/varRemoteEntry.js",
+          // lark_demo: "lark_demo@http://localhost:3000/varRemoteEntry.js",
           // lark_demo: "lark_demo@http://localhost:3300/cdn/lark-demo/varRemoteEntry.js",
+          lark_demo: "lark_demo@http://localhost:3000/remoteEntry.js",
         },
         exposes: {
           "./cdn-manager": "./src/exposed/cdn-manager.ts",
@@ -117,17 +118,17 @@ export default (env, argv) => {
 
     optimization: isProd
       ? {
-          splitChunks: {
-            chunks: "all",
-            cacheGroups: {
-              vendor: {
-                test: /[\\/]node_modules[\\/]/,
-                name: "vendor",
-                chunks: "all",
-              },
+        splitChunks: {
+          chunks: "all",
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendor",
+              chunks: "all",
             },
           },
-        }
+        },
+      }
       : undefined,
 
     devtool: isProd ? "hidden-source-map" : "source-map",

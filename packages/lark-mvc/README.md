@@ -1,1052 +1,1191 @@
-## @lark.js/mvc
+# @lark.js/mvc
 
-A TypeScript MVC framework designed for back-office single-page applications and micro-frontend scenarios.
+A lightweight TypeScript MVC frontend framework for single-page applications and micro-frontend scenarios.
 
-`@lark.js/mvc` explicitly separates Model, View, and Controller layers: state management aligns with the zustand design (`create` / `getState` / `setState` / `subscribe`), routing supports both history and hash modes, templates compile to functions and render via real DOM diff, and micro-frontends are natively supported through the Webpack Module Federation integration. The framework has zero runtime third-party dependencies; the template runtime helper module weighs approximately 1 KB (`dist/runtime.js` measured at 964 bytes).
+Version: 0.0.18
+License: ISC
+Package: @lark.js/mvc
 
-- Package: `@lark.js/mvc`
-- Version: see `package.json` (currently 0.0.15)
-- Entry points: `./` main entry, `./vite` Vite plugin, `./webpack` Webpack loader, `./rspack` Rspack loader, `./runtime` template runtime, `./compiler` compile-time API
-- Build: tsup, producing ESM + CJS + `.d.ts` in `dist/`
-- Tests: vitest, 24 test files, 500+ test cases covering core modules and HMR
+## Overview
 
-## Table of Contents
+lark-mvc is a functional-first MVC framework that provides a complete application architecture with zero runtime dependencies. It features a real-DOM diff engine (with optional VDOM mode), compile-time template transformation, two-phase route confirmation, zustand-aligned state management, and built-in HMR support across Vite, Webpack, and Rspack.
 
-- Design Goals and Use Cases
-- Installation and Build Tool Configuration
-- Five-Minute Quick Start
-- Three Data Pipelines: Updater / State / Store
-- View Definition and Lifecycle
-- Router and Route Guards
-- Service Request Layer
-- Template Syntax
-- Frame and the View Tree
-- Module Federation Micro-Frontend
-- Hot Module Replacement (HMR)
-- Debugging and Devtool Bridge
-- Public API Reference
-- Common Pitfalls
-- Recent API Changes
-- Comparison with Vue 3 / React 19
-- Testing and Local Development
+Design principles:
 
-## Design Goals and Use Cases
+- Functional API: no class, no this, no prototype, no mixin
+- Zero runtime dependencies (Babel is build-time only)
+- Real DOM diff via innerHTML plus keyed comparison (VDOM mode available via config)
+- Module Federation support for micro-frontends
+- Compile-time template compilation with zero-config variable extraction
+- Two rendering modes: string mode (real-DOM diff) and VDOM mode (LIS reconciliation)
 
-Lark's trade-offs center around one category of requirements: back-office business systems with deep route hierarchies, heavy forms and API calls, and the need to compose several independent applications into a single shell. The framework makes explicit choices along the following dimensions.
+## Architecture
 
-First, explicit layering. The Model layer provides `State` / `createStore()` (zustand-style) / `createService()`, the View layer provides `defineView()` / `Updater`, and the Controller layer provides `Router` (history/hash dual mode) / `Frame`. These communicate through explicit interfaces and events, allowing new team members to locate code by layer.
-
-Second, native micro-frontend support.
-
-Third, zero runtime dependencies. `@babel/parser` / `@babel/types` are used only at build time for template parsing. The runtime helper module `@lark.js/mvc/runtime` contains five functions (`strSafe` / `encHtml` / `encUri` / `encQuote` / `refFn`) and weighs approximately 1 KB as ESM.
-
-Fourth, real DOM diff. Templates compile to functions that produce HTML strings, which are parsed into temporary DOM via `document.implementation.createHTMLDocument` and then diffed against the live DOM using keyed comparison. The advantage is that context-sensitive tags like `<table>` / `<select>` / `<svg>` are handled by the native parser. The trade-off is that large templates incur parse overhead, and SSR is not supported.
-
-Fifth, debug-friendly. `installFrameDevtoolBridge` exposes the Frame tree to Devtool via `postMessage`, enabling real-time inspection of the view hierarchy.
-
-Not suitable for: projects requiring SSR/streaming rendering, cross-platform needs like React Native, or projects needing off-the-shelf Chrome extension panels. For those, consider the React or Vue ecosystems.
-
-## Installation and Build Tool Configuration
-
-### Installation
-
-```bash
-pnpm add @lark.js/mvc
+```
+                          Framework.boot(config)
+                                |
+          +---------------------+---------------------+
+          |                     |                     |
+       Router               State                Frame Tree
+    (history/hash)       (observable)          (mount/unmount)
+          |                     |                     |
+    two-phase              get/set/digest         createFrame
+    confirmation           change tracking       parent-child
+          |                     |                     |
+          +----------+----------+                     |
+                     |                                |
+              dispatcherNotifyChange                  |
+                     |                                |
+              dispatcherUpdate (walk tree)            |
+                     |                                |
+                   ViewCtx <----+----> mountCtx / unmountCtx
+                     |          |
+              +------+-------+  |
+              |      |       |  |
+           updater  events  hooks
+              |      |       |
+         digest()  delegator  useState/useEffect/...
+              |
+     +--------+--------+
+     |                 |
+  string mode      VDOM mode
+  (real-DOM diff)  (LIS reconciliation)
+     |                 |
+  dom.ts           vdom.ts
 ```
 
-### Vite (Recommended)
+## Installation
+
+```bash
+# pnpm
+pnpm add @lark.js/mvc
+
+# npm
+npm install @lark.js/mvc
+
+# yarn
+yarn add @lark.js/mvc
+```
+
+### Peer dependencies
+
+- Vite 8+ (optional, for the Vite plugin)
+
+### Bundler plugin
+
+Install the bundler plugin matching your build tool:
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite";
-import { resolve } from "path";
 import { larkMvcPlugin } from "@lark.js/mvc/vite";
 
 export default defineConfig({
   plugins: [larkMvcPlugin()],
-  resolve: { alias: { "@": resolve(__dirname, "./src") } },
 });
 ```
 
-`larkMvcPlugin()` registers at the `enforce: "pre"` stage: the `resolveId` hook appends a `?lark-template` suffix to `.html` imports to prevent Vite from treating them as static assets; the `load` hook calls `extractGlobalVars()` and `compileTemplate()` to compile templates into ES modules exporting a render function of the form `(data, viewId, refData) => string`. With `{ debug: true }`, source location markers are injected into the output so runtime errors can be traced back to the original HTML line.
+```ts
+// webpack.config.js
+const { larkMvcLoader } = require("@lark.js/mvc/webpack");
 
-### Webpack
+module.exports = {
+  module: {
+    rules: [{ test: /\.html$/, use: larkMvcLoader() }],
+  },
+};
+```
 
-```js
-// webpack.config.mjs
+```ts
+// rspack.config.js
+const { larkMvcLoader } = require("@lark.js/mvc/rspack");
+
+module.exports = {
+  module: {
+    rules: [{ test: /\.html$/, use: larkMvcLoader() }],
+  },
+};
+```
+
+## Quick Start
+
+### 1. Define a view
+
+```ts
+// src/views/home.ts
+import { defineView, useState } from "@lark.js/mvc";
+import template from "./home.html";
+
+export default defineView((ctx, params) => {
+  const [getCount, setCount] = useState("count", 0);
+
+  return {
+    template,
+    events: {
+      "increment<click>"() {
+        setCount(getCount() + 1);
+      },
+    },
+  };
+});
+```
+
+### 2. Write a template
+
+```html
+<!-- src/views/home.html -->
+<div class="home">
+  <h1>Welcome to Lark MVC</h1>
+  <p>Count: {{=count}}</p>
+  <button @click="increment()">Increment</button>
+</div>
+```
+
+### 3. Boot the framework
+
+```ts
+// src/main.ts
+import { Framework } from "@lark.js/mvc";
+
+Framework.boot({
+  rootId: "root",
+  routeMode: "history",
+  defaultView: "src/views/home",
+  routes: {
+    "/": "src/views/home",
+    "/about": "src/views/about",
+  },
+});
+```
+
+### 4. HTML entry point
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <title>Lark MVC App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+```
+
+## Core Concepts
+
+### Views
+
+A view is defined via `defineView()`. The setup function runs once on mount, receives a `ViewCtx`, and returns `{ template, events, assign? }`.
+
+```ts
+import { defineView, useState, useEffect } from "@lark.js/mvc";
+import template from "./my-view.html";
+
+export default defineView((ctx, params) => {
+  // View-local state
+  const [getName, setName] = useState("name", "world");
+
+  // Side effect with cleanup
+  useEffect(() => {
+    const timer = setInterval(() => console.log("tick"), 1000);
+    return () => clearInterval(timer);
+  });
+
+  return {
+    template,
+    events: {
+      "greet<click>"() {
+        setName("Lark");
+      },
+    },
+    // Optional: custom data assignment logic
+    assign(options) {
+      ctx.updater.set({ greeting: `Hello, ${getName()}!` }).digest();
+      return true;
+    },
+  };
+});
+```
+
+#### ViewCtx
+
+The `ViewCtx` is the first argument to every setup function. It provides all framework APIs:
+
+| Method                             | Description                              |
+| ---------------------------------- | ---------------------------------------- |
+| `ctx.render()`                     | Force re-render the view                 |
+| `ctx.observeLocation(params)`      | Declare URL params this view reacts to   |
+| `ctx.observeState(keys)`           | Declare State keys this view reacts to   |
+| `ctx.capture(key, resource)`       | Register a destroyable resource          |
+| `ctx.release(key)`                 | Remove and destroy a resource            |
+| `ctx.leaveTip(message, condition)` | Unsaved-changes navigation guard         |
+| `ctx.on(event, handler)`           | Listen to view lifecycle events          |
+| `ctx.fire(event, data)`            | Emit a view event                        |
+| `ctx.wrapAsync(fn)`                | Wrap async callback with signature guard |
+| `ctx.beginUpdate(zoneId)`          | Begin zone update (unmount children)     |
+| `ctx.endUpdate(zoneId)`            | End zone update (remount children)       |
+| `ctx.updater`                      | Per-view data binding API                |
+| `ctx.id`                           | View ID (same as owner frame ID)         |
+| `ctx.owner`                        | Owner frame reference                    |
+
+#### View Lifecycle
+
+```
+mountView(viewPath)
+       |
+   createCtx(frame)
+       |
+   setCurrentCtx(ctx)
+       |
+   setup(ctx, params)
+       |
+   +-- hooks: useState, useEffect, useStore, ...
+       |
+   setCurrentCtx(null)
+       |
+   wire template / events / assign
+       |
+   signature.value = 1
+       |
+   frame.view = ctx
+       |
+   registerEvents(ctx)
+       |
+   ctx.render() --> updater.digest() --> DOM diff --> endUpdate()
+```
+
+On unmount:
+
+```
+unmountView()
+       |
+   run useEffect cleanups (reverse order)
+       |
+   unregisterEvents(ctx)
+       |
+   destroyAllResources(ctx, true)
+       |
+   fire("destroy")
+       |
+   EventDelegator.clearRangeEvents(ctx.id)
+       |
+   signature.value = 0
+```
+
+### Frame System
+
+The Frame system manages the view lifecycle tree. Each Frame is a plain object with closure-based methods, registered in a global Map keyed by DOM element ID.
+
+```ts
+import { Frame, createFrame } from "@lark.js/mvc";
+
+// Create the root frame (called by Framework.boot)
+const root = Frame.createRoot("root");
+
+// Mount a view into a DOM element
+root.mountView("src/views/home");
+
+// Mount a child frame
+const child = root.mountFrame("child-id", "src/views/detail", { id: "123" });
+
+// Navigate the tree
+const parent = child.parent();
+const children = root.children();
+
+// Cross-view method invocation
+child.invoke("loadData", [{ id: "456" }]);
+
+// Zone management: mount/unmount child frames in a DOM region
+root.mountZone("zone-id");
+root.unmountZone("zone-id");
+
+// Unmount
+child.unmountView();
+root.unmountFrame("child-id");
+```
+
+#### Frame Singleton API
+
+| Method                      | Description                                 |
+| --------------------------- | ------------------------------------------- |
+| `Frame.get(id)`             | Get frame by DOM element ID                 |
+| `Frame.getAll()`            | Get all frames as a Map                     |
+| `Frame.getRoot()`           | Get the root frame                          |
+| `Frame.createRoot(rootId)`  | Create (or return) the singleton root frame |
+| `Frame.on(event, handler)`  | Listen to static frame events (add/remove)  |
+| `Frame.off(event, handler)` | Unbind static frame event                   |
+| `Frame.fire(event, data)`   | Fire static frame event                     |
+
+#### Frame Instance Methods
+
+| Method                                | Description                                |
+| ------------------------------------- | ------------------------------------------ |
+| `frame.mountView(path, params?)`      | Mount a view (sync or async load)          |
+| `frame.unmountView()`                 | Unmount current view                       |
+| `frame.mountFrame(id, path, params?)` | Mount a child frame                        |
+| `frame.unmountFrame(id?)`             | Unmount a child frame                      |
+| `frame.mountZone(zoneId?)`            | Find and mount all v-lark elements in zone |
+| `frame.unmountZone(zoneId?)`          | Unmount child frames in zone               |
+| `frame.parent(level?)`                | Navigate up the tree                       |
+| `frame.invoke(name, args?)`           | Cross-view method call                     |
+| `frame.children()`                    | Get child frame IDs                        |
+| `frame.on/off/fire`                   | Frame-level events                         |
+
+#### Embedded Views (v-lark)
+
+Child views are embedded in templates via the `v-lark` attribute:
+
+```html
+<div v-lark="src/views/detail?id={{=itemId}}"></div>
+```
+
+The compiler encodes the view path and params. At render time, `mountZone` scans for `v-lark` elements and calls `mountFrame` for each one.
+
+### Routing
+
+The Router supports two modes with a two-phase change confirmation protocol.
+
+```ts
+import { Router } from "@lark.js/mvc";
+
+// Navigate
+Router.to("/list", { page: 2 });
+Router.to({ page: 3 }); // update params only, keep current path
+Router.to("/detail", { id: "123" }, true); // replace history entry
+
+// Parse current URL
+const loc = Router.parse();
+console.log(loc.path); // "/list"
+console.log(loc.params); // { page: "2" }
+console.log(loc.get("page")); // "2"
+console.log(loc.get("missing", "default")); // "default"
+
+// Compute diff
+const diff = Router.diff();
+// { params: { page: { from: "1", to: "2" } }, path: { from: "/home", to: "/list" }, changed: true }
+
+// Join path segments
+Router.join("/api", "v1", "users"); // "/api/v1/users"
+```
+
+#### Two-Phase Change Confirmation
+
+```
+User action (Router.to, back/forward, link click)
+       |
+   CHANGE event (preventable)
+       |
+   +---+---+
+   |       |
+ reject  resolve  prevent
+ (revert) (commit) (suspend)
+   |       |
+   |   beforeEach guards (async)
+   |       |
+   |   +---+---+
+   |   |       |
+   | false   true/undefined
+   |   |       |
+   | reject  resolve
+   |           |
+   CHANGED event (final)
+       |
+   dispatcherNotifyChange
+       |
+   mount new view / update params
+```
+
+```ts
+// Listen to route changes
+Router.on("change", (e) => {
+  // e.reject() -- revert URL
+  // e.prevent() -- pause navigation
+  // e.resolve() -- commit navigation
+});
+
+Router.on("changed", (e) => {
+  // e.params -- changed params { key: { from, to } }
+  // e.path -- path diff
+  // e.view -- view diff
+  // e.changed -- whether anything changed
+});
+
+// Async navigation guard
+const unGuard = Router.beforeEach(async (to, from) => {
+  if (to.path === "/admin") {
+    return await checkAuth(); // false aborts navigation
+  }
+  return true;
+});
+
+// Later: unGuard() to remove the guard
+```
+
+#### Routing Modes
+
+```ts
+Framework.boot({
+  routeMode: "history", // default: uses pushState/popstate, clean URLs
+  // routeMode: "hash",  // uses location.hash with #! prefix
+});
+```
+
+#### Route Configuration
+
+```ts
+Framework.boot({
+  rootId: "root",
+  routes: {
+    "/home": "app/views/home",
+    "/detail": { view: "app/views/detail", title: "Detail Page" },
+    "/admin": "app/views/admin",
+  },
+  defaultView: "app/views/home",
+  unmatchedView: "app/views/not-found",
+  defaultPath: "/home",
+  rewrite(path, params, routes) {
+    // Custom path rewriting logic
+    if (path === "/" && !routes[path]) return "/home";
+    return path;
+  },
+});
+```
+
+### State Management
+
+lark-mvc provides two state management layers:
+
+#### State (Simple Cross-View Data)
+
+`State` is a singleton for lightweight shared values (counters, toggles, session info).
+
+```ts
+import { State } from "@lark.js/mvc";
+
+// Write
+State.set({ count: 1, title: "Hello" });
+State.digest(); // fire changed event, notify views
+
+// Read
+const count = State.get("count");
+const all = State.get(); // entire state object
+
+// Get changed keys from last digest
+const keys = State.diff(); // ReadonlySet<string>
+
+// In view setup: observe specific keys
+export default defineView((ctx) => {
+  ctx.observeState("count,title");
+  // When count or title changes via State.digest(), this view re-renders
+
+  // Auto-cleanup on view destroy (reference-counted)
+  State.clean("count,title")(ctx);
+
+  return { template };
+});
+```
+
+#### createStore (Complex Reactive State)
+
+For complex state with handlers, derived data, or fine-grained subscriptions:
+
+```ts
+import { createStore, computed } from "@lark.js/mvc";
+
+const counterStore = createStore("counter", (set, get) => ({
+  count: 0,
+  step: 1,
+
+  // Computed: auto-recomputes when deps change
+  doubled: computed(["count"], () => get().count * 2),
+
+  // Actions: functions attached to state
+  increment() {
+    set({ count: get().count + get().step });
+  },
+  decrement() {
+    set({ count: get().count - get().step });
+  },
+  setStep(step: number) {
+    set({ step });
+  },
+}));
+
+// Read state
+const state = counterStore.getState();
+console.log(state.count); // 0
+console.log(state.doubled); // 0
+
+// Update state
+counterStore.setState({ count: 5 });
+
+// Subscribe to changes
+const unSub = counterStore.subscribe((state, prevState) => {
+  console.log("count changed:", prevState.count, "->", state.count);
+});
+
+// Use in view
+export default defineView((ctx) => {
+  const getState = useStore(counterStore, (s) => ({
+    count: s.count,
+    doubled: s.doubled,
+  }));
+
+  return {
+    template,
+    events: {
+      "inc<click>"() {
+        counterStore.getState().increment();
+      },
+    },
+  };
+});
+
+// Cleanup
+unSub();
+counterStore.destroy();
+```
+
+#### bindStore (View Lifecycle Binding)
+
+```ts
+import { bindStore } from "@lark.js/mvc";
+
+export default defineView((ctx) => {
+  // Auto-syncs store state to updater.data
+  // Auto-unsubscribes on view destroy
+  bindStore(ctx, counterStore, (s) => ({
+    count: s.count,
+    doubled: s.doubled,
+  }));
+
+  return { template };
+});
+```
+
+### Service Layer
+
+The Service system manages API requests with LFU caching, deduplication, serial queuing, and lifecycle events.
+
+```ts
+import { createService, createPayload } from "@lark.js/mvc";
+
+// Create a service type with a transport function
+const apiService = createService(
+  (payload, callback) => {
+    const url = payload.get("url");
+    const method = payload.get("method") || "GET";
+    const data = payload.get("data");
+
+    fetch(url, { method, body: data ? JSON.stringify(data) : undefined })
+      .then((res) => res.json())
+      .then((result) => {
+        payload.set("result", result);
+        callback();
+      })
+      .catch((err) => {
+        payload.set("error", err);
+        callback();
+      });
+  },
+  20, // cacheMax
+  5, // cacheBuffer
+);
+
+// Register endpoint metadata
+apiService.add({
+  name: "getUser",
+  url: "/api/user",
+  cache: 30000, // 30s TTL
+  before(payload) {
+    // Transform request data before fetch
+    const id = payload.get("id");
+    payload.set("url", `/api/user/${id}`);
+  },
+  after(payload) {
+    // Transform response data after fetch
+    const result = payload.get("result");
+    payload.set("userName", result.name);
+  },
+  cleanKeys: "listUsers", // Clear listUsers cache after this call
+});
+
+apiService.add({
+  name: "listUsers",
+  url: "/api/users",
+  cache: 60000,
+});
+
+// Use in a view
+export default defineView((ctx) => {
+  const service = apiService.instance();
+
+  // Capture the service instance for auto-destroy
+  ctx.capture("api", service);
+
+  return {
+    template,
+    events: {
+      "loadUser<click>"() {
+        service.all([{ name: "getUser", id: "123" }], (errors, payload) => {
+          ctx.updater.set({ userName: payload.get("userName") }).digest();
+        });
+      },
+    },
+  };
+});
+```
+
+#### Service Instance API
+
+| Method                       | Description                                                              |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `instance.all(attrs, done)`  | Fetch all, callback with `(errors, p1, p2, ...)`                         |
+| `instance.one(attrs, done)`  | Fetch all, callback per-attribute with `(error, payload, isLast, index)` |
+| `instance.save(attrs, done)` | Fetch all, skip cache (always request)                                   |
+| `instance.enqueue(callback)` | Add to serial task queue                                                 |
+| `instance.dequeue()`         | Process next task                                                        |
+| `instance.destroy()`         | Cancel pending requests                                                  |
+| `instance.on/off/fire`       | Instance-level events                                                    |
+
+#### Service Type API
+
+| Method              | Description                                |
+| ------------------- | ------------------------------------------ |
+| `api.add(meta)`     | Register endpoint metadata                 |
+| `api.meta(name)`    | Look up endpoint metadata                  |
+| `api.cached(attrs)` | Read from cache without fetching           |
+| `api.clear(names)`  | Clear cached responses for endpoints       |
+| `api.on/off/fire`   | Type-level events (begin, done, fail, end) |
+| `api.instance()`    | Create a new service instance              |
+
+### Hooks
+
+All hooks are called inside the `defineView` setup function. The setup runs once on mount (not on every render like React).
+
+#### useState
+
+View-local state backed by `ctx.updater.data`. Returns a `[getter, setter]` pair.
+
+```ts
+const [getCount, setCount] = useState("count", 0);
+// getter always reads latest from updater.data (no stale closures)
+// setter writes to updater.data and triggers digest
+```
+
+#### useEffect
+
+Register a side effect with optional cleanup. Runs synchronously during setup.
+
+```ts
+useEffect(() => {
+  const timer = setInterval(tick, 1000);
+  return () => clearInterval(timer); // cleanup on destroy
+});
+```
+
+#### useStore
+
+Bind a zustand-aligned store to the view's updater. Auto-syncs and auto-unsubscribes.
+
+```ts
+const getState = useStore(counterStore, (s) => ({ count: s.count }));
+```
+
+#### useInterval
+
+Set up an interval that is automatically cleared on view destroy.
+
+```ts
+useInterval(() => {
+  ctx.updater.set({ time: Date.now() }).digest();
+}, 1000);
+```
+
+#### useTimeout
+
+Set up a timeout that is automatically cleared on view destroy.
+
+```ts
+useTimeout(() => {
+  console.log("fired");
+}, 5000);
+```
+
+#### useResource
+
+Capture a resource that is automatically destroyed on view destroy or render.
+
+```ts
+const service = createService(syncFn);
+useResource("myService", service.instance(), true); // destroyOnRender = true
+```
+
+#### useEvent
+
+Register an event handler on the view's internal emitter. Auto-cleaned on destroy.
+
+```ts
+useEvent("destroy", () => console.log("View destroyed"));
+useEvent("render", () => console.log("View rendered"));
+```
+
+#### useUrlState
+
+Sync view state with URL query parameters.
+
+```ts
+const [state, setState] = useUrlState(ctx, { page: "1", size: "20" });
+// state.page reads from URL, defaults to "1"
+// setState({ page: "2" }) updates URL via Router.to()
+```
+
+### Template System
+
+Templates are `.html` files compiled at build time into JavaScript render functions.
+
+#### Output Operators
+
+| Syntax      | Description                                            |
+| ----------- | ------------------------------------------------------ |
+| `{{=expr}}` | HTML-escaped output (safe for embedding in markup)     |
+| `{{:expr}}` | Two-way binding (same as = for rendering)              |
+| `{{!expr}}` | Raw output (no HTML escaping, use with caution)        |
+| `{{@expr}}` | Reference lookup for passing JS objects to child views |
+
+#### Control Flow
+
+```html
+{{if user.isAdmin}}
+<div class="admin-panel">Welcome, admin</div>
+{{else if user.isEditor}}
+<div class="editor-panel">Welcome, editor</div>
+{{else}}
+<div class="user-panel">Welcome, user</div>
+{{/if}}
+```
+
+#### Loops
+
+```html
+<!-- forOf: array iteration -->
+{{forOf items as item index}}
+<div class="item" id="item-{{=index}}">{{=index}}: {{=item.name}}</div>
+{{/forOf}}
+
+<!-- forOf with first/last helpers -->
+{{forOf items as item index last first}}
+<div class="{{if first}}first{{/if}}{{if last}}last{{/if}}">{{=item.name}}</div>
+{{/forOf}}
+
+<!-- forOf with destructuring -->
+{{forOf entries as {key, value} index}}
+<div>{{=key}}: {{=value}}</div>
+{{/forOf}}
+
+<!-- forIn: object iteration -->
+{{forIn config as val key}}
+<div>{{=key}} = {{=val}}</div>
+{{/forIn}}
+
+<!-- for: generic loop -->
+{{for(let i = 0; i < count; i++)}}
+<span>{{=i}}</span>
+{{/for}}
+```
+
+#### Variable Declaration
+
+```html
+{{set formattedDate = new Date(date).toLocaleDateString()}}
+<p>Date: {{=formattedDate}}</p>
+```
+
+#### Event Binding
+
+```html
+<!-- Direct handler -->
+<button @click="handleClick()">Click me</button>
+
+<!-- With parameters -->
+<button @click="deleteItem({id: item.id})">Delete</button>
+
+<!-- Multiple events -->
+<input @input,change="validate()" />
+
+<!-- With modifiers -->
+<button @click<ctrl>="specialAction()">Ctrl+Click</button>
+```
+
+#### Compilation Pipeline
+
+```
+.html source
+    |
+protectComments()      -- preserve HTML comments
+    |
+convertArtSyntax()     -- {{}} to <% %> internal syntax
+    |
+processViewEvents()    -- @event attribute encoding
+    |
+restoreComments()      -- restore HTML comments
+    |
+extractGlobalVars()    -- AST-based variable auto-detection
+    |
+compileToFunction()    -- <% %> to JS template function (string mode)
+    or
+compileToVDomFunction() -- <% %> to VDomNode tree builder (VDOM mode)
+    |
+ES module output       -- exports default __larkTemplate
+```
+
+### Updater
+
+The Updater provides per-view data binding with change detection and DOM diff triggering.
+
+```ts
+// Inside a view setup function
+ctx.updater.set({ name: "Alice", age: 30 }); // set data
+ctx.updater.get("name"); // read data
+ctx.updater.get(); // read entire data object
+ctx.updater.digest(); // trigger re-render if data changed
+ctx.updater.digest({ count: 1 }); // set + digest in one call
+ctx.updater.forceDigest(); // force re-render regardless of changes
+ctx.updater.snapshot(); // record current version
+ctx.updater.altered(); // check if version changed since snapshot
+ctx.updater.getChangedKeys(); // keys changed in current digest
+```
+
+#### Change Detection
+
+The Updater tracks changes via `setData()`: for each key in the new data, it compares against the old value. Only non-primitive, non-function values trigger comparison; primitives are always considered changed if the reference differs. Changed keys are collected into a `Set<string>` and passed through the diff pipeline.
+
+#### Rendering Modes
+
+String mode (default, `vdom: false`):
+
+1. Template function produces an HTML string
+2. `domGetNode()` parses HTML into a temporary DOM tree via `document.implementation.createHTMLDocument`
+3. `domSetChildNodes()` performs keyed diff against the live DOM
+4. `applyDomOps()` applies mutations (appendChild, removeChild, replaceChild, insertBefore)
+
+VDOM mode (`vdom: true`):
+
+1. Template function produces a `VDomNode` tree via `vdomCreate`
+2. `vdomSetChildNodes()` performs three-phase diff:
+   - Phase 1: Head fast-path (match identical nodes from start)
+   - Phase 2: Tail fast-path (match identical nodes from end)
+   - Phase 3: KeyMap reconciliation with LIS (Longest Increasing Subsequence) to minimize DOM moves
+3. DOM mutations are applied directly
+
+## Bundler Integration
+
+### Vite Plugin
+
+```ts
+import { larkMvcPlugin } from "@lark.js/mvc/vite";
+
+export default defineConfig({
+  plugins: [
+    larkMvcPlugin({
+      debug: false, // enable debug mode with line tracking
+      vdom: false, // enable VDOM output mode
+    }),
+  ],
+});
+```
+
+The Vite plugin:
+
+- Resolves `.html` imports and compiles them via `compileTemplate`
+- Auto-extracts template variables (zero-config)
+- Auto-injects HMR snippets for both template and view modules
+- Handles Vite 7 and Vite 8 compatibility
+
+### Webpack Loader
+
+```ts
 import { larkMvcLoader } from "@lark.js/mvc/webpack";
 
-export default {
+module.exports = {
   module: {
     rules: [
-      { test: /\.ts$/, use: "ts-loader", exclude: /node_modules/ },
       {
         test: /\.html$/,
-        use: [{ loader: larkMvcLoader }],
-        exclude: /index\.html$/,
+        use: larkMvcLoader({ debug: false, vdom: false }),
       },
     ],
   },
 };
 ```
 
-Two important notes: the `loader` field must be imported as a value (`loader: larkMvcLoader`), not as a string name; you must use `exclude: /index\.html$/` to let `HtmlWebpackPlugin` handle the entry HTML, otherwise it will be compiled as a template.
+### Rspack Loader
 
-### Rspack
+```ts
+import { larkMvcLoader } from "@lark.js/mvc/rspack";
 
-```js
-// rspack.config.mjs
-import { LarkMvcPlugin } from "@lark.js/mvc/rspack";
-
-export default {
-  plugins: [new LarkMvcPlugin()],
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.html$/,
+        use: larkMvcLoader({ debug: false, vdom: false }),
+      },
+    ],
+  },
 };
 ```
 
-The Rspack integration mirrors the Webpack plugin API. The loader returns a `Promise<string>` directly (Rspack async loader convention) rather than calling `this.callback()`.
+## Hot Module Replacement
 
-All three integrations share the same compilation pipeline: `extractGlobalVars` extracts external variables referenced in the template, and `compileTemplate` produces an ES module that imports helper functions from `@lark.js/mvc/runtime`. HMR snippets are auto-injected by each plugin at compile time (see the HMR section below).
+HMR hot-swaps view code without a full page reload, preserving view-local state.
 
-## Five-Minute Quick Start
+### Two HMR Layers
 
-### Entry HTML
+1. Template layer (`.html` changes): `hotSwapByTemplate(old, new)` finds every mounted view whose template matches the old reference, replaces it, and force-renders.
 
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Lark App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/boot.ts"></script>
-  </body>
-</html>
-```
+2. View setup layer (`.ts` changes): `hotSwapByView(old, new)` updates the view-registry and calls `hotSwapFrames(viewPath, newSetup)` which runs `hotSwapView` on every matching frame.
 
-`<div id="app">` corresponds to `rootId: "app"` in the boot configuration. `boot.ts` must reside in `src/` because the HTML references `/src/boot.ts`; placing it at the project root will cause a runtime resolution failure.
+### State Preservation
 
-### Project-Level Base View
+`hotSwapView` preserves the entire `ViewCtx`: `updater.data`, `resources`, `emitter`, `signature`, `id`, and `owner` all stay the same. The sequence:
 
-```ts
-// src/view.ts
-import { defineView, Router } from "@lark.js/mvc";
+1. Run old `useEffect` cleanups
+2. Unregister old events
+3. Destroy `destroyOnRender` resources
+4. Re-run `newSetup(ctx)` against the same ctx
+5. Update template/events/assign from the new descriptor
+6. Register new events
+7. Increment signature, fire `render`, force re-render
 
-export function withBaseView<P extends Record<string, unknown>>(
-  setup: (ctx: import("@lark.js/mvc").ViewCtx, params?: unknown) => P,
-) {
-  return defineView((ctx, params) => {
-    ctx.updater.set({ appName: "My App" });
-    ctx.on("destroy", () => console.log(`view destroyed: ${ctx.id}`));
-    return setup(ctx, params);
-  });
-}
-```
+### Auto-Injection
 
-`defineView(setup)` is the functional API for defining views. The setup function receives a `ViewCtx` and returns `{ template, events, assign? }`. No `this` binding — all framework APIs are accessed via `ctx`.
+The bundler plugins auto-inject HMR boilerplate at compile time. Users never need to write `import.meta.hot` or `module.hot` themselves. The injection:
 
-### View and Template
+- For `.html` modules: self-accepts, calls `hotSwapByTemplate(old, new)`
+- For `.ts` view modules: self-accepts, calls `hotSwapByView(old, new)`
 
-```html
-<!-- src/views/home.html -->
-<div>
-  <h1>{{=title}}</h1>
-  <p>Count: {{=count}}</p>
-  <button @click="incr()">+1</button>
-  {{if count > 0}}
-  <p>Positive</p>
-  {{else}}
-  <p>Zero or negative</p>
-  {{/if}}
-  <ul>
-    {{forOf items as item idx}}
-    <li id="item-{{=item.id}}">{{=idx}}: {{=item.name}}</li>
-    {{/forOf}}
-  </ul>
-  <div v-lark="components/counter-store"></div>
-</div>
-```
+### Manual HMR (if needed)
 
 ```ts
-// src/views/home.ts
-import { defineView, bindStore } from "@lark.js/mvc";
-import template from "./home.html";
-import useCountStore from "../store/count";
+import { acceptView, disposeView } from "@lark.js/mvc";
 
-export default defineView((ctx) => {
-  bindStore(ctx, useCountStore, (s) => ({ count: s.count }));
-
-  const assign = (): boolean | undefined => {
-    ctx.updater.snapshot();
-    const { count } = useCountStore.getState();
-    ctx.updater.set({
-      title: "Home",
-      count,
-      items: [
-        { id: "a", name: "Alpha" },
-        { id: "b", name: "Beta" },
-      ],
-    });
-    return ctx.updater.altered();
-  };
-
-  // Call assign for initial render
-  assign();
-
-  return {
-    template,
-    assign,
-    events: {
-      "incr<click>": () => {
-        useCountStore.getState().increment();
-      },
-    },
-  };
-});
+// In a view .ts file:
+const viewPath = "src/views/home";
+disposeView(import.meta.hot, viewPath);
+acceptView(import.meta.hot, viewPath);
 ```
 
-### Boot
+## Micro-Frontend Support
 
-```ts
-// src/boot.ts
-import { Framework, registerViewClass } from "@lark.js/mvc";
-import type { FrameworkConfig } from "@lark.js/mvc";
-import HomeView from "./views/home";
-import AboutView from "./views/about";
-import NotFoundView from "./views/404";
-
-registerViewClass("home", HomeView);
-registerViewClass("about", AboutView);
-registerViewClass("404", NotFoundView);
-
-const config: FrameworkConfig = {
-  rootId: "app",
-  defaultPath: "/home",
-  defaultView: "home",
-  routes: {
-    "/home": "home",
-    "/about": "about",
-  },
-  unmatchedView: "404",
-  error(e) {
-    console.error("Lark error:", e);
-  },
-};
-
-Framework.boot(config);
-```
-
-`Framework.boot()` executes the following steps in order (order is correctness-sensitive): merge user config (including `routeMode`), inject config into Router (which determines history/hash mode), set EventDelegator's frame getter, subscribe to Router/State `changed` events, mark Framework/Router/State as booted, install the Frame Devtool Bridge, create the root Frame via `Frame.createRoot(config.rootId)`, call `Router._bind()` to bind route events (popstate for history mode, hashchange + popstate for hash mode) and trigger the first `diff()`, and finally mount `defaultView` only if Router did not already initiate a mount. The guard checks `!rootFrame.viewPath` (set synchronously at the start of `mountView`) rather than `!rootFrame.view` (the `viewInstance`, which is only assigned after async view-class loading completes). Checking `viewInstance` loses the race when views load via dynamic `import()`: the Router triggers `mountView("counter")` during `_bind()`, but `viewInstance` is still `undefined` when the boot guard runs, so `defaultView` mounts in parallel and wins the signature race. Step seven must precede step eight because the first `diff()` may immediately trigger `CHANGED` followed by `Frame.getRoot()`, and if the root Frame does not exist it degrades to rendering against the wrong element.
-
-## Three Data Pipelines: Updater / State / Store
-
-Lark provides three data flow mechanisms simultaneously, ranging from simple to complex, corresponding to "view-private", "lightweight cross-view sharing", and "complex reactive cross-view sharing". Choose the simplest approach that meets your needs to reduce cognitive overhead.
-
-### Updater: View-Private
-
-`Updater` is each View's local data manager. All intra-view data flow ultimately goes through the Updater:
-
-```ts
-ctx.updater.set({ count: newCount });
-ctx.updater.digest();
-```
-
-Full pipeline: `updater.set(data)` shallow-merges data into the internal data object and collects changed keys. `updater.digest()` calls the compiled template function to generate an HTML string. `domGetNode` uses `tmp.innerHTML = wrap + html` to parse it into temporary DOM. `domSetChildNodes` compares against the live DOM to produce a keyed diff. DOM operations are applied in batch. `endUpdate()` notifies child Frames to complete mounting.
-
-Supports digest re-entry: calling `updater.digest()` during an active digest does not nest; instead it queues to `digestingQueue` and executes after the current digest completes. `null` serves as a digest boundary sentinel in the queue.
-
-### State: Lightweight Cross-View
-
-`State` is a global singleton key-value container, suitable for lightweight shared values like page title, login info, or current theme:
-
-```ts
-import { State } from "@lark.js/mvc";
-
-State.set({ pageTitle: "Home", isLoggedIn: true });
-State.digest();
-```
-
-Subscription has two approaches. First, declare `observeState` in a view setup, and the framework automatically re-renders when the corresponding keys change:
-
-```ts
-import { defineView } from "@lark.js/mvc";
-
-export default defineView((ctx) => {
-  ctx.observeState("pageTitle,isLoggedIn");
-  return {
-    template,
-    assign: () => {
-      ctx.updater.snapshot();
-      ctx.updater.set({
-        title: State.get("pageTitle"),
-        logged: State.get("isLoggedIn"),
-      });
-      return ctx.updater.altered();
-    },
-  };
-});
-```
-
-Second, listen directly to the `changed` event where `e.keys` is a `ReadonlySet<string>`:
-
-```ts
-State.on("changed", (e) => {
-  if (e.keys?.has("pageTitle")) console.log("Title changed");
-});
-```
-
-State manages lifecycle through reference counting on keys. Use `State.clean("keys")` to create a cleanup function that automatically reclaims keys when the last observer is destroyed:
-
-```ts
-import { defineView, State } from "@lark.js/mvc";
-
-export default defineView((ctx) => {
-  State.clean("pageTitle,isLoggedIn")(ctx);
-  return { template, events: {} };
-});
-```
-
-Without cleanup, keys persist on global State causing leaks.
-
-### Store: Zustand-Style State Management
-
-The Store API aligns with zustand's design: `createStore(name, (set, get) => body)` returns a `StoreApi` object providing `getState` / `setState` / `subscribe` / `destroy`. State is a plain object with no Proxy; all writes must go through `setState` or actions. `bindStore(view, store, selector?)` binds a store to a Lark View with automatic unsubscription on view destruction.
-
-```ts
-// src/store/count.ts
-import { createStore, computed } from "@lark.js/mvc";
-
-interface CountStore {
-  count: number;
-  step: number;
-  doubled: number;
-  history: string[];
-  increment: () => void;
-  decrement: () => void;
-  reset: () => void;
-}
-
-const useCountStore = createStore<CountStore>("count", (set, get) => ({
-  count: 0,
-  step: 1,
-  doubled: computed(["count"], () => get().count * 2),
-  history: [] as string[],
-  increment() {
-    const { count, step } = get();
-    set({
-      count: count + step,
-      history: [...get().history, `+${step} -> ${count + step}`],
-    });
-  },
-  decrement() {
-    const { count, step } = get();
-    set({ count: count - step });
-  },
-  reset() {
-    set({ count: 0, history: [] });
-  },
-}));
-
-export default useCountStore;
-```
-
-The creator function receives `(set, get)` and executes once during `createStore`. Lark iterates the return value: functions become actions (attached to state, unaffected by `setState`); `computed(deps, fn)` occupies a derived slot, running `fn()` once for the initial value and recomputing whenever any dep key changes via `setState`; all other fields become initial state. Writing to a computed key via `setState` is silently ignored.
-
-Reading and writing state:
-
-```ts
-// Read
-const { count, step } = useCountStore.getState();
-
-// Write (shallow merge)
-useCountStore.setState({ count: 5 });
-useCountStore.setState((prev) => ({ count: prev.count + 1 }));
-
-// Call action
-useCountStore.getState().increment();
-```
-
-Binding in a view:
-
-```ts
-import { defineView, bindStore } from "@lark.js/mvc";
-
-export default defineView((ctx) => {
-  // Bind all non-function state keys to view updater; auto-unsubscribes on destroy
-  bindStore(ctx, useCountStore);
-
-  // Or use a selector to sync only specific keys
-  bindStore(ctx, useCountStore, (s) => ({ count: s.count }));
-
-  return {
-    template,
-    events: {
-      "increment<click>": () => {
-        useCountStore.getState().increment();
-      },
-    },
-  };
-});
-```
-
-Custom subscription callback (when data transformation is needed before sync):
-
-```ts
-import { defineView } from "@lark.js/mvc";
-
-export default defineView((ctx) => {
-  const syncToView = () => {
-    const s = useCountStore.getState();
-    ctx.updater.digest({ count: s.count, isPositive: s.count > 0 });
-  };
-  const off = useCountStore.subscribe(syncToView);
-  ctx.on("destroy", off);
-  syncToView();
-  return { template, events: {} };
-});
-```
-
-Destroying a store:
-
-```ts
-useCountStore.destroy(); // Clears all listeners, removes from registry
-```
-
-### Comparison
-
-| Dimension    | State                                  | Store                                              |
-| ------------ | -------------------------------------- | -------------------------------------------------- |
-| Write        | `State.set(...)` + `State.digest()`    | `store.setState(partial)` or action                |
-| Read         | `State.get(key)`                       | `store.getState()`                                 |
-| Subscribe    | `observeState` or `on("changed")`      | `store.subscribe(listener)` or `bindStore`         |
-| View binding | `observeState("keys")`                 | `bindStore(view, store, selector?)`                |
-| Lifecycle    | `State.clean` mixin auto-reclaims keys | `store.destroy()` manual teardown                  |
-| Derived data | Not supported                          | `computed(deps, fn)`                               |
-| Use case     | Page title, login state, theme         | Business entities, forms, complex cross-view state |
-
-Selection guide: start with State; upgrade to Store when you need actions, derived data, or fine-grained subscriptions; view-private data always goes through Updater.
-
-## View Definition and Lifecycle
-
-### Definition
-
-`defineView(setup)` is the functional API for defining views. The setup function receives a `ViewCtx` and optional init params, and returns a descriptor with `template`, `events`, and optional `assign`:
-
-```ts
-import { defineView } from "@lark.js/mvc";
-
-export default defineView((ctx, params) => {
-  // Setup runs once on mount. Hooks (useState, useEffect, useStore)
-  // can be called here to manage state and side effects.
-  return {
-    template,
-    events: { "btn<click>": () => {} },
-    assign: (options?: unknown) => ctx.updater.altered(),
-  };
-});
-```
-
-No `this` binding — all framework APIs are accessed via `ctx`.
-
-### Lifecycle
-
-- **Setup function** — Called once on mount with `(ctx, params)`. `params` comes from query strings on `v-lark`. Read stores, set initial data, and register hooks here.
-- `assign(options?)` — Called when data may have changed. Pattern: `ctx.updater.snapshot()` at the top, `ctx.updater.set(...)` in the middle, `return ctx.updater.altered()` at the end.
-- `ctx.render()` — Default implementation is `ctx.updater.digest()`. Can be wrapped via `ctx.renderMethod`.
-- Destruction — The framework automatically calls `release(key, true)` to release all `capture`d resources, cleans up event delegation, and sets signature to 0.
-
-`ctx.signature` marks async operation validity: greater than 0 means the view is alive (incremented on each render), 0 means destroyed. Never modify it manually.
-
-### Event Methods
-
-Event methods are named `name<eventType>` or `$selector<eventType>` and declared in the `events` map returned by the setup function. `registerEvents(ctx)` processes the map at mount time, binding events via `EventDelegator`.
-
-| Syntax                     | Meaning                                            |
-| -------------------------- | -------------------------------------------------- |
-| `handler<click>`           | Event on the view's root element                   |
-| `$selector<click>`         | Delegated to child elements matching `.selector`   |
-| `$<click>`                 | Empty selector, triggers Frame boundary event only |
-| `$window<resize>`          | Delegated to `window`                              |
-| `$document<keydown>`       | Delegated to `document`                            |
-| `handler<click,mousedown>` | Multi-event binding                                |
-| `name<click><ctrl>`        | Fires only when Ctrl modifier is held              |
-
-The event callback receives an object `e` that, beyond standard Event fields, provides `e.eventTarget` (the actual hit DOM element) and `e.params` (parsed from the `@event` parameter string). Multiple mixins defining the same event method name are merged into a handler chain called in mixin order.
-
-Event delegation implementation: `EventDelegator` attaches listeners on `document.body` in the capture phase. When an event fires, it walks from `e.target` up to body, calling `findFrameInfo` at each level to locate the owning View and filter handlers by selector. Reference counting manages addition/removal of same-name events on body to prevent duplicate binding or premature unbinding.
-
-### Resource Management
-
-`ctx.capture(key, resource, destroyOnRender?)` registers "destroyable objects tied to the view lifecycle":
-
-```ts
-const timer = setInterval(tick, 1000);
-ctx.capture(
-  "myTimer",
-  {
-    destroy() {
-      clearInterval(timer);
-    },
-  },
-  true,
-);
-```
-
-The third parameter `destroyOnRender` when `true` causes automatic destruction and removal on the next render call; when `false` cleanup happens only on view destruction. `ctx.release(key, destroy = true)` manually removes an entry.
-
-### Async Safety
-
-Async callbacks may arrive after a view has re-rendered or been destroyed. `ctx.wrapAsync(fn)` adds a signature check layer:
-
-```ts
-const loadData = ctx.wrapAsync((data: unknown) => {
-  ctx.updater.set({ items: data }).digest();
-});
-const data = await fetch("/api/items").then((r) => r.json());
-loadData(data); // Will not execute if view has re-rendered or been destroyed
-```
-
-`mark(host, key)` / `unmark(host)` is the lower-level equivalent mechanism: returns a `() => boolean` validator. All mark state is stored in a module-level `WeakMap` rather than polluting the host object, so it works on `Object.freeze`d objects.
-
-## Router and Route Guards
-
-Router supports two routing modes, configured via `FrameworkConfig.routeMode`:
-
-- `"history"` (default): uses `history.pushState` / `popstate`, URLs like `/home?page=2`
-- `"hash"`: uses URL hash fragment, URLs like `#!/home?page=2`
-
-All state parses into a single `Location` object; cache hits skip parsing.
-
-### Basic Usage
-
-```ts
-import { Router } from "@lark.js/mvc";
-
-Router.to("/list", { page: 2 }); // path + params
-Router.to({ page: 3 }); // params only
-Router.to("/list", { page: 2 }, true); // replace mode
-Router.to("/list", { page: 2 }, false, true); // silent, no events
-```
-
-```ts
-const loc = Router.parse(); // current Location
-const loc2 = Router.parse("https://x/?a=1#!/path?p=v");
-const diff = Router.diff(); // most recent LocationDiff
-```
-
-`Location` provides `path` / `params` / `hash` / `query` / `view` and a `get(key, defaultValue?)` method.
-
-### Two-Phase Change Event
-
-```ts
-Router.on("change", (e) => {
-  if (hasUnsavedChanges) e.prevent();
-  else if (mustReject) e.reject();
-  else e.resolve();
-});
-Router.on("changed", (diff) => {
-  // diff: LocationDiff { params, path?, view?, force, changed }
-});
-```
-
-The `change` phase allows `prevent` (suspend further processing), `reject` (rollback URL to `lastHash`), or `resolve` (commit; if none is called explicitly, resolve is the default). The `changed` phase is the final notification where the framework re-mounts views.
-
-### Async Route Guards
-
-```ts
-const off = Router.beforeEach(async (to, from) => {
-  if (to.path === "/admin") {
-    const ok = await checkPermission();
-    return ok;
-  }
-  return true;
-});
-// Unregister
-off();
-```
-
-Guards execute in registration order. Any guard that returns/resolves to `false`, throws, or rejects will abort the navigation and rollback the URL. Returning `true` / `undefined` / any non-`false` value allows passage.
-
-### useUrlState: URL Parameter State Sync
-
-`useUrlState(ctx, initialState?)` reads URL query parameters into a state object and provides a `setState` function that writes changes back to the URL (via `Router.to()`). It automatically observes the specified parameter keys, re-rendering the view when the URL changes.
-
-```ts
-import { defineView, useUrlState } from "@lark.js/mvc";
-
-export default defineView((ctx) => {
-  const [state, setPageState] = useUrlState(ctx, { page: "1", size: "20" });
-  ctx.updater.set({ page: state.page, size: state.size }).digest();
-
-  return {
-    template,
-    events: {
-      "nextPage<click>": () => {
-        setPageState((prev) => ({ page: String(Number(prev.page) + 1) }));
-      },
-    },
-  };
-});
-```
-
-Supports both history and hash routing modes.
-
-## Service Request Layer
-
-`Service` is a request management layer built on `fetch` (or any synchronous function) with built-in LFU caching, concurrent deduplication, serial queuing, and lifecycle events.
-
-### Defining Services and Endpoints
-
-```ts
-import { createService, type PayloadApi } from "@lark.js/mvc";
-
-const AppService = createService(
-  (payload: PayloadApi, callback: () => void) => {
-    fetch(payload.get<string>("url"), {
-      method: payload.get<string>("method") || "GET",
-      headers: { "Content-Type": "application/json" },
-      body: payload.get("data") ? JSON.stringify(payload.get("data")) : undefined,
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        payload.set(data);
-        callback();
-      })
-      .catch(() => callback());
-  },
-  20, // cacheMax
-  5, // cacheBuffer
-);
-
-AppService.add([
-  { name: "userList", url: "/api/users", cache: 60_000 },
-  {
-    name: "userDetail",
-    url: "/api/users/:id",
-    cache: 30_000,
-    before(payload) {
-      payload.set("url", payload.get<string>("url").replace(":id", payload.get<string>("id")));
-    },
-    after(payload) {
-      const data = payload.get("data");
-      payload.set({ formatted: formatUser(data) });
-    },
-    cleanKeys: "userList",
-  },
-]);
-```
-
-### Using in Views
-
-```ts
-import { defineView } from "@lark.js/mvc";
-import template from "./users.html";
-import { AppService } from "../service/app";
-
-export default defineView((ctx) => {
-  const service = AppService.instance();
-  ctx.capture("userService", service, true);
-
-  const loadData = (): void => {
-    service.all("userList", (errors, payload) => {
-      if (!errors[0]) {
-        ctx.updater.set({ users: payload.get("data") }).digest();
-      }
-    });
-  };
-
-  loadData();
-
-  return { template, events: {} };
-});
-```
-
-| Method                      | Behavior                                                                           |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| `service.all(attrs, done)`  | Fetch all endpoints; callback `(errors, p1, p2, ...)` when all complete            |
-| `service.one(attrs, done)`  | Fetch all endpoints; callback `(error, payload, isLast, index)` on each completion |
-| `service.save(attrs, done)` | Same as `all` but skips cache, always makes a fresh request                        |
-| `service.enqueue(task)`     | Add to serial queue                                                                |
-| `service.dequeue(...args)`  | Take one item and execute                                                          |
-| `service.destroy()`         | Destroy instance and cancel pending callbacks                                      |
-
-### Caching and Deduplication
-
-`Cache` implements an LFU-style bounded cache: sorted by `(frequency, lastTimestamp)`, evicting `bufferSize` entries via single-pass partial selection (O(n\*k), k typically 5) when capacity exceeds `maxSize + bufferSize`. `del` immediately removes from the `entries` array and `lookup` Map.
-
-`_pendingCacheKeys` tracks in-flight requests per `(endpoint, params)` key. Concurrent calls to the same key are added to a callback chain; a single request completes and invokes all callbacks, avoiding redundant network round-trips.
-
-`cleanKeys: "userList"` means the current endpoint, upon completion, clears the corresponding cache entry — commonly used to invalidate list queries after a write operation.
-
-## Template Syntax
-
-Template files use the `.html` extension and are compiled at build time by `larkMvcPlugin` / `larkMvcLoader` into ES modules exporting a `(data, viewId, refData) => string` render function.
-
-### Expression Operators
-
-| Syntax          | Meaning                                                                                                           |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `{{=variable}}` | HTML-escaped output (escapes `& < > " ' \``)                                                                      |
-| `{{!variable}}` | Raw output, use with caution (potential XSS)                                                                      |
-| `{{@variable}}` | Reference lookup: stores the JS value in refData and produces a token, used with `@event` to pass live references |
-| `{{:variable}}` | Two-way binding marker; renders equivalently to `=`                                                               |
-
-### Control Flow
-
-```html
-{{if condition}}...{{else if other}}...{{else}}...{{/if}} {{forOf list as item}} ... {{/forOf}}
-{{forOf list as item idx}} {{=idx}}: {{=item.name}} {{/forOf}} {{forOf list as {name, age} idx last
-first}} ... {{/forOf}} {{forIn object as value key}} ... {{/forIn}} {{for (let i = 0; i < n; i++)}}
-... {{/for}} {{set localVar = expr}}
-```
-
-`forOf` requires the `as` keyword. `{{forOf list item}}` is a compile-time error; the correct form is `{{forOf list as item}}`.
-
-### Event Binding
-
-```html
-<button @click="handlerName({key: 'value', other: 123})">Go</button>
-<input @input="onInput()" />
-<form @submit.prevent="onSubmit()">...</form>
-```
-
-The compiler converts JS object literal parameters (`{a:1}`) to URL query string format (`a=1`) for transmission through DOM attributes, and injects the current view's `$viewId` with SPLITTER delimiters into the attribute so that EventDelegator routes events to the correct view and method across nested Frame boundaries.
-
-### Child View Embedding
-
-```html
-<div v-lark="components/child"></div>
-<div v-lark="components/child?title=hello&id=42"></div>
-<div v-lark="remote-app/views/home"></div>
-```
-
-With query strings, parameters are translated into the first argument of the child view's `init`. When containing SPLITTER reference tokens, `translateData` resolves original JS values from the parent view's refData before passing them to the child.
-
-### DOM Optimization Hints
-
-| Attribute | Purpose                                                                    |
-| --------- | -------------------------------------------------------------------------- |
-| `ldk`     | diff key: when old and new ldk match, the entire subtree's diff is skipped |
-| `lak`     | attribute key: skips attribute diff but children continue to diff          |
-| `lvk`     | view key: assign optimization marker                                       |
-
-Marking large static subtrees with `ldk` can completely skip rendering work. This is currently the framework's only "fine-grained skip diff" mechanism; the compiler does not automatically mark fully static subtrees.
-
-## Frame and the View Tree
-
-`Frame` manages view mounting and unmounting, maintains parent-child relationships, and provides cross-view method invocation. Each Frame corresponds to one DOM container and one `ViewCtx`.
-
-### Typed API
-
-| API                                               | Description                                                                                                               |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `Frame.get(id)`                                   | Look up Frame by DOM id                                                                                                   |
-| `Frame.getAll()`                                  | All Frames as `Map<string, Frame>`                                                                                        |
-| `Frame.getRoot()`                                 | Current root Frame; returns `undefined` if not created                                                                    |
-| `Frame.createRoot(id)`                            | Idempotent root creation (`Framework.boot` calls this)                                                                    |
-| `createFrame(id, parentId?)`                      | Create an independent Frame instance for micro-frontend / embedded widget scenarios                                       |
-| `frame.invoke(name, args?)`                       | Call the owning view's method; if view not mounted, pushes to `invokeList`, flushed by `runInvokes(frame)` after mounting |
-| `frame.children()`                                | Child Frame id array (order not guaranteed)                                                                               |
-| `frame.parent(level?)`                            | Ancestor Frame, defaults to one level up                                                                                  |
-| `frame.mountFrame(id, viewPath, params?)`         | Explicitly create a child Frame                                                                                           |
-| `frame.unmountFrame(id)`                          | Unmount a specific child Frame                                                                                            |
-| `frame.mountZone(id?)` / `frame.unmountZone(id?)` | Batch mount/unmount all `v-lark` child nodes in a zone                                                                    |
-| `Frame.on("add" \| "remove", handler)`            | Frame instance lifecycle events (static emitter)                                                                          |
-| `frame.on("created" \| "alter", handler)`         | All child Frames rendered / child content changed (instance emitter)                                                      |
-
-Frame instances are plain objects created by `createFrame()`. There is no object pool — destroyed frames are removed from the registry and GC'd. Do not retain Frame references after `unmountFrame` as the frame may be stale.
-
-## Module Federation Micro-Frontend
-
-Lark provides first-class micro-frontend support through Webpack Module Federation (or Rspack's MF implementation). The integration centers on three pieces: `FrameworkConfig.require` (the bridge to MF container APIs), `use()` (Lark's module loader that delegates to `require`).
-
-### How it works: the loading pipeline
-
-When a template contains `v-lark="remote-app/views/home"`, the following sequence executes:
-
-1. **`Frame.mountView(viewPath)`** parses the view path and checks the view registry (`getViewClass`). If the view setup is already registered (sync path), it mounts immediately. If not, it enters the async path.
-
-2. **`use(viewClassName, callback)`** is called. This function in `module-loader.ts` checks whether `FrameworkConfig.require` is configured:
-   - **MF mode**: delegates to `config.require(names)`, which calls `__webpack_init_sharing__` / `__webpack_share_scopes__` to initialize the shared scope, then resolves the remote container via `window[remoteName]`, calls `container.init(scope)`, and `container.get(modulePath)` to obtain the factory. The factory returns the module, and `use()` extracts the default export.
-   - **Fallback mode**: if `require` is not configured, `use()` falls back to dynamic `import()` for ESM-based loading.
-
-3. **Signature guard**: `mountView` captures `frame.signature` before the async load begins. When the callback fires, it checks `sign !== frame.signature` — if the frame was unmounted or re-mounted during the async wait, the callback silently returns, preventing stale mounts.
-
-4. **Registration and mount**: the loaded setup function is registered via `registerViewClass(viewClassName, setup)`, then `mountCtx(frame, setup, params)` creates the `ViewCtx`, runs the setup function, and renders.
+lark-mvc supports Module Federation and cross-project view loading via `FrameworkConfig.require`.
 
 ```ts
 Framework.boot({
-  rootId: "app",
+  rootId: "root",
   projectName: "host-app",
-  require: async (names: string[]) => {
-    await __webpack_init_sharing__("default");
-    const container = __webpack_share_scopes__["default"];
+  require(names, params) {
+    // Integrate with Webpack Module Federation or dynamic import
     return Promise.all(
-      names.map(async (name) => {
-        const slash = name.indexOf("/");
-        const remote = slash > -1 ? name.substring(0, slash) : name;
-        const mod = slash > -1 ? name.substring(slash + 1) : "./index";
-        const rc = (window as Record<string, unknown>)[remote];
-        if (!rc) return undefined;
-        await rc.init(container);
-        const factory = await rc.get(`./${mod}`);
-        const raw = factory();
-        return raw && raw.__esModule ? raw.default : raw;
+      names.map((name) => {
+        if (name.startsWith("remote-app/")) {
+          return import("remote_app/" + name.slice("remote-app/".length));
+        }
+        return import("./src/" + name);
       }),
     );
   },
-});
-```
-
-Then write `v-lark="remote-app/views/home"` in templates to trigger async loading and mounting of the remote view.
-
-### Webpack / Rspack configuration
-
-Host:
-
-```js
-new ModuleFederationPlugin({
-  name: "host_app",
-  remotes: {
-    "remote-app": "remote_app@//cdn.example.com/remote-app/remoteEntry.js",
+  routes: {
+    "/": "host-app/views/home",
+    "/remote": "remote-app/views/detail",
   },
-  shared: { "@lark.js/mvc": { singleton: true, requiredVersion: "^1.0.0" } },
 });
 ```
 
-Remote:
+## Event Delegation
 
-```js
-new ModuleFederationPlugin({
-  name: "remote_app",
-  filename: "remoteEntry.js",
-  exposes: { "./views/home": "./src/views/home", "./prepare": "./src/prepare" },
-  shared: { "@lark.js/mvc": { singleton: true, requiredVersion: "^1.0.0" } },
-});
-```
+All DOM events are delegated to `document.body` in the capture phase. The EventDelegator walks from `event.target` up to `document.body`, resolving the owning Frame and matching handlers.
 
-`@lark.js/mvc` must be `singleton: true` because the framework's module-level singletons (`State`, `Router`, `Frame`, `EventDelegator`, `config`) must be shared across host and remote. Without `singleton`, each bundle gets its own copy of these singletons, causing state divergence — e.g., `State.set()` in the host would not notify views in the remote, and `registerViewClass()` in the host would not be visible to the remote's `Frame.mountView()`.
+### Handler Naming Convention
 
-`splitChunks.chunks` must be `"async"`. Using `"all"` extracts `@lark.js/mvc` into a separate vendor chunk, breaking MF shared scope initialization (`ScriptExternalLoadError: Loading script failed`).
+| Syntax                     | Meaning                                          |
+| -------------------------- | ------------------------------------------------ |
+| `handler<click>`           | Event on the view's root element                 |
+| `$selector<click>`         | Delegated to child elements matching `.selector` |
+| `$<click>`                 | Empty selector, fires only at the Frame boundary |
+| `$window<resize>`          | Delegated to `window`                            |
+| `$document<keydown>`       | Delegated to `document`                          |
+| `handler<click,mousedown>` | Multi-event binding                              |
+| `name<click><ctrl>`        | Fires only when the Ctrl modifier is held        |
 
-## Hot Module Replacement (HMR)
+### Reference Counting
 
-Lark ships zero-config HMR for Vite, Webpack, and Rspack. When you edit a `.html` template or a `.ts` view file, the framework hot-swaps the changed code in place without a full page reload. View-local state (counter values, form input, scroll-derived data) survives the update.
+`bind`/`unbind` use reference counting per event type so multiple views registering the same event type do not attach duplicate listeners.
 
-### Zero-config auto-injection
+## API Reference
 
-The build plugins inject HMR code at compile time, similar to `@vitejs/plugin-react` (React Refresh) and `@vitejs/plugin-vue` (Vue HMR). You add the plugin to your config and HMR works. No per-file `import.meta.hot` boilerplate needed.
+### Exports
 
-The Vite plugin uses two hooks: `load` appends a template HMR snippet to compiled `.html` modules, and `transform` injects a view class HMR snippet into `.ts` files that import `.html`. Webpack and Rspack loaders do the same for template modules.
+| Category  | Exports                                                                                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Constants | `SPLITTER`, `LARK_VIEW`, `TAG_NAME_REGEXP`, `CALL_BREAK_TIME`, `EVENT_METHOD_REGEXP`, `VIEW_EVENT_METHOD_REGEXP`, `ROUTER_EVENTS`, `nextCounter`        |
+| Framework | `Framework`, `defineView`, `createEmitter`, `createCache`, `createUpdater`                                                                              |
+| State     | `State`, `markBooted`, `createStore`, `computed`, `bindStore`, `useUrlState`                                                                            |
+| Router    | `Router`, `markRouterBooted`, `getRouteMode`                                                                                                            |
+| View      | `defineView`, `ViewCtx`, `ViewSetup` (types)                                                                                                            |
+| Hooks     | `useState`, `useEffect`, `useStore`, `useInterval`, `useTimeout`, `useResource`, `useEvent`                                                             |
+| Frame     | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass`                                                                                      |
+| Service   | `createService`, `createPayload`, `ServiceApi`, `PayloadApi`, `ServiceInstance`                                                                         |
+| HMR       | `reloadViews`, `hotSwapView`, `hotSwapFrames`, `hotSwapByTemplate`, `hotSwapByView`, `injectTemplateHmrSnippet`, `injectViewHmr`, `importsHtmlTemplate` |
+| VDOM      | `vdomCreate`, `createVDomRef`                                                                                                                           |
+| Events    | `EventDelegator`                                                                                                                                        |
+| Mark      | `mark`, `unmark`                                                                                                                                        |
+| Cache     | `createCache`, `CacheApi`                                                                                                                               |
 
-### Two HMR layers
+### Bundler Entry Points
 
-**Template layer** (`.html` changes): The compiled template module self-accepts. The accept callback calls `hotSwapByTemplate(oldTemplate, newTemplate)` to find every mounted view whose `ctx.getTemplate()` returns the old function reference, replace it via `ctx.setTemplate(newTemplate)`, and force-render. Event handlers are NOT re-delegated because they live in the `events` map returned by the setup function, not in the template.
+| Import                  | Description                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `@lark.js/mvc`          | Main runtime API                                                               |
+| `@lark.js/mvc/vite`     | Vite plugin (`larkMvcPlugin`)                                                  |
+| `@lark.js/mvc/webpack`  | Webpack loader (`larkMvcLoader`)                                               |
+| `@lark.js/mvc/rspack`   | Rspack loader (`larkMvcLoader`)                                                |
+| `@lark.js/mvc/runtime`  | Template runtime helpers (`encHtml`, `strSafe`, `encUri`, `encQuote`, `refFn`) |
+| `@lark.js/mvc/compiler` | Build-time compiler (`compileTemplate`, `extractGlobalVars`)                   |
+| `@lark.js/mvc/devtool`  | Devtool bridge (`installFrameDevtoolBridge`)                                   |
+| `@lark.js/mvc/client`   | Client-side type declarations (DOM augmentations, `*.html` module types)       |
 
-**View setup layer** (`.ts` changes): The plugin rewrites `export default defineView(...)` to `const __larkViewDefault = defineView(...)` and appends an HMR snippet. The accept callback calls `hotSwapByView(oldSetup, newSetup)` which updates the registry and hot-swaps every matching frame via `hotSwapView`.
+## Configuration
 
-### State preservation: in-place setup re-run
+### FrameworkConfig
 
-`hotSwapView(frame, newSetup)` preserves the view context entirely:
+| Key                | Type                                        | Default     | Description                                 |
+| ------------------ | ------------------------------------------- | ----------- | ------------------------------------------- |
+| `rootId`           | `string`                                    | `"root"`    | DOM root element ID                         |
+| `routeMode`        | `"history" or "hash"`                       | `"history"` | Routing mode                                |
+| `defaultView`      | `string`                                    | -           | Default view path when URL matches no route |
+| `defaultPath`      | `string`                                    | `"/"`       | Default path when URL hash/query is empty   |
+| `routes`           | `Record<string, string or RouteViewConfig>` | -           | Path-to-view mapping                        |
+| `hashbang`         | `string`                                    | `"#!"`      | Hash prefix (hash mode only)                |
+| `error`            | `(error: Error) => void`                    | throws      | Global error handler                        |
+| `extensions`       | `string[]`                                  | -           | Extension view paths loaded at startup      |
+| `initModule`       | `string`                                    | -           | Init module to load at startup              |
+| `rewrite`          | `(path, params, routes) => string`          | -           | Route rewriting function                    |
+| `unmatchedView`    | `string`                                    | -           | View path for 404 pages                     |
+| `require`          | `(names, params?) => Promise<unknown[]>`    | -           | Async module loader (Module Federation)     |
+| `skipViewRendered` | `boolean`                                   | -           | Skip view rendered check                    |
+| `projectName`      | `string`                                    | -           | Project name for micro-frontend bridge      |
+| `vdom`             | `boolean`                                   | `false`     | Enable VDOM rendering mode                  |
+| `devtool`          | `boolean`                                   | `true`      | Enable Frame Devtool Bridge                 |
 
-1. Run old cleanups (`useEffect` cleanup functions)
-2. Unregister old events
-3. Destroy `destroyOnRender` resources
-4. Re-run `newSetup(ctx)` — ctx instance, `updater`, `updater.data`, `resources`, `emitter`, `signature`, `id`, and `owner` all stay the same
-5. Update template, events, and assign from the new descriptor
-6. Register new events
-7. `ctx.signature++; ctx.fire("render"); destroyAllResources(ctx, false); ctx.updater.forceDigest()`
-
-The user's setup function runs again, but because it receives the same `ViewCtx` with preserved `updater.data`, any state set via `ctx.updater.set()` in the previous setup survives.
-
-### `forceDigest()` on Updater
-
-Normal `digest()` only re-renders when data changed. After an HMR swap, the data is the same but the template changed. `forceDigest()` marks every current data key as changed before triggering the digest, forcing a full re-render.
-
-### Cross-bundler HMR API differences
-
-| Bundler | HMR context       | Accept callback receives new module |
-| ------- | ----------------- | ----------------------------------- |
-| Vite    | `import.meta.hot` | Yes, via `newModule.default`        |
-| Webpack | `module.hot`      | No, module already re-executed      |
-| Rspack  | `module.hot`      | No, module already re-executed      |
-
-In Vite, the accept callback runs in the OLD module's scope (local vars = old values). In Webpack/Rspack, it runs in the NEW module's scope (local vars = new values). Both snippets use `dispose` to `hot.data` to `accept` to pass the old reference across the cycle.
-
-### Architecture: why `hmr-inject.ts` is separate from `hmr.ts`
-
-The injection code generator (`hmr-inject.ts`) has ZERO runtime imports — it only generates snippet strings. The runtime HMR functions (`hmr.ts`) import `./frame` which imports `./event-delegator` which accesses `document`. The three bundler plugin entry points (`vite.ts`, `webpack.ts`, `rspack.ts`) are loaded in Node.js (to process build config), so they import from `hmr-inject.ts`, NOT `hmr.ts`. This prevents `ReferenceError: document is not defined` in Node.js.
-
-### The `__larkTemplate` naming contract
-
-`compileTemplate` emits `function __larkTemplate(data, viewId, refData) { ... }` + `export default __larkTemplate;` (named function, not anonymous) so the HMR snippet can reference it by name in the `dispose` callback. See `naming-convention.md` in the package root for the full list of cross-layer naming contracts.
-
-### Manual HMR API (fallback)
-
-For cases where auto-injection does not cover your needs (e.g., a view file that does not import `.html`), use the manual API:
+### RouteViewConfig
 
 ```ts
-import { defineView, acceptView, disposeView } from "@lark.js/mvc";
-import type { HotContext } from "@lark.js/mvc";
-import template from "./home.html";
-
-const HomeView = defineView((ctx) => ({ template /* ... */ }));
-
-if (import.meta.hot) {
-  const hot = import.meta.hot as HotContext;
-  disposeView(hot, "home");
-  acceptView(hot, "home");
+interface RouteViewConfig {
+  view: string; // View path
+  [k: string]: unknown; // Additional properties merged into location
 }
-
-export default HomeView;
 ```
 
-`acceptView(hot, viewPath)` calls `hotSwapFrames(viewPath, newSetup)` (state-preserving). `disposeView(hot, viewPath)` calls `invalidateViewClass(viewPath)`. Both are no-ops when `hot` is `undefined`.
+## Development
 
-### What is NOT preserved across HMR
-
-- **`destroyOnRender` resources**: destroyed on every render including HMR force-render (by design)
-- **Setup side effects**: since the setup function re-runs, any one-time setup logic will re-execute. If your setup sets initial data unconditionally, it will overwrite HMR-preserved data. Guard with `if (!ctx.rendered.value)` if needed.
-
-## Debugging and Devtool Bridge
-
-### Frame Devtool Bridge
-
-`installFrameDevtoolBridge()` is automatically installed during `Framework.boot`, listening for `window` message events and communicating with Devtool via postMessage:
-
-- `LARK_DEVTOOL_PING` — responds with `LARK_DEVTOOL_PONG` to confirm this page is a Lark application.
-- `LARK_DEVTOOL_REQUEST_TREE` — responds with `LARK_DEVTOOL_TREE` carrying `SerializedFrameTree`.
-- Internally listens to `Frame.on('add' | 'remove')` and automatically pushes `LARK_DEVTOOL_TREE_DELTA`; JSON.stringify is compared with `lastTreeJson` before pushing to avoid flooding when nothing changed.
-
-The `lark-devtool` sub-project in this repository is the paired Devtool that loads the target application via iframe to display the real-time Frame tree.
-
-## Public API Reference
-
-### Framework
-
-- `Framework.boot(config)` — Start the application.
-- `Framework.getConfig()` / `Framework.getConfig(key)` — Read configuration.
-- `Framework.setConfig(patch)` — Merge configuration, returns merged result.
-- `Framework.use(names, callback?)` — Async view loader; returns `Promise<unknown[]>` when no callback.
-- `Framework.mark(host, key)` / `Framework.unmark(host)` — Async callback validity tracking via module-level `WeakMap`.
-- `Framework.dispatchEvent(target, type, init?)` — Trigger custom DOM event.
-- `Framework.task(fn, args?, ctx?)` — Chunked execution: prefers `scheduler.postTask` then `requestIdleCallback` then `setTimeout(0)`, with a fixed 48ms budget or adaptive time slicing.
-- `Framework.delay(ms)` — Promise-wrapped setTimeout.
-- `Framework.waitZoneViewsRendered(viewId, timeout?)` — Wait until all views in a zone have rendered.
-
-### Updater
-
-- `updater.get(key?)` — Read data; returns entire data object when no key.
-- `updater.set(data, excludes?)` — Shallow merge and collect changed keys.
-- `updater.digest(data?, excludes?, callback?)` — Render; supports re-entry via `digestingQueue`.
-- `updater.forceDigest()` — Force full re-render bypassing change detection. Marks all data keys as changed. Used by HMR to apply a new template against preserved data.
-- `updater.snapshot()` — Record current monotonic version.
-- `updater.altered()` — Check if changed, returns `boolean | undefined`.
-- `updater.translate(value)` — Resolve SPLITTER + number reference tokens to original values.
-- `updater.parse(expr)` — Safe path parser: dot paths (`a.b.c`) or numeric literals only, no eval.
-- `updater.getChangedKeys()` — `ReadonlySet<string>` of keys changed since last digest.
-
-### HMR
-
-- `hotSwapByTemplate(oldTemplate, newTemplate)` — Template-only HMR: find views by template reference, replace, force-render.
-- `hotSwapByView(oldSetup, newSetup)` — View setup HMR: update registry + hot-swap all matching frames.
-- `hotSwapView(frame, newSetup)` — Single-frame in-place setup re-run (building block).
-- `hotSwapFrames(viewPath, newSetup)` — Batch `hotSwapView` by viewPath.
-- `reloadViews(viewPath)` — Legacy full-remount (destroys ctx, loses state). Prefer `hotSwapFrames`.
-- `acceptView(hot, viewPath)` / `disposeView(hot, viewPath)` — Manual HMR API (fallback).
-- `injectTemplateHmrSnippet(source, bundler)` / `injectViewHmr(source, bundler)` — Snippet generators for plugin internals.
-- `forceDigest()` — On `Updater`, forces full re-render (see Updater section above).
-- `HotContext` interface, `Bundler` type (`"vite" | "webpack" | "rspack"`).
-
-### Store (zustand-style)
-
-- `createStore(name, (set, get) => body)` — Create store, returns `StoreApi`.
-- `store.getState()` — Read current state.
-- `store.setState(partial | updater)` — Shallow merge, notify all listeners.
-- `store.subscribe(listener)` — Listen for changes, returns unsubscribe function.
-- `store.destroy()` — Destroy store, clear listeners.
-- `computed(deps, fn)` — Declare derived state.
-- `bindStore(view, store, selector?)` — Bind to Lark View with auto-sync and auto-cleanup.
-- `useUrlState(ctx, initialState?)` — URL parameter state sync.
-
-## Common Pitfalls
-
-1. `boot.ts` must be inside `src/`: HTML references `/src/boot.ts`; placing it at the project root causes runtime resolution failure.
-2. `registerViewClass` must precede `Framework.boot()`: all view setups (including sub-components) must either be pre-registered or loaded via `FrameworkConfig.require`.
-3. `.html` imports require build integration: only works in projects compiled by `larkMvcPlugin` / `larkMvcLoader`.
-4. Write State with `State.set` + `State.digest`, never mutate the returned object directly: Safeguard warns in debug mode, deduplicated by key.
-5. `bindStore` auto-unsubscribes on view destroy; manual `store.subscribe(listener)` calls need explicit cleanup (e.g., `ctx.on("destroy", off)`).
-6. Event methods use `<>` not `()`: write `name<click>`, not `name(click)`.
-7. `assign()` must have `snapshot` at the top and `return altered()` at the bottom: both are required for the framework to determine re-render necessity.
-8. Never modify `view.signature`: internally managed; 0 means destroyed, render wrapper auto-increments.
-9. `v-lark` container content is replaced: do not put scaffold text inside.
-10. Webpack must use `exclude: /index\.html$/`: entry HTML is handled by HtmlWebpackPlugin.
-11. Webpack loader must be imported as a value: `loader: larkMvcLoader`, not a string name.
-12. Store state is a plain object: `store.getState()` returns the actual state object; reads are direct access, writes must go through `setState()` or actions.
-13. `forOf` requires `as`: `{{forOf list item}}` is a compile error.
-14. `wrapAsync` validates by signature: callback only executes when `view.signature` matches the value at wrap time.
-15. Do not retain Frame references after `unmountFrame`: destroyed frames are removed from the registry; stale references may point to reused or invalid objects.
-16. Updater supports digest re-entry: digest during digest enters `digestingQueue`; `null` is the boundary.
-17. Store creator runs once: state persists across view mount/unmount cycles; call `store.destroy()` to tear down.
-18. State is simple, Store is complex: lightweight shared values use State; use `createStore()` for actions, derived data, or fine-grained subscriptions; always pair State writes with `State.clean("keys")` to prevent leaks.
-19. MF view paths use the remote project name as prefix: `v-lark="remote-app/views/home"` triggers async loading via `FrameworkConfig.require` when unregistered; `@lark.js/mvc` must be `singleton: true`.
-20. `splitChunks.chunks` must be `"async"` in MF projects: `"all"` breaks shared scope initialization.
-21. HMR is zero-config: do not manually add `import.meta.hot` calls to view files. The plugin auto-injects HMR snippets. Manual `acceptView`/`disposeView` is only for files not covered by auto-injection (e.g., views that don't import `.html`).
-22. HMR preserves `updater.data` but not setup side effects: since the setup function re-runs during HMR, any unconditional `ctx.updater.set()` calls will overwrite preserved data. Guard with `if (!ctx.rendered.value)` if needed.
-23. `reloadViews` loses state, `hotSwapFrames` preserves it: `reloadViews` does a full unmount+remount (destroys the view context). `hotSwapFrames` does an in-place setup re-run. `acceptView` uses `hotSwapFrames`. Prefer `hotSwapFrames` / `hotSwapByView` / `hotSwapByTemplate` over `reloadViews`.
-24. `hmr-inject.ts` must stay separate from `hmr.ts`: the injection functions are pure string generators with zero runtime imports. `hmr.ts` imports `./frame` which accesses `document`. The plugin entry points (`vite.ts`, `webpack.ts`, `rspack.ts`) load in Node.js and must not transitively import `hmr.ts`. Merging them causes `ReferenceError: document is not defined`.
-25. `compileTemplate` emits `function __larkTemplate(...)`: the named function (not anonymous `export default function`) is a compile-time contract so the HMR snippet can reference it by name. See `naming-convention.md` for the full list of cross-layer naming contracts.
-
-## Comparison with Vue 3 / React 19
-
-### vs Vue 3
-
-Similarities: templates compile to functions; reactivity via Proxy; derived data with `computed`; microtask batching; component-level granular updates.
-
-| Dimension             | Vue 3                                  | Lark                                                  |
-| --------------------- | -------------------------------------- | ----------------------------------------------------- |
-| Component abstraction | SFC / function components / Options    | Functional `defineView(setup)` + `ViewCtx` + Hooks    |
-| Render output         | VNode patch                            | HTML string parsed to real DOM + diff                 |
-| Template syntax       | `v-if` / `v-for` / `:bind`             | `{{if}}` / `{{forOf}}` / `@event` / `v-lark`          |
-| Dependency tracking   | Automatic effect tracking              | subscribe + bindStore + computed                      |
-| Compile optimizations | PatchFlag / hoistStatic / cacheHandler | Only `ldk` / `lak` / `lvk` user-manual markers        |
-| Scheduling            | Microtask batching + nextTick          | Microtask batching + `Framework.task` sliceable queue |
-
-The key difference is render output: Vue uses virtual node patching; Lark generates HTML strings, parses them via innerHTML into a temporary div, then diffs the resulting real DOM. The advantage is that context-sensitive tags (`<table>` / `<select>` / `<svg>`) are handled by the native parser nearly for free; the disadvantage is the absence of PatchFlag-style compile-time annotations (only user-manual `ldk` / `lak` / `lvk`).
-
-### vs React 19
-
-Similarities: unidirectional data flow; immutable write-back style; async protection (`wrapAsync` is analogous to `useEffect` cleanup + AbortController); microtask batching; global error boundary (`FrameworkConfig.error` + `funcWithTry`).
-
-| Dimension             | React 19                                 | Lark                                                         |
-| --------------------- | ---------------------------------------- | ------------------------------------------------------------ |
-| Component abstraction | Function components + Hooks              | Functional `defineView(setup)` + `ViewCtx` + Hooks           |
-| State encapsulation   | `useState` / `useReducer`                | View ctx fields, `createStore()` store, `State`              |
-| Side effects          | `useEffect` / `useLayoutEffect`          | `useEffect` hook + `ctx.capture` / `ctx.release`             |
-| Render interruption   | Fiber time-slicing, Suspense, Transition | Synchronous digest, not interruptible                        |
-| Compile optimization  | React Compiler (auto-memo)               | Template compile-time only; no runtime auto-memo             |
-| Server rendering      | RSC, streaming SSR                       | Not supported (design trade-off)                             |
-| Cross-platform        | React Native / DOM                       | Web DOM only                                                 |
-| Event system          | Synthetic Event                          | `document.body` capture-phase delegation + selector matching |
-| Route guards          | Third-party router libraries             | Built-in `Router.beforeEach(asyncGuard)` + two-phase change  |
-
-The key difference is scheduling: React 19's Concurrent mode can interrupt and restart renders by lane priority. Lark's `Updater.digest()` is synchronous (though the internal `digestingQueue` supports re-entry) and never yields the main thread. For large lists or frequent updates, Lark has no time-slicing mechanism, which may cause long tasks; the advantage is predictable behavior and simpler debugging.
-
-## Testing and Local Development
+### Build
 
 ```bash
-pnpm install
-pnpm test            # vitest unit tests
-pnpm test:coverage   # coverage report
-pnpm test:watch      # watch mode
-pnpm typecheck       # tsc --noEmit
-pnpm build           # tsup produces ESM + CJS + dts
-pnpm format          # prettier formatting
+# Build with tsup (recommended)
+pnpm build
+
+# Build with rollup (alternative)
+pnpm build:rollup
 ```
 
-`vitest.config.ts` targets the `tests/` directory with 16 test files covering core modules. `tsup.config.ts` defines four entry points (`index` / `vite` / `webpack` / `runtime`) with output in `dist/`.
+### Test
 
-## License
+```bash
+# Run tests
+pnpm test
 
-MIT. See `LICENSE` in the repository root.
+# Watch mode
+pnpm test:watch
+
+# With coverage
+pnpm test:coverage
+```
+
+### Type Check
+
+```bash
+pnpm typecheck
+```
+
+### Format
+
+```bash
+pnpm format
+```
+
+### Project Structure
+
+```
+packages/lark-mvc/
+  src/
+    index.ts              -- public API barrel export
+    types.ts              -- all shared type definitions
+    common.ts             -- constants, encoding helpers
+    utils.ts              -- utility functions, task scheduler
+    framework.ts          -- Framework.boot, dispatcher, task queue
+    view.ts               -- defineView, ViewCtx, mount/unmount lifecycle
+    view-registry.ts      -- view setup function registry
+    frame.ts              -- Frame tree, createFrame, mount/unmount
+    router.ts             -- Router with two-phase change confirmation
+    state.ts              -- State singleton for cross-view data
+    store.ts              -- createStore, computed, bindStore
+    service.ts            -- createService, createPayload, API management
+    hooks.ts              -- useState, useEffect, useStore, etc.
+    updater.ts            -- per-view data binding and digest
+    dom.ts                -- real-DOM diff engine (string mode)
+    vdom.ts               -- VDOM diff engine (VDOM mode)
+    event-emitter.ts      -- multi-cast event system
+    event-delegator.ts    -- DOM event delegation
+    cache.ts              -- LFU-style bounded cache
+    url-state.ts          -- useUrlState hook
+    module-loader.ts      -- async module loading
+    mark.ts               -- async callback validity tracking
+    hmr.ts                -- HMR hot-swap logic
+    hmr-inject.ts         -- HMR code generation for bundlers
+    runtime.ts            -- template runtime helpers
+    devtool.ts            -- Frame Devtool Bridge
+    client.d.ts           -- ambient type declarations
+    vite.ts               -- Vite plugin
+    webpack.ts            -- Webpack loader
+    rspack.ts             -- Rspack loader
+    compiler.ts           -- compiler barrel export
+    compiler/
+      template-syntax.ts        -- {{}} to <% %> conversion, @event processing
+      compile-template.ts       -- main compilation pipeline
+      compile-to-vdom-function.ts -- VDOM compilation via htmlparser2
+      extract-global-vars.ts    -- AST-based variable extraction
+  tests/                  -- vitest test suite
+  dist/                   -- built output
+```
+
+### Key Design Decisions
+
+1. Functional over OOP: All APIs use factory functions and closures. No class, this, or prototype anywhere in the framework.
+
+2. Real-DOM diff as default: String mode parses HTML into a temporary DOM tree and performs keyed comparison. This avoids the overhead of maintaining a virtual DOM for most use cases.
+
+3. VDOM as opt-in: When enabled via `vdom: true`, templates compile to `vdomCreate` calls and the engine uses a three-phase diff with LIS reconciliation.
+
+4. Compile-time templates: Templates are compiled at build time into JavaScript functions. The compiler uses `@babel/parser` for AST-based variable extraction, providing zero-config template variable detection.
+
+5. Two-phase routing: The Router fires a `change` event before navigation (allowing rejection) and a `changed` event after (triggering view updates). Navigation guards run asynchronously between the two phases.
+
+6. Reference-counted events: The EventDelegator uses reference counting per event type on `document.body`, ensuring a single capture-phase listener per event type regardless of how many views register handlers.
+
+7. LFU cache with frequency eviction: The bounded cache uses single-pass partial selection (O(n\*k)) instead of full sorting, making eviction efficient for the typical buffer size of 5.
+
+8. Async callback validity: The `mark`/`unmark` system and `wrapAsync` prevent stale callbacks from executing after a view is re-rendered or destroyed.
+
+9. Cooperative time-slicing: The task scheduler in `utils.ts` processes tasks in 9ms batches, yielding to the browser via `scheduler.yield()` (Chrome 115+) or `setTimeout(0)` fallback.

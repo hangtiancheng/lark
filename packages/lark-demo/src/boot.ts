@@ -18,13 +18,19 @@ console.log("Initializing Lark application...");
 // Each import() call creates a separate chunk in both Vite and Webpack.
 // The bundler scans these at build time and splits them into independent files.
 const VIEW_MODULES: Record<string, () => Promise<unknown>> = {
-  home: () => import("./views/home"),
-  about: () => import("./views/about"),
-  counter: () => import("./views/counter"),
-  cdn: () => import("./views/cdn"),
-  "404": () => import("./views/404"),
-  "components/counter-store": () => import("./components/counter-store"),
-  "components/counter-updater": () => import("./components/counter-updater"),
+  home: () => import("./views/home").then((home) => home.default),
+  about: () => import("./views/about").then((about) => about.default),
+  counter: () => import("./views/counter").then((counter) => counter.default),
+  cdn: () => import("./views/cdn").then((cdn) => cdn.default),
+  "404": () => import("./views/404").then((notFound) => notFound.default),
+  "components/counter-store": () =>
+    import("./components/counter-store").then(
+      (counterStore) => counterStore.default,
+    ),
+  "components/counter-updater": () =>
+    import("./components/counter-updater").then(
+      (counterUpdater) => counterUpdater.default,
+    ),
 };
 
 // ── Sub-component dependency map ──
@@ -33,20 +39,6 @@ const VIEW_MODULES: Record<string, () => Promise<unknown>> = {
 const VIEW_DEPS: Record<string, string[]> = {
   counter: ["components/counter-store", "components/counter-updater"],
 };
-
-// ── ESM default export extractor ──
-// Vite dev mode does NOT set __esModule on ESM modules, so we must
-// check `default` directly regardless of __esModule.
-// FIXME: Is there any better implementation?
-function extractDefault(mod: unknown): unknown {
-  if (mod && typeof mod === "object") {
-    const mod_ = mod as Record<string, unknown>;
-    if (typeof mod_["default"] === "function") {
-      return mod_["default"];
-    }
-  }
-  return mod;
-}
 
 // Configure and start Lark application
 const config: FrameworkConfig = {
@@ -98,17 +90,16 @@ const config: FrameworkConfig = {
           return { name, ViewClass: undefined as unknown };
         }
         const mod = await loader();
-        const ViewClass = extractDefault(mod);
 
         // Register preloaded sub-components immediately.
         // Requested views are registered by mountView's use() callback.
-        if (preloadNames.includes(name) && typeof ViewClass === "function") {
+        if (preloadNames.includes(name) && typeof mod === "function") {
           // Type assertion: dynamically loaded module shape is unknown at compile time,
           // but at runtime it's a Lark View setup function (returned by defineView).
-          registerViewClass(name, ViewClass as ViewSetup);
+          registerViewClass(name, mod as ViewSetup);
         }
 
-        return { name, ViewClass };
+        return { name, ViewClass: mod };
       }),
     );
 

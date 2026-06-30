@@ -89,10 +89,10 @@ if (import.meta.hot) {
     __larkData.oldTemplate = ${TEMPLATE_VAR};
   });
   import.meta.hot.accept(function(__larkNewModule) {
-    var __larkNew = __larkNewModule && __larkNewModule.default;
-    var __larkOld = import.meta.hot.data && import.meta.hot.data.oldTemplate;
+    const __larkNew = __larkNewModule && __larkNewModule.default;
+    const __larkOld = import.meta.hot.data && import.meta.hot.data.oldTemplate;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      var __hmr = globalThis.__LARK_HMR__;
+      const __hmr = globalThis.__LARK_HMR__;
       if (__hmr && __hmr.hotSwapByTemplate) __hmr.hotSwapByTemplate(__larkOld, __larkNew);
     }
   });
@@ -101,9 +101,14 @@ if (import.meta.hot) {
   }
 
   // Webpack / Rspack: module.hot
-  // The accept callback does NOT receive the new module namespace — the
-  // module has already re-executed by the time the callback runs, so
-  // `__larkTemplate` in the callback scope IS the new function.
+  // The accept callback runs in the OLD module's execution context. By the
+  // time it runs, the old module is removed from cache but the NEW code has
+  // NOT yet executed — so `module.exports` still holds the OLD export, and
+  // the closure-captured `${TEMPLATE_VAR}` is also the OLD function. Either
+  // way, reading them directly yields the OLD value → __larkNew === __larkOld
+  // → swap never runs → fallback full-reload → state lost. Fix: explicitly
+  // call `require(module.id)` to trigger the NEW module's execution and get
+  // its fresh exports.
   //
   // HMR swap functions are accessed via globalThis.__LARK_HMR__ (registered
   // by ./hmr.ts) rather than import/require("@lark.js/mvc"): under Module
@@ -121,11 +126,11 @@ if (typeof module !== "undefined" && module.hot) {
     __larkData.oldTemplate = ${TEMPLATE_VAR};
   });
   module.hot.accept(function() {
-    var __larkNew = ${TEMPLATE_VAR};
-    var __larkOld = module.hot && module.hot.data && module.hot.data.oldTemplate;
+    const __larkNew = require(module.id).default;
+    const __larkOld = module.hot && module.hot.data && module.hot.data.oldTemplate;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      var __hmr = globalThis.__LARK_HMR__;
-      var __swapped = false;
+      const __hmr = globalThis.__LARK_HMR__;
+      let __swapped = false;
       if (__hmr && __hmr.hotSwapByTemplate) __swapped = __hmr.hotSwapByTemplate(__larkOld, __larkNew);
       // Fallback: if no mounted view matched oldTemplate (HMR state corrupted
       // by a prior ChunkLoadError on the main chunk), full-reload to reset.
@@ -175,10 +180,10 @@ if (import.meta.hot) {
     __larkData.oldClass = ${VIEW_VAR};
   });
   import.meta.hot.accept(function(__larkNewModule) {
-    var __larkNew = __larkNewModule && __larkNewModule.default;
-    var __larkOld = import.meta.hot.data && import.meta.hot.data.oldClass;
+    const __larkNew = __larkNewModule && __larkNewModule.default;
+    const __larkOld = import.meta.hot.data && import.meta.hot.data.oldClass;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      var __hmr = globalThis.__LARK_HMR__;
+      const __hmr = globalThis.__LARK_HMR__;
       if (__hmr && __hmr.hotSwapByView) __hmr.hotSwapByView(__larkOld, __larkNew);
     }
   });
@@ -197,11 +202,11 @@ if (typeof module !== "undefined" && module.hot) {
     __larkData.oldClass = ${VIEW_VAR};
   });
   module.hot.accept(function() {
-    var __larkNew = ${VIEW_VAR};
-    var __larkOld = module.hot && module.hot.data && module.hot.data.oldClass;
+    const __larkNew = require(module.id).default;
+    const __larkOld = module.hot && module.hot.data && module.hot.data.oldClass;
     if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      var __hmr = globalThis.__LARK_HMR__;
-      var __swapped = false;
+      const __hmr = globalThis.__LARK_HMR__;
+      let __swapped = false;
       if (__hmr && __hmr.hotSwapByView) __swapped = __hmr.hotSwapByView(__larkOld, __larkNew);
       // Fallback: if no mounted frame matched (HMR state corrupted by a prior
       // ChunkLoadError on the main chunk), full-reload to reset.

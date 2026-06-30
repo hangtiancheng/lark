@@ -60,7 +60,8 @@ function extractRemoteName(url: string): string {
 // Strategy helpers
 // ---------------------------------------------------------------------------
 
-const isObject = (val: unknown): val is object => typeof val === "object" && val !== null;
+const isObject = (val: unknown): val is object =>
+  typeof val === "object" && val !== null;
 
 const isPromise = (val: unknown): val is Promise<unknown> =>
   isObject(val) && "then" in val && typeof val.then === "function";
@@ -79,7 +80,9 @@ function unwrapDefault(mod: unknown): unknown {
   if (!isObject(mod)) return mod;
   const rec = mod as Record<string, unknown>;
   if (!("default" in rec)) return mod;
-  const nonDefault = Object.keys(rec).filter((k) => k !== "default" && k !== "__esModule");
+  const nonDefault = Object.keys(rec).filter(
+    (k) => k !== "default" && k !== "__esModule",
+  );
   if (nonDefault.length === 0 && rec["default"] != null) {
     return unwrapDefault(rec["default"]);
   }
@@ -121,7 +124,10 @@ function ensureRuntimeInitialized() {
  * Load a remote module using @module-federation/runtime.
  * Supports both Webpack (var) and Vite (ESM) remote entries.
  */
-async function loadViaRuntime<T>(containerUrl: string, moduleName: string): Promise<T> {
+async function loadViaRuntime<T>(
+  containerUrl: string,
+  moduleName: string,
+): Promise<T> {
   ensureRuntimeInitialized();
 
   const remoteName = extractRemoteName(containerUrl);
@@ -160,18 +166,30 @@ async function loadViaRuntime<T>(containerUrl: string, moduleName: string): Prom
 /** Track ESM-loaded containers */
 const loadedViaEsm = new Map<string, RemoteContainer>();
 
-async function loadViaEsmImport<T>(containerUrl: string, moduleName: string): Promise<T> {
+async function loadViaEsmImport<T>(
+  containerUrl: string,
+  moduleName: string,
+): Promise<T> {
   // Check cache first
   const cached = loadedViaEsm.get(containerUrl);
   if (cached !== undefined) {
-    return resolveModule<T>(cached, moduleName, extractContainerName(containerUrl));
+    return resolveModule<T>(
+      cached,
+      moduleName,
+      extractContainerName(containerUrl),
+    );
   }
 
   // Dynamic import the ESM remoteEntry.js
   // Vite builds produce: export { init, get }
-  const container = (await import(/* @vite-ignore */ containerUrl)) as RemoteContainer;
+  const container = (await import(
+    /* @vite-ignore */ /* webpackIgnore: true */ containerUrl
+  )) as RemoteContainer;
 
-  if (typeof container.init !== "function" || typeof container.get !== "function") {
+  if (
+    typeof container.init !== "function" ||
+    typeof container.get !== "function"
+  ) {
     throw new Error(
       `ESM remoteEntry at ${containerUrl} does not export valid { init, get }. ` +
         `Found keys: [${Object.keys(container).join(", ")}]`,
@@ -189,30 +207,47 @@ async function loadViaEsmImport<T>(containerUrl: string, moduleName: string): Pr
       await container.init({});
     }
   } catch (initError) {
-    console.warn(`[dynamic-remote] Container init warning (may be non-fatal):`, initError);
+    console.warn(
+      `[dynamic-remote] Container init warning (may be non-fatal):`,
+      initError,
+    );
   }
 
   loadedViaEsm.set(containerUrl, container);
 
-  return resolveModule<T>(container, moduleName, extractContainerName(containerUrl));
+  return resolveModule<T>(
+    container,
+    moduleName,
+    extractContainerName(containerUrl),
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Strategy 3: Webpack-style <script> injection + window[name]
 // ---------------------------------------------------------------------------
 
-async function loadViaScriptInjection<T>(containerUrl: string, moduleName: string): Promise<T> {
+async function loadViaScriptInjection<T>(
+  containerUrl: string,
+  moduleName: string,
+): Promise<T> {
   // Check cache first
   const cached = loadedContainers.get(containerUrl);
   if (cached !== undefined) {
-    return resolveModule<T>(cached, moduleName, extractContainerName(containerUrl));
+    return resolveModule<T>(
+      cached,
+      moduleName,
+      extractContainerName(containerUrl),
+    );
   }
 
   const containerName = extractContainerName(containerUrl);
 
   await new Promise<void>((resolve, reject) => {
     const existing = Reflect.get(window, containerName);
-    if (existing !== undefined && typeof Reflect.get(existing, "get") === "function") {
+    if (
+      existing !== undefined &&
+      typeof Reflect.get(existing, "get") === "function"
+    ) {
       resolve();
       return;
     }
@@ -223,7 +258,8 @@ async function loadViaScriptInjection<T>(containerUrl: string, moduleName: strin
     script.async = true;
 
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load remote entry: ${containerUrl}`));
+    script.onerror = () =>
+      reject(new Error(`Failed to load remote entry: ${containerUrl}`));
 
     document.head.appendChild(script);
   });
@@ -235,7 +271,10 @@ async function loadViaScriptInjection<T>(containerUrl: string, moduleName: strin
     );
   }
 
-  if (typeof container.get !== "function" || typeof container.init !== "function") {
+  if (
+    typeof container.get !== "function" ||
+    typeof container.init !== "function"
+  ) {
     throw new Error(
       `"${containerName}" on window is not a valid MF container. ` +
         `Expected { init, get } but found: ${Object.keys(container).join(", ")}`,

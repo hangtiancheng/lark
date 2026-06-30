@@ -41,8 +41,6 @@ declare global {
     frameBound?: number;
     /** Whether an auto-generated ID was assigned by `ensureElementId` */
     autoId?: number;
-    /** View rendered flag — used by selector matching during event delegation */
-    viewRendered?: number;
   }
 
   interface Element {

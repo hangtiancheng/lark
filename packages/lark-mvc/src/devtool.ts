@@ -225,11 +225,8 @@ let lastTreeJson = "";
  * This should be called once during Framework.boot().
  */
 export function installFrameDevtoolBridge(): void {
-  if (bridgeInstalled) return;
-  if (typeof window === "undefined") return;
-
+  if (bridgeInstalled || typeof window === "undefined") return;
   bridgeInstalled = true;
-
   window.addEventListener("message", (event: MessageEvent) => {
     const data = event.data;
     if (!data || typeof data !== "object") return;

@@ -49,10 +49,12 @@
  * ```
  */
 import { compileTemplate, extractGlobalVars } from "./compiler";
-import { injectTemplateHmrSnippet } from "./hmr-inject";
+import { injectTemplateHmrSnippet, injectViewHmrSnippet } from "./hmr-inject";
 import type { LarkMvcVitePluginOptions } from "./vite";
 
-export type LarkMvcWebpackLoaderOptions = LarkMvcVitePluginOptions;
+export type LarkMvcWebpackLoaderOptions = LarkMvcVitePluginOptions & {
+  hmr?: "view";
+};
 
 /** Webpack loader context */
 interface LoaderContext {
@@ -82,7 +84,14 @@ export interface LarkMvcWebpackPluginOptions extends LarkMvcWebpackLoaderOptions
 async function larkMvcLoader(this: LoaderContext, source: string): Promise<string> {
   try {
     const options = this.getOptions() || {};
-    const { debug = false, vdom = false } = options;
+    const { debug = false, vdom = false, hmr } = options;
+
+    // View HMR mode: inject view-class HMR into .ts files that import .html.
+    // This is the webpack equivalent of Vite's `transform` hook — ensures .ts
+    // view file changes self-accept and hot-swap in place, preserving state.
+    if (hmr === "view") {
+      return injectViewHmrSnippet(source, "webpack");
+    }
 
     const globalVars = await extractGlobalVars(source);
     const compiled = await compileTemplate(source, {
@@ -93,6 +102,7 @@ async function larkMvcLoader(this: LoaderContext, source: string): Promise<strin
     // Auto-inject HMR: the compiled template module self-accepts, so
     // .html changes hot-swap the template on all mounted views without
     // a full page reload — no user-side code required (like React/Vue).
+
     return injectTemplateHmrSnippet(compiled, "webpack");
   } catch (err) {
     console.error(err);
@@ -101,7 +111,7 @@ async function larkMvcLoader(this: LoaderContext, source: string): Promise<strin
 }
 
 /**
- * Webpack plugin that auto-registers the lark-mvc loader.
+ * Webpack plugin that auto-registers the @lark.js/mvc loader.
  *
  * This is the recommended integration approach. The plugin:
  * 1. Automatically adds a loader rule for .html files
@@ -152,9 +162,14 @@ class LarkMvcPlugin {
     compiler.options.module = compiler.options.module || {};
     compiler.options.module.rules = compiler.options.module.rules || [];
 
+    // Rule 1: .html template compilation + HMR injection.
+    // `type: "javascript/auto"` ensures webpack treats the loader output as a
+    // JavaScript module (not an asset), which is required for
+    // `import.meta.webpackHot` to be available at runtime.
     compiler.options.module.rules.push({
       test,
       exclude,
+      type: "javascript/auto",
       use: [
         {
           // Resolve the loader path (this file).
@@ -166,6 +181,27 @@ class LarkMvcPlugin {
           // and is a native CJS global in CJS output.
           loader: __filename,
           options: { debug, vdom },
+        },
+      ],
+    });
+
+    // Rule 2: .ts/.js view file HMR injection.
+    // This is the webpack equivalent of Vite's `transform` hook. When a .ts
+    // view file (one that imports a .html template) changes, the injected
+    // HMR code makes the module self-accept and hot-swap the view setup
+    // function in place — preserving view-local state.
+    //
+    // `enforce: "pre"` ensures this loader runs BEFORE ts-loader/SWC,
+    // receiving the raw TypeScript source. The injected code is TypeScript-
+    // compatible (uses `import.meta.webpackHot` which TS recognizes).
+    compiler.options.module.rules.push({
+      test: /\.[jt]s$/,
+      exclude: /node_modules/,
+      enforce: "pre",
+      use: [
+        {
+          loader: __filename,
+          options: { hmr: "view" },
         },
       ],
     });

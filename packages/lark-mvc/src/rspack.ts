@@ -50,7 +50,7 @@
  */
 import type { Compiler, RspackPluginInstance } from "@rspack/core";
 import { compileTemplate, extractGlobalVars } from "./compiler";
-import { injectTemplateHmrSnippet } from "./hmr-inject";
+import { injectTemplateHmrSnippet, injectViewHmrSnippet } from "./hmr-inject";
 import type { LarkMvcWebpackLoaderOptions, LarkMvcWebpackPluginOptions } from "./webpack";
 export type { LarkMvcWebpackLoaderOptions, LarkMvcWebpackPluginOptions } from "./webpack";
 
@@ -74,7 +74,14 @@ interface LoaderContext {
 export async function larkMvcLoader(this: LoaderContext, source: string): Promise<string> {
   try {
     const options = this.getOptions();
-    const { debug = false, vdom = false } = options;
+    const { debug = false, vdom = false, hmr } = options;
+
+    // View HMR mode: inject view-class HMR into .ts files that import .html.
+    // This is the rspack equivalent of Vite's `transform` hook — ensures .ts
+    // view file changes self-accept and hot-swap in place, preserving state.
+    if (hmr === "view") {
+      return injectViewHmrSnippet(source, "rspack");
+    }
 
     const globalVars = await extractGlobalVars(source);
     const compiled = await compileTemplate(source, {
@@ -85,6 +92,7 @@ export async function larkMvcLoader(this: LoaderContext, source: string): Promis
     // Auto-inject HMR: the compiled template module self-accepts, so
     // .html changes hot-swap the template on all mounted views without
     // a full page reload — no user-side code required (like React/Vue).
+
     return injectTemplateHmrSnippet(compiled, "rspack");
   } catch (err) {
     console.error(err);
@@ -138,9 +146,16 @@ export class LarkMvcPlugin implements RspackPluginInstance {
     compiler.options.module = compiler.options.module || {};
     compiler.options.module.rules = compiler.options.module.rules || [];
 
+    // Rule 1: .html template compilation + HMR injection.
+    // `type: "javascript/auto"` ensures rspack treats the loader output as a
+    // JavaScript module (not an asset), which is required for
+    // `import.meta.webpackHot` to be available at runtime. Without this,
+    // rsbuild/rspack may match a built-in asset rule for .html files, causing
+    // the compiled template to lose HMR self-accept capability.
     compiler.options.module.rules.push({
       test,
       exclude,
+      type: "javascript/auto",
       use: [
         {
           // Resolve the loader path (this file).
@@ -152,6 +167,28 @@ export class LarkMvcPlugin implements RspackPluginInstance {
           // and is a native CJS global in CJS output.
           loader: __filename,
           options: { debug, vdom },
+        },
+      ],
+    });
+
+    // Rule 2: .ts/.js view file HMR injection.
+    // This is the rspack equivalent of Vite's `transform` hook. When a .ts
+    // view file (one that imports a .html template) changes, the injected
+    // HMR code makes the module self-accept and hot-swap the view setup
+    // function in place — preserving view-local state.
+    //
+    // `enforce: "pre"` ensures this loader runs BEFORE rsbuild's built-in
+    // SWC/ts-loader, receiving the raw TypeScript source. The injected code
+    // is TypeScript-compatible (uses `import.meta.webpackHot` which TS
+    // recognizes as a valid `import.meta` access).
+    compiler.options.module.rules.push({
+      test: /\.[jt]s$/,
+      exclude: /node_modules/,
+      enforce: "pre",
+      use: [
+        {
+          loader: __filename,
+          options: { hmr: "view" },
         },
       ],
     });

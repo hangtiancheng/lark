@@ -274,7 +274,7 @@ export function importsHtmlTemplate(source: string): boolean {
  * @param bundler - Which bundler's HMR API to use
  * @returns The transformed source with HMR code, or the original if ineligible
  */
-export function injectViewHmr(source: string, bundler: Bundler): string {
+export function injectViewHmrSnippet(source: string, bundler: Bundler): string {
   if (!importsHtmlTemplate(source)) return source;
 
   // Find `export default <expression>;` and rewrite to named const + export.

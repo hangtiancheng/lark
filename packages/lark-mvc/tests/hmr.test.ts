@@ -8,7 +8,11 @@ import {
   hotSwapByTemplate,
   hotSwapByView,
 } from "../src/hmr";
-import { injectTemplateHmrSnippet, injectViewHmr, importsHtmlTemplate } from "../src/hmr-inject";
+import {
+  injectTemplateHmrSnippet,
+  injectViewHmrSnippet,
+  importsHtmlTemplate,
+} from "../src/hmr-inject";
 import type { HotContext } from "../src/hmr";
 import { defineView } from "../src/view";
 import {
@@ -794,7 +798,7 @@ export default View.extend({
   template,
   init() { this.updater.set({ count: 0 }); }
 });`;
-        const result = injectViewHmr(source, "vite");
+        const result = injectViewHmrSnippet(source, "vite");
 
         // Should create a named const
         expect(result).toContain("const __larkViewDefault = View.extend");
@@ -807,21 +811,21 @@ export default View.extend({
       it("returns source unchanged when no .html import", () => {
         const source =
           'import View from "../view";\nexport default defineView(() => ({ template: () => "" }));';
-        const result = injectViewHmr(source, "vite");
+        const result = injectViewHmrSnippet(source, "vite");
         expect(result).toBe(source);
       });
 
       it("returns source unchanged when no export default", () => {
         const source =
           'import template from "./home.html";\nconst V = defineView(() => ({ template: () => "" }));';
-        const result = injectViewHmr(source, "vite");
+        const result = injectViewHmrSnippet(source, "vite");
         expect(result).toBe(source);
       });
 
       it("uses import.meta.webpackHot for webpack", () => {
         const source =
           'import template from "./home.html";\nexport default defineView(() => ({ template: () => "" }));';
-        const result = injectViewHmr(source, "webpack");
+        const result = injectViewHmrSnippet(source, "webpack");
         expect(result).toContain("import.meta.webpackHot");
         expect(result).not.toContain("import.meta.hot");
       });

@@ -26,7 +26,7 @@ import type { Plugin as Plugin7 } from "vite7";
 import { dirname, isAbsolute, join, resolve } from "path";
 import { existsSync, readFileSync } from "fs";
 import { compileTemplate, extractGlobalVars } from "./compiler";
-import { injectTemplateHmrSnippet, injectViewHmr, importsHtmlTemplate } from "./hmr-inject";
+import { injectTemplateHmrSnippet, injectViewHmrSnippet, importsHtmlTemplate } from "./hmr-inject";
 
 export interface LarkMvcVitePluginOptions {
   /** Enable debug mode with line tracking (default: false) */
@@ -141,7 +141,7 @@ export function larkMvcPlugin(options: LarkMvcVitePluginOptions = {}): Plugin {
       // string would be treated as a transformation by Rolldown, triggering
       // [SOURCEMAP_BROKEN] warnings when build.sourcemap is true.
       if (!importsHtmlTemplate(code)) return undefined;
-      const transformed = injectViewHmr(code, "vite");
+      const transformed = injectViewHmrSnippet(code, "vite");
       // If no `export default` was found, injectViewHmr returns the source
       // unchanged — skip to avoid a no-op transformation.
       if (transformed === code) return undefined;

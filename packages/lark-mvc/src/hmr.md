@@ -8,11 +8,10 @@ if (import.meta.hot) {
   });
   import.meta.hot.accept((newMod) => {
     const newTemplate = newMod?.default;
-    const oldTemplate = import.meta.hot.data.oldTemplate;
+    const oldTemplate = import.meta.hot.data?.oldTemplate;
     if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
-      const hmr = globalThis.__LARK_HMR__;
-      if (hmr && hmr.hotSwapByTemplate)
-        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
+      const hmr = globalThis.__lark_hmr__;
+      if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   });
 }
@@ -22,17 +21,17 @@ template hmr sippet for webpack/rspack
 
 ```js
 // Auto-injected by larkMvcPlugin
-if (module.hot) {
-  module.hot.dispose((data) => {
+if (import.meta.webpackHot) {
+  // import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
     data.oldTemplate = __larkTemplate;
   });
-  module.hot.accept(() => {
-    const newTemplate = __larkTemplate;
-    const oldTemplate = module.hot.data.oldTemplate;
+  import.meta.webpackHot.accept(() => {
+    const oldTemplate = import.meta.webpackHot.data?.oldTemplate;
+    const newTemplate = __webpack_require__(__webpack_module__.id);
     if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
-      const hmr = globalThis.__LARK_HMR__;
-      if (hmr && hmr.hotSwapByTemplate)
-        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
+      const hmr = globalThis.__lark_hmr__;
+      if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   });
 }
@@ -48,9 +47,9 @@ if (import.meta.hot) {
   });
   import.meta.hot.accept((newMod) => {
     const newView = newMod?.default;
-    const oldView = import.meta.hot.data.oldView;
+    const oldView = import.meta.hot.data?.oldView;
     if (oldView && newView && oldView !== newView) {
-      const hmr = globalThis.__LARK_HMR__;
+      const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   });
@@ -61,16 +60,16 @@ view hmr snippet for webpack/rspack
 
 ```js
 // Auto-injected by larkMvcPlugin
-if (module.hot) {
-  module.hot.accept();
-  module.hot.dispose(function (data) {
+if (import.meta.webpackHot) {
+  // import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
     data.oldView = __larkViewDefault;
   });
-  module.hot.accept(() => {
-    const oldView = module.hot.data.oldView;
-    const newView = __larkViewDefault;
+  import.meta.webpackHot.accept(() => {
+    const oldView = bundler === import.meta.webpackHot.data?.oldView;
+    const newView = __webpack_require__(__webpack_module__.id);
     if (oldView && newView && oldView !== newView) {
-      const hmr = globalThis.__LARK_HMR__;
+      const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   });

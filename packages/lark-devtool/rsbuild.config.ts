@@ -101,7 +101,7 @@ export default defineConfig(({ command }) => {
 
     dev: {
       hmr: true,
-      lazyCompilation: false,
+      // lazyCompilation: false,
     },
   };
 });

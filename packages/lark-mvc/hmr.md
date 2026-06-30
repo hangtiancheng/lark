@@ -14,10 +14,7 @@ Vite exposes its manual HMR API via the special `import.meta.hot` object:
 
 ```ts twoslash
 import type { ModuleNamespace } from "vite/types/hot.d.ts";
-import type {
-  CustomEventName,
-  InferCustomEventPayload,
-} from "vite/types/customEvent.d.ts";
+import type { CustomEventName, InferCustomEventPayload } from "vite/types/customEvent.d.ts";
 
 // ---cut---
 interface ImportMeta {
@@ -30,27 +27,15 @@ interface ViteHotContext {
   accept(): void;
   accept(cb: (mod: ModuleNamespace | undefined) => void): void;
   accept(dep: string, cb: (mod: ModuleNamespace | undefined) => void): void;
-  accept(
-    deps: readonly string[],
-    cb: (mods: Array<ModuleNamespace | undefined>) => void,
-  ): void;
+  accept(deps: readonly string[], cb: (mods: Array<ModuleNamespace | undefined>) => void): void;
 
   dispose(cb: (data: any) => void): void;
   prune(cb: (data: any) => void): void;
   invalidate(message?: string): void;
 
-  on<T extends CustomEventName>(
-    event: T,
-    cb: (payload: InferCustomEventPayload<T>) => void,
-  ): void;
-  off<T extends CustomEventName>(
-    event: T,
-    cb: (payload: InferCustomEventPayload<T>) => void,
-  ): void;
-  send<T extends CustomEventName>(
-    event: T,
-    data?: InferCustomEventPayload<T>,
-  ): void;
+  on<T extends CustomEventName>(event: T, cb: (payload: InferCustomEventPayload<T>) => void): void;
+  off<T extends CustomEventName>(event: T, cb: (payload: InferCustomEventPayload<T>) => void): void;
+  send<T extends CustomEventName>(event: T, data?: InferCustomEventPayload<T>): void;
 }
 ```
 
@@ -337,10 +322,7 @@ Setting filename hashes in development mode can cause HMR to fail, especially fo
 export default {
   output: {
     filename: {
-      css:
-        process.env.NODE_ENV === "production"
-          ? "[name].[contenthash:10].css"
-          : "[name].css",
+      css: process.env.NODE_ENV === "production" ? "[name].[contenthash:10].css" : "[name].css",
     },
   },
 };

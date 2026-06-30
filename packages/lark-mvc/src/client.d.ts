@@ -22,7 +22,7 @@ import type { View } from "./view";
 declare global {
   /** Scheduler API (Chrome 94+) — used by `Framework.task` for time-slicing. */
   var scheduler: Scheduler;
-  var __LARK_HMR__: {
+  var __lark_hmr__: {
     hotSwapByTemplate: (oldTemplate: ViewTemplate, newTemplate: ViewTemplate) => boolean;
     hotSwapByView: (oldSetup: ViewSetup, newSetup: ViewSetup) => boolean;
   };

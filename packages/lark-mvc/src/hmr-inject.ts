@@ -13,7 +13,7 @@
  * integrations (vite.ts, webpack.ts, rspack.ts) append to compiled output.
  * Extracting the logic here keeps the three plugin files DRY and makes the
  * cross-bundler differences (Vite's `import.meta.hot` vs Webpack/Rspack's
- * `module.hot`) explicit and testable.
+ * `import.meta.webpackHot`) explicit and testable.
  *
  * ## Two injection targets
  *
@@ -31,8 +31,8 @@
  * | Bundler        | HMR context              | accept(cb) semantics                              |
  * |----------------|--------------------------|---------------------------------------------------|
  * | Vite           | `import.meta.hot`        | cb IS the update-success callback (gets newModule)|
- * | Webpack (ESM)  | `module.hot` | cb is an ERROR handler (never runs on success)     |
- * | Rspack         | `module.hot` | cb is an ERROR handler (never runs on success)     |
+ * | Webpack (ESM)  | `import.meta.webpackHot` | cb is an ERROR handler (never runs on success)     |
+ * | Rspack         | `import.meta.webpackHot` | cb is an ERROR handler (never runs on success)     |
  *
  * This asymmetry is the root cause of the historic webpack/rspack HMR bugs
  * in this file: swap logic placed inside `accept(cb)` never executed on
@@ -40,15 +40,15 @@
  *
  * Additional critical difference: since the compiled template output always
  * uses `import`/`export` (ESM) syntax, Rspack does NOT reliably provide
- * `module.hot` for these modules. Using the legacy `module.hot` API caused:
- *   - Webpack: `module.hot.data` not populated correctly with MF → UI never
+ * `import.meta.webpackHot` for these modules. Using the legacy `import.meta.webpackHot` API caused:
+ *   - Webpack: `import.meta.webpackHot.data` not populated correctly with MF → UI never
  *     updated.
- *   - Rspack: `module.hot` undefined for ESM → module never self-accepts →
+ *   - Rspack: `import.meta.webpackHot` undefined for ESM → module never self-accepts →
  *     update propagates to full page reload → state lost.
  *
  * The fix: Vite uses `accept(cb)` with swap inside cb; webpack/rspack use
- * `module.hot.accept()` (no args) + `dispose()` + a top-level
- * `module.hot.data` check that runs on HMR re-execution.
+ * `import.meta.webpackHot.accept()` (no args) + `dispose()` + a top-level
+ * `import.meta.webpackHot.data` check that runs on HMR re-execution.
  * See getTemplateHmrSnippet / getViewHmrSnippet for the detailed rationale.
  */
 
@@ -82,7 +82,7 @@ export type Bundler = "vite" | "webpack" | "rspack";
  * 2. On `accept`: determines the NEW template function, then calls
  *    `hotSwapByTemplate(old, new)` to update all mounted views.
  *
- * Access to the framework's HMR swap functions is via `globalThis.__LARK_HMR__`
+ * Access to the framework's HMR swap functions is via `globalThis.__lark_hmr__`
  * (registered by ./hmr.ts at module-load time), NOT via import/require of
  * "@lark.js/mvc". Under Module Federation (`@lark.js/mvc` shared singleton),
  * ANY import/require of @lark.js/mvc registers the calling module as a shared
@@ -104,9 +104,9 @@ if (import.meta.hot) {
   });
   import.meta.hot.accept((newMod) => {
     const newTemplate = newMod?.default;
-    const oldTemplate = import.meta.hot.data.oldTemplate;
+    const oldTemplate = import.meta.hot.data?.oldTemplate;
     if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
-      const hmr = globalThis.__LARK_HMR__;
+      const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByTemplate)
         hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
@@ -115,7 +115,7 @@ if (import.meta.hot) {
 `;
   }
 
-  // Webpack / Rspack: module.hot
+  // Webpack / Rspack: import.meta.webpackHot
   //
   // KEY DIFFERENCE from Vite: webpack/rspack's `accept(cb)` with a single
   // function argument registers cb as an ERROR handler (invoked only when
@@ -124,28 +124,28 @@ if (import.meta.hot) {
   //
   // IMPORTANT: The compiled template output always uses `import`/`export`
   // syntax (ESM). For ESM modules:
-  //   - Rspack does NOT reliably expose `module.hot` — the check
-  //     `typeof module !== "undefined" && module.hot` silently fails,
+  //   - Rspack does NOT reliably expose `import.meta.webpackHot` — the check
+  //     `typeof module !== "undefined" && import.meta.webpackHot` silently fails,
   //     the module never self-accepts, and the update propagates to a
   //     full page reload (symptom: UI updates but state is lost).
-  //   - Webpack 5 exposes `module.hot` for backward compat, but its
+  //   - Webpack 5 exposes `import.meta.webpackHot` for backward compat, but its
   //     `data` propagation has edge-case issues with Module Federation
   //     shared consumers (symptom: UI never updates).
   //
-  // FIX: Use `module.hot` — the canonical ESM HMR API for
+  // FIX: Use `import.meta.webpackHot` — the canonical ESM HMR API for
   // both webpack 5.40+ and Rspack. It's guaranteed to be available in
   // any module that uses `import`/`export` syntax, and properly supports
   // the self-accept pattern:
-  // 1. `module.hot.accept()` (NO args) marks self-accepted.
+  // 1. `import.meta.webpackHot.accept()` (NO args) marks self-accepted.
   //    On update, the runtime disposes the old module, evicts it from
   //    cache, and RE-EXECUTES the module's top-level code in place.
-  // 2. `module.hot.dispose(cb)` saves the OLD template
-  //    reference into `module.hot.data` before discard.
+  // 2. `import.meta.webpackHot.dispose(cb)` saves the OLD template
+  //    reference into `import.meta.webpackHot.data` before discard.
   // 3. When the new module re-executes, the runtime has ALREADY populated
-  //    `module.hot.data` with the dispose-saved data. The
+  //    `import.meta.webpackHot.data` with the dispose-saved data. The
   //    top-level check distinguishes HMR re-execution from first load.
   //
-  // HMR swap functions are accessed via globalThis.__LARK_HMR__ (registered
+  // HMR swap functions are accessed via globalThis.__lark_hmr__ (registered
   // by ./hmr.ts) rather than import/require("@lark.js/mvc"): under Module
   // Federation (shared singleton), ANY reference to @lark.js/mvc inside the
   // module registers it as a shared consumer, which causes webpack to mark
@@ -154,15 +154,16 @@ if (import.meta.hot) {
   // sidesteps all module-resolution / chunk-graph side effects.
   return `
 // Auto-injected by larkMvcPlugin
-if (module.hot) {
-  module.hot.dispose((data) => {
+if (import.meta.webpackHot) {
+  // import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
     data.oldTemplate = __larkTemplate;
   });
-  module.hot.accept(() => {
-    const newTemplate = __larkTemplate;
-    const oldTemplate = module.hot.data.oldTemplate;
+  import.meta.webpackHot.accept(() => {
+    const oldTemplate = import.meta.webpackHot.data?.oldTemplate;
+    const newTemplate = __webpack_require__(__webpack_module__.id);
     if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
-      const hmr = globalThis.__LARK_HMR__;
+      const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByTemplate)
         hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
@@ -176,7 +177,7 @@ if (module.hot) {
  *
  * Called by the Vite `load` hook and the Webpack/Rspack loader after
  * `compileTemplate` returns. The `bundler` parameter selects the correct
- * HMR API (`import.meta.hot` for Vite, `module.hot` for Webpack/Rspack).
+ * HMR API (`import.meta.hot` for Vite, `import.meta.webpackHot` for Webpack/Rspack).
  *
  * @param source - The compiled template module source from `compileTemplate`
  * @param bundler - Which bundler's HMR API to use
@@ -209,9 +210,9 @@ if (import.meta.hot) {
   });
   import.meta.hot.accept((newMod) => {
     const newView = newMod?.default;
-    const oldView = import.meta.hot.data.oldView;
+    const oldView = import.meta.hot.data?.oldView;
     if (oldView && newView && oldView !== newView) {
-      const hmr = globalThis.__LARK_HMR__;
+      const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   });
@@ -221,20 +222,20 @@ if (import.meta.hot) {
 
   // Webpack / Rspack — same self-accept pattern as the template snippet
   // above: `accept()` (no args) + `dispose()` + top-level data check.
-  // Uses `module.hot` (the canonical ESM HMR API) instead of
-  // `module.hot` — see getTemplateHmrSnippet for the full rationale.
+  // Uses `import.meta.webpackHot` (the canonical ESM HMR API) instead of
+  // `import.meta.webpackHot` — see getTemplateHmrSnippet for the full rationale.
   return `
 // Auto-injected by larkMvcPlugin
-if (module.hot) {
-  module.hot.accept();
-  module.hot.dispose(function (data) {
+if (import.meta.webpackHot) {
+  // import.meta.webpackHot.accept();
+  import.meta.webpackHot.dispose((data) => {
     data.oldView = __larkViewDefault;
   });
-  module.hot.accept(() => {
-    const oldView = module.hot.data.oldView;
-    const newView = __larkViewDefault;
+  import.meta.webpackHot.accept(() => {
+    const oldView = bundler === import.meta.webpackHot.data?.oldView;
+    const newView = __webpack_require__(__webpack_module__.id);
     if (oldView && newView && oldView !== newView) {
-      const hmr = globalThis.__LARK_HMR__;
+      const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   });

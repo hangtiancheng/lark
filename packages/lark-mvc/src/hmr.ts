@@ -291,13 +291,13 @@ export function disposeView(hot: HotContext, viewPath: string): void {
 //   (missing: http://localhost:<port>/main.<hash>.hot-update.js)
 // The accept callback never runs → UI never updates.
 //
-// globalThis.__LARK_HMR__ sidesteps module resolution entirely: no import,
+// globalThis.__lark_hmr__ sidesteps module resolution entirely: no import,
 // no require, no chunk-graph side effect. Set once when this module loads
 // (which happens before any HMR callback can fire, since the framework
 // boots before views mount). Functions are hoisted (function declarations),
 // so they are already defined when this top-level code runs.
-if (typeof globalThis !== "undefined" && !globalThis.__LARK_HMR__) {
-  globalThis.__LARK_HMR__ = {
+if (typeof globalThis !== "undefined" && !globalThis.__lark_hmr__) {
+  globalThis.__lark_hmr__ = {
     hotSwapByTemplate,
     hotSwapByView,
   };

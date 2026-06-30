@@ -404,8 +404,8 @@ export const Framework: FrameworkApi = {
     // hmr.ts module load to guarantee execution — webpack tree-shaking can
     // drop hmr.ts's top-level side-effect when its exports are unused by the
     // app (e.g. boot.ts only imports Framework + registerViewClass).
-    if (typeof globalThis !== "undefined" && !globalThis.__LARK_HMR__) {
-      globalThis["__LARK_HMR__"] = { hotSwapByTemplate, hotSwapByView };
+    if (typeof globalThis !== "undefined" && !globalThis.__lark_hmr__) {
+      globalThis["__lark_hmr__"] = { hotSwapByTemplate, hotSwapByView };
     }
     // Merge configuration
     if (cfg && typeof cfg === "object") {

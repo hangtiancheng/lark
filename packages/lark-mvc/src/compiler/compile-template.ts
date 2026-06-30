@@ -139,7 +139,7 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
   const refFallback = "if(!__lark_ref_alt__)__lark_ref_alt__=__lark_data__;";
   const fullSource = `${refFallback}let __lark_out__='';{{__lark_vars__}};${funcSource}return __lark_out__`;
 
-  // Wrap in arrow function signature — 6 params (encUri/encQuote removed: dead code)
+  // Wrap in arrow function signature — 6 params (data, viewId, refAlt, encHtml, strSafe, refFn)
   return `(__lark_data__,__lark_view_id__,__lark_ref_alt__,__lark_enc_html__,__lark_str_safe__,__lark_ref_fn__)=>{${fullSource}}`;
 }
 
@@ -193,7 +193,6 @@ export async function compileTemplate(
     // - Imports vdomCreate from @lark.js/mvc (not just runtime helpers)
     // - Does NOT import encHtml (not needed — VDOM text uses createTextNode)
     // - Inner function: 5 params (data, viewId, refAlt, strSafe, refFn)
-    // - encUri/encQuote removed: dead code (never called in generated output)
     //
     // The default export is a named function (__lark_template__) so that the
     // auto-injected HMR snippet (see hmr-inject.ts) can reference it by name.
@@ -216,7 +215,6 @@ export default __lark_template__;`;
   // Runtime helpers (`encHtml`, `strSafe`, `refFn`) are imported from
   // `@lark.js/mvc/runtime` rather than inlined into every compiled template —
   // saves bytes per `.html` module in the bundle.
-  // encUri/encQuote removed: dead code (never called in generated output).
   //
   // The default export is a named function (__lark_template__) so that the
   // auto-injected HMR snippet (see hmr-inject.ts) can reference it by name.

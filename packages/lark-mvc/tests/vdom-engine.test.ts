@@ -577,11 +577,9 @@ describe("VDOM Engine", () => {
     it("creates a ref with correct defaults", () => {
       const ref = createVDomRef("view-123");
       expect(ref.viewId).toBe("view-123");
-      expect(ref.viewRenders).toEqual([]);
       expect(ref.nodeProps).toEqual([]);
       expect(ref.asyncCount).toBe(0);
       expect(ref.changed).toBe(0);
-      expect(ref.domOps).toEqual([]);
     });
   });
 });

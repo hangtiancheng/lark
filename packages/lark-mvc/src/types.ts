@@ -198,8 +198,6 @@ export type RouteChangedEvent = LocationDiff & ChangeEvent;
 export interface DomRef {
   /** ID update list: [element, newId][] */
   idUpdates: [Element, string][];
-  /** Views that need post-processing */
-  views: ViewCtx[];
   /** DOM operation list: [opCode, parent, newChild?, oldChild?][] */
   domOps: DomOp[];
   /** Whether anything changed */
@@ -268,16 +266,12 @@ export interface VDomNode {
 export interface VDomRef {
   /** View ID (for placeholder replacement) */
   viewId: string;
-  /** Sub-views that need re-rendering after diff */
-  viewRenders: ViewCtx[];
   /** Deferred DOM property assignments: [element, propName, value][] */
   nodeProps: [Element, string, unknown][];
   /** Pending async operation count */
   asyncCount: number;
   /** Whether the DOM actually changed */
   changed: number;
-  /** DOM mutation operations (same format as DomOp) */
-  domOps: DomOp[];
 }
 
 /**
@@ -312,8 +306,9 @@ export interface FrameInvokeEntry {
 
 /**
  * Compiled template function signature.
- * `data`/`viewId`/`refData` are required; subsequent encoder args are
- * injected by the Updater (encodeHTML/encodeSafe/encodeURIExtra/refFn/encodeQ).
+ * Called with `(data, viewId, refData)` by the Updater at render time.
+ * Runtime helpers (encodeHTML/strSafe/refFn) are imported by the compiled
+ * module from `@lark.js/mvc/runtime`, not passed as arguments.
  */
 export type ViewTemplate = (data: unknown, viewId: string, refData: unknown) => string;
 
@@ -639,7 +634,6 @@ export interface ChangeEvent {
    * Event type.
    */
   readonly type: string;
-  // readonly view?: string | ParamDiff;
   /**
    * Set of changed data keys. Use `keys.has(name)` to check membership.
    */
@@ -753,10 +747,6 @@ export interface ServiceMetaEntry {
 export interface ServiceCacheInfo {
   /** Endpoint name */
   name: string;
-  /** After-fetch hook */
-  after?: AnyFunc | undefined;
-  /** Clean keys */
-  cleans?: string | undefined;
   /** Cache key */
   key: string;
   /** Timestamp when cached */

@@ -379,7 +379,6 @@ export function domSetNode(
 export function createDomRef(): DomRef {
   return {
     idUpdates: [],
-    views: [],
     domOps: [],
     hasChanged: 0,
   };

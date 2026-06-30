@@ -208,8 +208,6 @@ export function createService(
     entity.set(m);
     entity.cacheInfo = {
       name: m.name,
-      after: typeof m.after === "function" ? m.after : undefined,
-      cleans: typeof m.cleanKeys === "string" ? m.cleanKeys : undefined,
       key: cache ? defaultCacheKey(m, attrs) : "",
       time: 0,
     };
@@ -614,8 +612,6 @@ function getPayload(
     entity.set(m);
     entity.cacheInfo = {
       name: m.name,
-      after: typeof m.after === "function" ? m.after : undefined,
-      cleans: typeof m.cleanKeys === "string" ? m.cleanKeys : undefined,
       key: cacheKey,
       time: 0,
     };

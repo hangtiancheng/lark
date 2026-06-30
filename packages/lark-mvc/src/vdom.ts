@@ -793,10 +793,8 @@ export function vdomSetChildNodes(
 export function createVDomRef(viewId: string): VDomRef {
   return {
     viewId,
-    viewRenders: [],
     nodeProps: [],
     asyncCount: 0,
     changed: 0,
-    domOps: [],
   };
 }

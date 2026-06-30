@@ -8,7 +8,7 @@
  * Each View has an Updater instance that tracks data changes,
  * digests them, and triggers DOM re-rendering when needed.
  */
-import { setData, hasOwnProperty, noop, getById, funcWithTry, EMPTY_STRING_SET } from "./utils";
+import { setData, hasOwnProperty, getById, EMPTY_STRING_SET } from "./utils";
 import { SPLITTER, isRefToken } from "./common";
 import { domGetNode, domSetChildNodes, applyDomOps, applyIdUpdates, createDomRef } from "./dom";
 import { vdomSetChildNodes, createVDomRef } from "./vdom";
@@ -167,11 +167,6 @@ export function createUpdater(viewId: string): UpdaterApi {
           domSetChildNodes(node, newDom, ref, frame, keys);
           applyIdUpdates(ref.idUpdates);
           applyDomOps(ref.domOps);
-          for (const v of ref.views) {
-            if (v.render) {
-              funcWithTry(v.render, [], v, noop);
-            }
-          }
           if (ref.hasChanged || !view.rendered.value) {
             view.endUpdate(viewId);
           }
@@ -186,11 +181,6 @@ export function createUpdater(viewId: string): UpdaterApi {
             }
             for (const [el, prop, val] of ref.nodeProps) {
               Reflect.set(el, prop, val);
-            }
-            for (const v of ref.viewRenders) {
-              if (v.render) {
-                funcWithTry(v.render, [], v, noop);
-              }
             }
           };
           vdomSetChildNodes(node, vdom, newVDom, ref, frame, keys, view, ready);

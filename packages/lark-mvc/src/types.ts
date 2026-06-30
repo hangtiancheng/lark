@@ -41,10 +41,6 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyFunc = (...args: any[]) => unknown;
 
-/** A function that returns void. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type VoidFunc = (...args: any[]) => void;
-
 // ============================================================
 // Cache types
 // ============================================================
@@ -284,14 +280,6 @@ export interface VDomRef {
   domOps: DomOp[];
 }
 
-/** VDOM node creation function signature (vdomCreate) */
-export type VDomCreateFn = (
-  tag: string | number,
-  props?: Record<string, unknown> | number | null,
-  children?: VDomNode[] | number | null,
-  specials?: Record<string, string>,
-) => VDomNode;
-
 /**
  * VDOM template function signature.
  * The compiled template imports vdomCreate via ES module import and
@@ -343,22 +331,6 @@ export interface ViewResourceEntry {
   entity: unknown;
   /** Whether to destroy when render() is called */
   destroyOnRender: boolean;
-}
-
-// Global event listeners are managed via closures in registerGlobalEvent
-/**
- * View configuration for listening to URL changes.
- * Used as object parameter for `observeLocation()` method.
- */
-export interface ViewObserveLocation {
-  /**
-   * Whether to listen for path changes.
-   */
-  observePath?: boolean;
-  /**
-   * Parameter keys to observe, supports comma-separated string or string array.
-   */
-  params?: string | string[];
 }
 
 /**
@@ -439,41 +411,6 @@ export interface RouterApi {
    * Triggered after URL has changed (changed phase), carries route diff information.
    */
   onChanged?: (e?: RouteChangedEvent) => void;
-}
-
-/**
- * Service event interface, triggered when request starts or ends.
- * Includes begin/done/fail/end event types.
- */
-export interface ServiceEvent extends ChangeEvent {
-  /**
-   * Data payload object carrying this request's data.
-   */
-  readonly payload: PayloadApi;
-  /**
-   * Error object, present if request throws an error, otherwise null.
-   */
-  readonly error: object | string | null;
-}
-/**
- * View event interface carrying the ID of the node that triggered the event.
- * Carried in DOM events bound via @event attribute.
- */
-export interface ViewEvent extends ChangeEvent {
-  /**
-   * DOM node ID that triggered the event.
-   */
-  readonly id: string;
-}
-/**
- * Frame static event interface carrying associated Frame object.
- * Carried in Frame's add/remove static events.
- */
-export interface FrameStaticEvent extends ChangeEvent {
-  /**
-   * Associated Frame object.
-   */
-  readonly frame: FrameObj;
 }
 
 // ============================================================
@@ -575,8 +512,6 @@ export interface ViewCtx {
   /** EndUpdate pending flag (accessed via getEndUpdatePending/setEndUpdatePending) */
   getEndUpdatePending(): number | undefined;
   setEndUpdatePending(v: number | undefined): void;
-  /** Last rendered VDOM tree (only used when vdom is enabled) */
-  vdom?: VDomNode;
   /** Wrapped render method */
   renderMethod?: AnyFunc;
   /** Event handlers returned by setup (accessed via getEvents/setEvents) */
@@ -763,19 +698,6 @@ export interface StateApi {
    */
   diff: () => ReadonlySet<string>;
   onChanged?: (e?: ChangeEvent) => void;
-}
-
-export interface ServiceOptions {
-  /** Request URL */
-  url: string;
-  /** Request params */
-  params?: Record<string, unknown>;
-  /** HTTP method */
-  method?: "GET" | "POST" | "PUT" | "DELETE" | string;
-  /** Cache: true for default, number for TTL */
-  cache?: boolean | number;
-  /** POST data */
-  data?: unknown;
 }
 
 /** Pending cache entry for deduplication (internal to Service) */
@@ -1110,16 +1032,6 @@ export interface DomElement extends Element {
   cachedCompareKey?: string | undefined;
   /** Whether auto-generated ID */
   autoId?: number;
-}
-
-/** Element with frame binding */
-export interface FrameBoundElement extends HTMLElement {
-  /** Frame object bound to this element */
-  frame?: FrameObj;
-  /** Whether frame is bound (1 = bound) */
-  frameBound?: number;
-  /** View rendered flag */
-  viewRendered?: number;
 }
 
 /** Options for compileTemplate() */

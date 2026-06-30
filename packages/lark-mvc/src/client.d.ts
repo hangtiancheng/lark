@@ -14,11 +14,10 @@ import type {
   FrameworkApi,
   StateApi,
   RouterApi,
+  ViewSetup,
   ViewTemplate,
   VDomTemplate,
 } from "./types";
-import type { Frame } from "./frame";
-import type { View } from "./view";
 declare global {
   /** Scheduler API (Chrome 94+) — used by `Framework.task` for time-slicing. */
   var scheduler: Scheduler;

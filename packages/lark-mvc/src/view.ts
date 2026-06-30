@@ -30,7 +30,6 @@ import { createUpdater } from "./updater";
 import { setCurrentCtx } from "./hooks";
 import type {
   AnyFunc,
-  ChangeEvent,
   ViewCtx,
   ViewSetup,
   FrameObj,
@@ -415,7 +414,7 @@ export function registerEvents(ctx: ViewCtx): void {
 
       if (isSelector && globalNode) {
         // Global event (window/document)
-        registerGlobalEvent(ctx, globalNode, eventType, handler, mod, key);
+        registerGlobalEvent(ctx, globalNode, eventType, handler, mod);
       } else if (isSelector) {
         // Selector event
         EventDelegator.bind(eventType, true);
@@ -466,7 +465,6 @@ function registerGlobalEvent(
   eventName: string,
   handler: AnyFunc,
   modifiers: Record<string, boolean>,
-  _key: string,
 ): void {
   const listener: EventListenerObject = {
     handleEvent(domEvent: Event): void {

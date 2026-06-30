@@ -174,7 +174,7 @@ export function callFunction<T extends unknown[]>(fn: (...args: T) => void, args
 // ============================================================
 
 /** Check if value is a plain object (not null, not array, typeof object) */
-export function isPlainObject(value: unknown): value is Record<string, unknown> {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) return false;
   const proto = Object.getPrototypeOf(value);
   return proto === null || proto === Object.prototype;
@@ -196,12 +196,12 @@ export function asRecord(value: unknown): Record<string, unknown> {
 }
 
 /** Check if value is primitive or function (not a complex object) */
-export function isPrimitiveOrFunc(value: unknown): boolean {
+function isPrimitiveOrFunc(value: unknown): boolean {
   return !value || (typeof value !== "object" && typeof value !== "function");
 }
 
 /** Check if value is primitive (not object, not function) */
-export function isPrimitive(value: unknown): boolean {
+function isPrimitive(value: unknown): boolean {
   return !value || typeof value !== "object";
 }
 

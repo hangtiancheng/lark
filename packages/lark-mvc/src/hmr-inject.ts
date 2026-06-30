@@ -31,8 +31,8 @@
  * | Bundler        | HMR context              | accept(cb) semantics                              |
  * |----------------|--------------------------|---------------------------------------------------|
  * | Vite           | `import.meta.hot`        | cb IS the update-success callback (gets newModule)|
- * | Webpack (ESM)  | `import.meta.webpackHot` | cb is an ERROR handler (never runs on success)     |
- * | Rspack         | `import.meta.webpackHot` | cb is an ERROR handler (never runs on success)     |
+ * | Webpack (ESM)  | `module.hot` | cb is an ERROR handler (never runs on success)     |
+ * | Rspack         | `module.hot` | cb is an ERROR handler (never runs on success)     |
  *
  * This asymmetry is the root cause of the historic webpack/rspack HMR bugs
  * in this file: swap logic placed inside `accept(cb)` never executed on
@@ -47,8 +47,8 @@
  *     update propagates to full page reload → state lost.
  *
  * The fix: Vite uses `accept(cb)` with swap inside cb; webpack/rspack use
- * `import.meta.webpackHot.accept()` (no args) + `dispose()` + a top-level
- * `import.meta.webpackHot.data` check that runs on HMR re-execution.
+ * `module.hot.accept()` (no args) + `dispose()` + a top-level
+ * `module.hot.data` check that runs on HMR re-execution.
  * See getTemplateHmrSnippet / getViewHmrSnippet for the detailed rationale.
  */
 
@@ -99,22 +99,23 @@ function getTemplateHmrSnippet(bundler: Bundler): string {
     return `
 // Auto-injected by larkMvcPlugin
 if (import.meta.hot) {
-  import.meta.hot.dispose(function(data) {
+  import.meta.hot.dispose((data) => {
     data.oldTemplate = __larkTemplate;
   });
-  import.meta.hot.accept(function(__larkNewModule) {
-    const __larkNew = __larkNewModule && __larkNewModule.default;
-    const __larkOld = import.meta.hot.data && import.meta.hot.data.oldTemplate;
-    if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      const __hmr = globalThis.__LARK_HMR__;
-      if (__hmr && __hmr.hotSwapByTemplate) __hmr.hotSwapByTemplate(__larkOld, __larkNew);
+  import.meta.hot.accept((newMod) => {
+    const newTemplate = newMod?.default;
+    const oldTemplate = import.meta.hot.data.oldTemplate;
+    if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
+      const hmr = globalThis.__LARK_HMR__;
+      if (hmr && hmr.hotSwapByTemplate)
+        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   });
 }
 `;
   }
 
-  // Webpack / Rspack: import.meta.webpackHot
+  // Webpack / Rspack: module.hot
   //
   // KEY DIFFERENCE from Vite: webpack/rspack's `accept(cb)` with a single
   // function argument registers cb as an ERROR handler (invoked only when
@@ -131,17 +132,17 @@ if (import.meta.hot) {
   //     `data` propagation has edge-case issues with Module Federation
   //     shared consumers (symptom: UI never updates).
   //
-  // FIX: Use `import.meta.webpackHot` — the canonical ESM HMR API for
+  // FIX: Use `module.hot` — the canonical ESM HMR API for
   // both webpack 5.40+ and Rspack. It's guaranteed to be available in
   // any module that uses `import`/`export` syntax, and properly supports
   // the self-accept pattern:
-  // 1. `import.meta.webpackHot.accept()` (NO args) marks self-accepted.
+  // 1. `module.hot.accept()` (NO args) marks self-accepted.
   //    On update, the runtime disposes the old module, evicts it from
   //    cache, and RE-EXECUTES the module's top-level code in place.
-  // 2. `import.meta.webpackHot.dispose(cb)` saves the OLD template
-  //    reference into `import.meta.webpackHot.data` before discard.
+  // 2. `module.hot.dispose(cb)` saves the OLD template
+  //    reference into `module.hot.data` before discard.
   // 3. When the new module re-executes, the runtime has ALREADY populated
-  //    `import.meta.webpackHot.data` with the dispose-saved data. The
+  //    `module.hot.data` with the dispose-saved data. The
   //    top-level check distinguishes HMR re-execution from first load.
   //
   // HMR swap functions are accessed via globalThis.__LARK_HMR__ (registered
@@ -153,19 +154,19 @@ if (import.meta.hot) {
   // sidesteps all module-resolution / chunk-graph side effects.
   return `
 // Auto-injected by larkMvcPlugin
-if (import.meta.webpackHot) {
-  import.meta.webpackHot.accept();
-  import.meta.webpackHot.dispose(function(data) {
+if (module.hot) {
+  module.hot.dispose((data) => {
     data.oldTemplate = __larkTemplate;
   });
-  if (import.meta.webpackHot.data && import.meta.webpackHot.data.oldTemplate) {
-    const __larkOld = import.meta.webpackHot.data.oldTemplate;
-    const __larkNew = __larkTemplate;
-    if (__larkOld !== __larkNew) {
-      const __hmr = globalThis.__LARK_HMR__;
-      if (__hmr && __hmr.hotSwapByTemplate) __hmr.hotSwapByTemplate(__larkOld, __larkNew);
+  module.hot.accept(() => {
+    const newTemplate = __larkTemplate;
+    const oldTemplate = module.hot.data.oldTemplate;
+    if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
+      const hmr = globalThis.__LARK_HMR__;
+      if (hmr && hmr.hotSwapByTemplate)
+        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
-  }
+  });
 }
 `;
 }
@@ -203,15 +204,15 @@ function getViewHmrSnippet(bundler: Bundler): string {
     return `
 // Auto-injected by larkMvcPlugin
 if (import.meta.hot) {
-  import.meta.hot.dispose(function(data) {
-    data.oldClass = __larkViewDefault;
+  import.meta.hot.dispose((data) => {
+    data.oldView = __larkViewDefault;
   });
-  import.meta.hot.accept(function(__larkNewModule) {
-    const __larkNew = __larkNewModule && __larkNewModule.default;
-    const __larkOld = import.meta.hot.data && import.meta.hot.data.oldClass;
-    if (__larkOld && __larkNew && __larkOld !== __larkNew) {
-      const __hmr = globalThis.__LARK_HMR__;
-      if (__hmr && __hmr.hotSwapByView) __hmr.hotSwapByView(__larkOld, __larkNew);
+  import.meta.hot.accept((newMod) => {
+    const newView = newMod?.default;
+    const oldView = import.meta.hot.data.oldView;
+    if (oldView && newView && oldView !== newView) {
+      const hmr = globalThis.__LARK_HMR__;
+      if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   });
 }
@@ -220,23 +221,23 @@ if (import.meta.hot) {
 
   // Webpack / Rspack — same self-accept pattern as the template snippet
   // above: `accept()` (no args) + `dispose()` + top-level data check.
-  // Uses `import.meta.webpackHot` (the canonical ESM HMR API) instead of
+  // Uses `module.hot` (the canonical ESM HMR API) instead of
   // `module.hot` — see getTemplateHmrSnippet for the full rationale.
   return `
 // Auto-injected by larkMvcPlugin
-if (import.meta.webpackHot) {
-  import.meta.webpackHot.accept();
-  import.meta.webpackHot.dispose(function(data) {
-    data.oldClass = __larkViewDefault;
+if (module.hot) {
+  module.hot.accept();
+  module.hot.dispose(function (data) {
+    data.oldView = __larkViewDefault;
   });
-  if (import.meta.webpackHot.data && import.meta.webpackHot.data.oldClass) {
-    const __larkOld = import.meta.webpackHot.data.oldClass;
-    const __larkNew = __larkViewDefault;
-    if (__larkOld !== __larkNew) {
-      const __hmr = globalThis.__LARK_HMR__;
-      if (__hmr && __hmr.hotSwapByView) __hmr.hotSwapByView(__larkOld, __larkNew);
+  module.hot.accept(() => {
+    const oldView = module.hot.data.oldView;
+    const newView = __larkViewDefault;
+    if (oldView && newView && oldView !== newView) {
+      const hmr = globalThis.__LARK_HMR__;
+      if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
-  }
+  });
 }
 `;
 }

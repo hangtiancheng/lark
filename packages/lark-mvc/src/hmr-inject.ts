@@ -158,8 +158,10 @@ if (import.meta.webpackHot) {
     data.oldTemplate = __larkTemplate;
   });
   import.meta.webpackHot.accept((err) => {
-    console.error(err);
-    globalThis.location?.reload();
+    if (err) {
+      console.error(err);
+      globalThis.location?.reload();
+    }
   });
 }
 `;
@@ -233,8 +235,10 @@ if (import.meta.webpackHot) {
     data.oldView = __larkViewDefault;
   });
   import.meta.webpackHot.accept((err) => {
-    console.error(err);
-    globalThis.location?.reload();
+    if (err) {
+      console.error(err);
+      globalThis.location?.reload();
+    }
   });
 }
 `;

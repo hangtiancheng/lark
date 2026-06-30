@@ -11,7 +11,7 @@
     <input
       type="number"
       value="{{=step}}"
-      mx-change="stepChange()"
+      @change="stepChange()"
       min="1"
       max="100"
       class="{{=styles['counter-store__step-input']}}"

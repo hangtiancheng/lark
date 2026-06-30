@@ -30,11 +30,7 @@ import { extractGlobalVars } from "./extract-global-vars";
  * @param file - Optional file path for debug error messages
  * @returns An arrow function source string
  */
-function compileToFunction(
-  source: string,
-  debug: boolean,
-  file?: string,
-): string {
+function compileToFunction(source: string, debug: boolean, file?: string): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
   let funcSource = `__lark_out__+='`;
@@ -53,10 +49,7 @@ function compileToFunction(
 
     if (debug) {
       // Debug mode: extract expression and art info for error reporting
-      let expr = source.substring(
-        index - match.length + 2 + (operate ? 1 : 0),
-        index - 2,
-      );
+      let expr = source.substring(index - match.length + 2 + (operate ? 1 : 0), index - 2);
       // Use String.fromCharCode to safely construct regexp with \x11 control character
       const x11 = String.fromCharCode(0x11);
       const artRegExp = new RegExp(`^'(\\d+)${x11}([^${x11}]+)${x11}'$`);
@@ -67,9 +60,7 @@ function compileToFunction(
         expr = expr.replace(artRegExp, "");
         art = artM[2];
       } else {
-        expr = expr
-          .replace(escapeSlashRegExp, "\\$&")
-          .replace(escapeBreakReturnRegExp, "\\n");
+        expr = expr.replace(escapeSlashRegExp, "\\$&").replace(escapeBreakReturnRegExp, "\\n");
       }
 
       if (operate === "@") {
@@ -191,17 +182,12 @@ export async function compileTemplate(
   const finalSource = restoreComments(viewEventProcessed, comments);
 
   // Build the variable declarations string from globalVars
-  const varDeclarations = globalVars
-    .map((key) => `let ${key}=__lark_data__.${key};`)
-    .join("");
+  const varDeclarations = globalVars.map((key) => `let ${key}=__lark_data__.${key};`).join("");
 
   if (vdom) {
     // ── VDOM mode ──
     const funcBody = compileToVDomFunction(finalSource, debug, file);
-    const funcWithVars = funcBody.replace(
-      "{{__lark_vars__}}",
-      () => varDeclarations,
-    );
+    const funcWithVars = funcBody.replace("{{__lark_vars__}}", () => varDeclarations);
 
     // VDOM module wrapper:
     // - Imports vdomCreate from @lark.js/mvc (not just runtime helpers)
@@ -225,10 +211,7 @@ export default __lark_template__;`;
 
   // ── String mode ──
   const funcBody = compileToFunction(finalSource, debug, file);
-  const funcWithVars = funcBody.replace(
-    "{{__lark_vars__}}",
-    () => varDeclarations,
-  );
+  const funcWithVars = funcBody.replace("{{__lark_vars__}}", () => varDeclarations);
 
   // Runtime helpers (`encHtml`, `strSafe`, `refFn`) are imported from
   // `@lark.js/mvc/runtime` rather than inlined into every compiled template —

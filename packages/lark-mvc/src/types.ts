@@ -601,7 +601,6 @@ export interface ViewCtx {
   observeState(keys: string | string[]): void;
   capture(key: string, resource?: unknown, destroyOnRender?: boolean): unknown;
   release(key: string, destroy?: boolean): unknown;
-  leaveTip(message: string, condition: () => boolean): void;
   fire(
     event: string,
     data?: Record<string, unknown>,

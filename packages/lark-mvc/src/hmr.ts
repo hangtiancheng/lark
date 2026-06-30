@@ -31,49 +31,11 @@
  * via `ctx.updater.set()` in the previous setup survives the swap.
  */
 import { parseUri } from "./utils";
-import {
-  invalidateViewClass,
-  registerViewClass,
-  getViewClass,
-  getViewClassRegistry,
-} from "./view-registry";
+import { getViewClassRegistry } from "./view-registry";
 import { unregisterEvents, registerEvents, destroyAllResources } from "./view";
 import { setCurrentCtx } from "./hooks";
 import type { ViewSetup, ViewTemplate, FrameObj } from "./types";
 import { Frame } from "./frame";
-
-export interface HotContext {
-  accept(cb?: (mod: { default?: unknown } | undefined) => void): void;
-  dispose(cb: (data: unknown) => void): void;
-  invalidate(): void;
-}
-
-/**
- * Legacy full-remount HMR: unmounts and re-mounts every frame matching the
- * given view path.
- *
- * This destroys the `ViewCtx` (and all view-local state) before creating a
- * fresh one — state is NOT preserved. Prefer {@link hotSwapFrames} for
- * state-preserving HMR.
- *
- * @param viewPath - The view path (without query params) to reload
- */
-export function reloadViews(viewPath: string): void {
-  const allFrames = Frame.getAll();
-  const toReload: Array<{ frame: FrameObj; fullPath: string }> = [];
-  for (const [, frame] of allFrames) {
-    const vp = frame.getViewPath();
-    if (vp) {
-      const parsed = parseUri(vp);
-      if (parsed.path === viewPath) {
-        toReload.push({ frame, fullPath: vp });
-      }
-    }
-  }
-  for (const { frame, fullPath } of toReload) {
-    frame.mountView(fullPath);
-  }
-}
 
 /**
  * Hot-swap a single frame's view setup in place, preserving the `ViewCtx`.
@@ -213,65 +175,6 @@ export function hotSwapByView(oldSetup: ViewSetup, newSetup: ViewSetup): boolean
     }
   }
   return swapped;
-}
-
-/** Type guard: verify a dynamic module export is a ViewSetup function */
-function isViewSetup(fn: unknown): fn is ViewSetup {
-  return typeof fn === "function";
-}
-
-/**
- * Manual HMR accept handler for a view module.
- *
- * Registers an `hot.accept` callback that, when the module updates:
- * 1. Extracts the new setup function from `newModule.default` (Vite) or the
- *    re-executed module (Webpack/Rspack)
- * 2. Registers it via `registerViewClass`
- * 3. Calls `hotSwapFrames(viewPath, newSetup)` to preserve state
- *
- * If neither the new module nor the registry contains a valid setup, calls
- * `hot.invalidate()` to trigger a full page reload.
- *
- * This is a no-op-friendly wrapper — pass `undefined` for `hot` in production
- * and the function does nothing.
- *
- * @param hot - The HMR context (`import.meta.hot` for Vite, `module.hot` for Webpack/Rspack)
- * @param viewPath - The view path this module exports
- */
-export function acceptView(hot: HotContext, viewPath: string): void {
-  hot.accept((newModule) => {
-    const candidate = newModule?.default ?? newModule;
-    if (isViewSetup(candidate)) {
-      registerViewClass(viewPath, candidate);
-      hotSwapFrames(viewPath, candidate);
-      return;
-    }
-    const registered = getViewClass(viewPath);
-    if (registered) {
-      hotSwapFrames(viewPath, registered);
-      return;
-    }
-    hot.invalidate();
-  });
-}
-
-/**
- * Manual HMR dispose handler for a view module.
- *
- * Registers a `hot.dispose` callback that removes the view setup from the
- * registry via `invalidateViewClass`. This ensures the old setup is evicted
- * before the new module executes, so the next `accept` loads fresh code.
- *
- * This is a no-op-friendly wrapper — pass `undefined` for `hot` in production
- * and the function does nothing.
- *
- * @param hot - The HMR context
- * @param viewPath - The view path to invalidate
- */
-export function disposeView(hot: HotContext, viewPath: string): void {
-  hot.dispose(() => {
-    invalidateViewClass(viewPath);
-  });
 }
 
 // ─── Global HMR handle ────────────────────────────────────────────────

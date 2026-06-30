@@ -248,11 +248,11 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
   });
 
   // ── Step 3: Allocate variables ──
-  const rootVar = `_v${varCounter++}`;
+  const rootVar = `__lark_vdom${varCounter++}__`;
   lines.push(`let ${rootVar}=[]`);
 
   function allocVar(): string {
-    return `_v${varCounter++}`;
+    return `__lark_vdom${varCounter++}__`;
   }
 
   // ── Step 4: Walk the DOM tree ──
@@ -331,7 +331,7 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
 
   // ── Step 6: Build function body ──
   const varDeclStmts: string[] = [];
-  for (let i = 1; i < varCounter; i++) varDeclStmts.push(`_v${i}`);
+  for (let i = 1; i < varCounter; i++) varDeclStmts.push(`__lark_vdom${i}__`);
   const varDecl = varDeclStmts.length ? `let ${varDeclStmts.join(",")};` : "";
   const body = varDecl + lines.join(";");
 

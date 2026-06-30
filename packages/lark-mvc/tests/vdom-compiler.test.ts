@@ -90,7 +90,7 @@ describe("VDOM Compiler", () => {
       const src = await compileSource("<div>{{=title}}</div>", {
         globalVars: ["title", "count"],
       });
-      expect(src).toContain(",title=__lark_data__.title,count=__lark_data__.count");
+      expect(src).toContain("let title=__lark_data__.title;let count=__lark_data__.count;");
     });
   });
 
@@ -123,7 +123,7 @@ describe("VDOM Compiler", () => {
     });
 
     // Regression: previously a fixed maxVars=30 caused every element past
-    // the 30th to alias the last variable (_v29). That produced
+    // the 30th to alias the last variable (__lark_vdom29__). That produced
     // self-referential children arrays (span.children === arr, then
     // arr.push(span)) and silently dropped earlier siblings, leading to
     // duplicated/missing output. With >30 elements all content must survive.

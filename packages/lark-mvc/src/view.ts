@@ -22,17 +22,15 @@
  * only executes if `signature` still matches — stale callbacks after a view
  * re-render or destroy are silently dropped.
  */
-import { VIEW_EVENT_METHOD_REGEXP, RouterEvents } from "./common";
+import { VIEW_EVENT_METHOD_REGEXP } from "./common";
 import { hasOwnProperty, funcWithTry, noop } from "./utils";
 import { createEmitter } from "./event-emitter";
 import { EventDelegator } from "./event-delegator";
 import { createUpdater } from "./updater";
-import { Router } from "./router";
 import { setCurrentCtx } from "./hooks";
 import type {
   AnyFunc,
   ChangeEvent,
-  RouteChangeEvent,
   ViewCtx,
   ViewSetup,
   FrameObj,
@@ -310,60 +308,6 @@ export function createCtx(frame: FrameObj): ViewCtx {
     }
   }
 
-  // ── Leave tip (unsaved-changes guard) ──
-
-  /**
-   * Register an unsaved-changes guard.
-   *
-   * When `condition()` returns true, route navigations are prevented (with
-   * `message` shown on `beforeunload`) until `condition()` returns false.
-   * Automatically cleaned up on view destroy.
-   */
-  function leaveTip(message: string, condition: () => boolean): void {
-    // State tracked via closure (no function-property mutation)
-    const changeState: { a: number; b: number } = { a: 0, b: 0 };
-
-    // Type guard: narrow ChangeEvent to RouteChangeEvent (has prevent/reject/resolve)
-    function isRouteChange(e: ChangeEvent): e is RouteChangeEvent {
-      return "prevent" in e && "reject" in e && "resolve" in e;
-    }
-
-    const changeListener = (e?: ChangeEvent): void => {
-      if (!e) return;
-      const isRouterChange = e.type === RouterEvents.CHANGE;
-      const aKey: "a" | "b" = isRouterChange ? "a" : "b";
-      const bKey: "a" | "b" = isRouterChange ? "b" : "a";
-
-      if (changeState[aKey]) {
-        if (isRouteChange(e)) {
-          e.prevent();
-          e.reject();
-        }
-      } else if (condition()) {
-        if (isRouteChange(e)) {
-          e.prevent();
-          changeState[bKey] = 1;
-          e.resolve();
-        }
-      }
-    };
-
-    const unloadListener = (e?: ChangeEvent): void => {
-      if (e && condition()) {
-        Reflect.set(e, "msg", message);
-      }
-    };
-
-    Router.on(RouterEvents.CHANGE, changeListener);
-    Router.on(RouterEvents.PAGE_UNLOAD, unloadListener);
-
-    on("unload", changeListener);
-    on("destroy", () => {
-      Router.off(RouterEvents.CHANGE, changeListener);
-      Router.off(RouterEvents.PAGE_UNLOAD, unloadListener);
-    });
-  }
-
   // ── Init (called by Frame after setup) ──
   function init(_params?: unknown): void {
     // Init hook — currently a no-op; params are passed to setup() directly
@@ -430,7 +374,6 @@ export function createCtx(frame: FrameObj): ViewCtx {
     observeState,
     capture,
     release,
-    leaveTip,
     fire,
     on,
     off,

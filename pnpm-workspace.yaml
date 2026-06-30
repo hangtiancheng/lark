@@ -18,3 +18,23 @@ allowBuilds:
   protobufjs: true
   vue-demi: true
   es5-ext: true
+
+minimumReleaseAgeExclude:
+  - '@rspack/binding-darwin-arm64@2.1.2'
+  - '@rspack/binding-darwin-x64@2.1.2'
+  - '@rspack/binding-linux-arm64-gnu@2.1.2'
+  - '@rspack/binding-linux-arm64-musl@2.1.2'
+  - '@rspack/binding-linux-riscv64-gnu@2.1.2'
+  - '@rspack/binding-linux-riscv64-musl@2.1.2'
+  - '@rspack/binding-linux-x64-gnu@2.1.2'
+  - '@rspack/binding-linux-x64-musl@2.1.2'
+  - '@rspack/binding-wasm32-wasi@2.1.2'
+  - '@rspack/binding-win32-arm64-msvc@2.1.2'
+  - '@rspack/binding-win32-ia32-msvc@2.1.2'
+  - '@rspack/binding-win32-x64-msvc@2.1.2'
+  - '@rspack/binding@2.1.2'
+  - '@rspack/core@2.1.2'
+  - daisyui@5.6.6
+  - prettier@3.9.4
+  - vite@8.1.1
+  - webpack@5.108.3

@@ -1,6 +1,6 @@
 {
   "name": "@lark.js/mvc",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "@lark.js/mvc - TypeScript MVC framework",
   "keywords": [
     "framework",

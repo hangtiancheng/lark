@@ -41,8 +41,6 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
   let htmlIndex = 0;
   let lastIndex = 0;
   const htmlKey = String.fromCharCode(0x05);
-  // htmlHolderRegExp is used at restore time; kept for future template command analysis
-  // const htmlHolderRegExp = new RegExp(htmlKey + "\\d+" + htmlKey, "g");
 
   template.replace(
     templateCmdRegExp,

@@ -40,13 +40,14 @@ let dataIsChanged = false;
 /** Event emitter for state events */
 const emitter = createEmitter();
 
-/** Whether framework has booted */
-let booted = false;
-
-/** Mark framework as booted (called from Framework.boot) */
+/**
+ * Mark framework as booted (called from Framework.boot).
+ *
+ * Kept as a no-op for backward API compatibility — the boot state itself
+ * is tracked in `framework.ts` (`Framework.isBooted`) and `router.ts`.
+ */
 export function markBooted(): void {
-  booted = true;
-  void booted;
+  // no-op: boot state is tracked in framework.ts and router.ts
 }
 
 /**
@@ -180,6 +181,4 @@ export const State: StateApi = {
     emitter.fire(event, data, remove);
     return State;
   },
-
-  // onChanged: noop,
 };

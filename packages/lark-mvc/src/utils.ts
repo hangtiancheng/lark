@@ -441,18 +441,3 @@ export function toUri(
   }
   return path;
 }
-
-/**
- * Convert array to map/hash object.
- * For simple arrays, counts occurrences.
- * For object arrays, uses specified key as map key.
- */
-export function toMap<T>(list: T[] | null | undefined, key?: keyof T): Record<string, T | number> {
-  const map: Record<string, T | number> = {};
-  if (!list) return map;
-  for (const item of list) {
-    const mapKey = key ? String(item[key]) : String(item);
-    map[mapKey] = key ? item : ((map[mapKey] as number) || 0) + 1;
-  }
-  return map;
-}

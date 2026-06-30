@@ -107,8 +107,8 @@ export const FrameDevtoolBridge = {
  * (objects are stringified as `[object]` to stay JSON-safe).
  */
 function serializeView(view: ViewCtx): SerializedViewInfo {
-  const evtMap = {};
-  const eventMethodKeys = evtMap ? Object.keys(evtMap) : [];
+  const events = view.getEvents();
+  const eventMethodKeys = events ? Object.keys(events) : [];
   const resourceKeys = view.resources ? Object.keys(view.resources) : [];
   const hasAssign = typeof view.getAssign() === "function";
 

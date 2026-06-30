@@ -24,10 +24,7 @@
 export {
   SPLITTER,
   LARK_VIEW,
-  TAG_NAME_REGEXP,
-  CALL_BREAK_TIME,
   EVENT_METHOD_REGEXP,
-  VIEW_EVENT_METHOD_REGEXP,
   RouterEvents as ROUTER_EVENTS,
   nextCounter,
 } from "./common";
@@ -104,11 +101,7 @@ export type { StoreApi } from "./store";
 
 // HMR (import.meta.hot support)
 export { reloadViews, hotSwapView, hotSwapFrames, hotSwapByTemplate, hotSwapByView } from "./hmr";
-export {
-  injectTemplateHmrSnippet,
-  injectViewHmrSnippet,
-  importsHtmlTemplate,
-} from "./hmr-inject";
+export { injectTemplateHmrSnippet, injectViewHmrSnippet, importsHtmlTemplate } from "./hmr-inject";
 export type { HotContext } from "./hmr";
 export type { Bundler } from "./hmr-inject";
 

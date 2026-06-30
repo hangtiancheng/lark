@@ -159,10 +159,6 @@ export class LarkMvcPlugin implements RspackPluginInstance {
       use: [
         {
           // Resolve the loader path (this file).
-
-          // Deprecated implementation
-          // isCjs() ? __filename : fileURLToPath(import.meta.url);
-
           // __filename is provided by tsup's ESM shim (shims: true) in ESM output,
           // and is a native CJS global in CJS output.
           loader: __filename,

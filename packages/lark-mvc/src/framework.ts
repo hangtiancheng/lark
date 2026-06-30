@@ -34,14 +34,7 @@ import { EventDelegator } from "./event-delegator";
 import { defineView } from "./view";
 import { hotSwapByTemplate, hotSwapByView } from "./hmr";
 import { installFrameDevtoolBridge } from "./devtool";
-import type {
-  AnyFunc,
-  FrameworkConfig,
-  ViewCtx,
-  ChangeEvent,
-  // RouteChangedEvent,
-  FrameworkApi,
-} from "./types";
+import type { AnyFunc, FrameworkConfig, ViewCtx, ChangeEvent, FrameworkApi } from "./types";
 
 // ============================================================
 // Internal state

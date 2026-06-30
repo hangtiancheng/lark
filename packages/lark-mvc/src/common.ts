@@ -200,7 +200,3 @@ export function isRefToken(s: string): boolean {
   }
   return true;
 }
-
-// export function isCjs(): boolean {
-//   return typeof module !== "undefined" && typeof module.exports !== "undefined";
-// }

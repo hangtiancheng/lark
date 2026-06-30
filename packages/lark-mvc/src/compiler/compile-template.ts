@@ -34,7 +34,6 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
   let funcSource = `$out+='`;
-  let hasAtRule = false;
 
   // Escape regexp for string literals
   const escapeSlashRegExp = /\\|'/g;
@@ -65,7 +64,6 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
       }
 
       if (operate === "@") {
-        hasAtRule = true;
         funcSource += `'+($dbgExpr='<%${operate + expr}%>',$refFn($refAlt,${content}))+'`;
       } else if (operate === "=" || operate === ":") {
         // : (binding) is treated the same as = (escaped output) for rendering
@@ -95,7 +93,6 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
     } else {
       // Production mode: compact output
       if (operate === "@") {
-        hasAtRule = true;
         funcSource += `'+$refFn($refAlt,${content})+'`;
       } else if (operate === "=" || operate === ":") {
         // : (binding) is treated the same as = (escaped output) for rendering
@@ -147,12 +144,6 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
   // `compileTemplate()`. So we no longer emit inline `if(!$xxx) {...}` guards.
   // The only remaining setup is the `$refAlt` fallback for templates that
   // are invoked without refData.
-  //
-  // Touch `hasAtRule` so the "only-when-@-used" flag stays a useful signal
-  // for future optimizations, even though we no longer gate any code on it
-  // here. (Keeps the existing detection path warm.)
-  void hasAtRule;
-
   const refFallback = "if(!$refAlt)$refAlt=$data;";
   const fullSource = `${refFallback}let $splitter='\\x1e',$tmp,$out=''{{VARS}};${funcSource}return $out`;
 

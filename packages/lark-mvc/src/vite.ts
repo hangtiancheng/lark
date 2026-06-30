@@ -22,7 +22,6 @@
  * ```
  */
 import type { Plugin } from "vite";
-import type { Plugin as Plugin7 } from "vite7";
 import { dirname, isAbsolute, join, resolve } from "path";
 import { existsSync, readFileSync } from "fs";
 import { compileTemplate, extractGlobalVars } from "./compiler";
@@ -153,58 +152,3 @@ export function larkMvcPlugin(options: LarkMvcVitePluginOptions = {}): Plugin {
 }
 
 export default larkMvcPlugin;
-
-export function larkMvcPluginLegacy(
-  options: {
-    debug?: boolean;
-    vdom?: boolean;
-  } = {},
-): Plugin {
-  const { debug = false, vdom = false } = options;
-
-  return {
-    name: "lark-template",
-    enforce: "pre",
-
-    resolveId(source, importer) {
-      if (source.endsWith(".html") && importer) {
-        return resolve(dirname(importer), source) + LARK_TEMPLATE_SUFFIX;
-      }
-      return undefined;
-    },
-
-    async load(id) {
-      if (id.endsWith(LARK_TEMPLATE_SUFFIX)) {
-        const filePath = id.slice(0, -LARK_TEMPLATE_SUFFIX.length);
-        const raw = readFileSync(filePath, "utf-8");
-        // Auto-extract variables from template for 0-config experience
-        const globalVars = await extractGlobalVars(raw);
-        const compiled = await compileTemplate(raw, {
-          debug,
-          globalVars,
-          vdom,
-        });
-        return { code: compiled, map: null };
-      }
-      return undefined;
-    },
-  };
-}
-
-export function larkMvcPlugin7(
-  options: {
-    debug?: boolean;
-    vdom?: boolean;
-  } = {},
-): Plugin7 {
-  return larkMvcPlugin(options) as Plugin7;
-}
-
-export function larkMvcPluginLegacy7(
-  options: {
-    debug?: boolean;
-    vdom?: boolean;
-  } = {},
-): Plugin7 {
-  return larkMvcPluginLegacy(options) as Plugin7;
-}

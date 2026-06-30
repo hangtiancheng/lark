@@ -664,9 +664,9 @@ export interface FrameObj {
  * Called once on mount with a `ViewCtx` and optional init params.
  * Returns a descriptor with `template`, `events`, and optional `assign`.
  */
-export type ViewSetup = (
+export type ViewSetup<T = unknown> = (
   ctx: ViewCtx,
-  params?: unknown,
+  params?: T,
 ) => {
   template?: ViewTemplate | VDomTemplate;
   events?: Record<string, AnyFunc>;

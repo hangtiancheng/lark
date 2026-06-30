@@ -46,9 +46,6 @@ const selectorEvents: Record<string, number> = {};
 /** Range events: frameId -> { elementGuid -> { eventType: 1 } } */
 const rangeEvents: Record<string, Record<string, Record<string, number>>> = {};
 
-/** Range frames: frameId -> { elementGuid -> 1 } */
-const rangeFrames: Record<string, Record<string, number>> = {};
-
 /** Global GUID counter for element tagging */
 let elementGuid = 0;
 
@@ -163,31 +160,9 @@ function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
       if (frame) {
         const view = frame.view;
         if (view) {
-          // Event bubbles to document.body
-          // Walk up from trigger element to find nearest frame
-          // Look up matching CSS selectors in frame's view.eventSelectorMap
-          // Use elementMatchesSelector(current, selectorName) to check if current element matches CSS selector
-          const selectorEntry = { selectors: [] as string[] };
-          if (selectorEntry) {
-            for (const selectorName of selectorEntry.selectors) {
-              const entry: EventInfo = {
-                value: selectorName,
-                id: frameId,
-                name: selectorName,
-                params: "",
-              };
-              if (selectorName) {
-                // Non-empty selector: check if current element matches
-                if (!backtrace && elementMatchesSelector(current, selectorName)) {
-                  eventInfos.push(entry);
-                }
-              } else if (backtrace) {
-                // Empty selector ($<click>): only at frame boundary
-                eventInfos.unshift(entry);
-              }
-            }
-          }
-          // Stop at view boundary (view with template)
+          // Stop at view boundary (view with template). When the @event
+          // attribute had no frame ID, attach the nearest frame ID here so
+          // the handler resolves to the correct view.
           if (view.getTemplate() && !backtrace) {
             if (match && !match.id) {
               match.id = frameId;
@@ -217,17 +192,6 @@ function findFrameInfo(current: HTMLElement, eventType: string): EventInfo[] {
   }
 
   return eventInfos;
-}
-
-/**
- * Check if an element matches a CSS selector.
- */
-function elementMatchesSelector(element: HTMLElement, selector: string): boolean {
-  try {
-    return element.matches?.(selector) ?? false;
-  } catch {
-    return false;
-  }
 }
 
 // ============================================================
@@ -395,7 +359,6 @@ export const EventDelegator = {
    */
   clearRangeEvents(viewId: string): void {
     Reflect.deleteProperty(rangeEvents, viewId);
-    Reflect.deleteProperty(rangeFrames, viewId);
   },
 
   /**

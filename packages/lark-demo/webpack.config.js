@@ -106,12 +106,17 @@ export default {
           // eager: true places @lark.js/mvc directly in the initial chunk
           // (no async shared-scope loader). Without this, MF generates a
           // shared-scope init in the main chunk; on every .html/.ts HMR,
-          // webpack marks main as needing a hot-update, but since main didn't
-          // actually change, no main.<hash>.hot-update.js is emitted →
-          // ChunkLoadError: Loading hot update chunk main failed. eager avoids
-          // the async shared-scope path, so HMR only touches the changed
-          // view/template chunk.
-          // eager: true,
+          // webpack marks main as needing a hot-update. The main hot-update
+          // file IS emitted (HTTP 200) but contains only runtime module
+          // updates (__webpack_require__.u / .h) — executing these corrupts
+          // the HMR runtime's `modules` registry. Subsequent view/template
+          // hot-update.js files then crash with:
+          //   TypeError: Cannot set properties of undefined
+          //     (setting './src/components/counter-updater.html')
+          // because `modules` is now undefined. eager avoids the async
+          // shared-scope path entirely, so HMR only touches the changed
+          // view/template chunk and main is never flagged.
+          eager: true,
         },
         // react / react-dom intentionally not shared — see lark-devtool/vite.config.ts
         // for the full explanation. Short version: lark-demo is a Lark MVC app,
@@ -207,6 +212,16 @@ export default {
           chunks: "async",
           enforce: true,
         },
+
+        // // ── MF shared dependency chunks ──
+        // // @lark.js/mvc singleton shared dependency
+        // "vendor-lark-mvc": {
+        //   test: /lark[\\/]dist[\\/]index\.js$/,
+        //   name: "vendor-lark-mvc",
+        //   chunks: "async",
+        //   enforce: true,
+        // },
+
         // NOTE: "vendor-lark-mvc" cacheGroup removed — with eager: true in
         // the shared config above, @lark.js/mvc is already in the initial
         // chunk. This cacheGroup previously fought MF over @lark.js/mvc

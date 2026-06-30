@@ -757,19 +757,18 @@ describe("HMR", () => {
         expect(result).not.toContain("module.hot");
       });
 
-      it("appends webpack HMR snippet using module.hot", () => {
+      it("appends webpack HMR snippet using import.meta.webpackHot", () => {
         const source = "export default function() {}";
         const result = injectTemplateHmrSnippet(source, "webpack");
-        expect(result).toContain("typeof module");
-        expect(result).toContain("module.hot");
+        expect(result).toContain("import.meta.webpackHot");
         expect(result).toContain("hotSwapByTemplate");
         expect(result).not.toContain("import.meta.hot");
       });
 
-      it("appends rspack HMR snippet using module.hot", () => {
+      it("appends rspack HMR snippet using import.meta.webpackHot", () => {
         const source = "export default function() {}";
         const result = injectTemplateHmrSnippet(source, "rspack");
-        expect(result).toContain("module.hot");
+        expect(result).toContain("import.meta.webpackHot");
         expect(result).not.toContain("import.meta.hot");
       });
     });
@@ -819,11 +818,11 @@ export default View.extend({
         expect(result).toBe(source);
       });
 
-      it("uses module.hot for webpack", () => {
+      it("uses import.meta.webpackHot for webpack", () => {
         const source =
           'import template from "./home.html";\nexport default defineView(() => ({ template: () => "" }));';
         const result = injectViewHmr(source, "webpack");
-        expect(result).toContain("module.hot");
+        expect(result).toContain("import.meta.webpackHot");
         expect(result).not.toContain("import.meta.hot");
       });
     });

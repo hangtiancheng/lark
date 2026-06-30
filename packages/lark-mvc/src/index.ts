@@ -9,67 +9,34 @@
  *
  * | Category | Exports |
  * | -------- | ------- |
- * | Constants | `SPLITTER`, `LARK_VIEW`, `EVENT_METHOD_REGEXP`, `RouterEvents`, `nextCounter` |
- * | Framework | `Framework`, `defineView`, `createEmitter`, `createCache`, `createUpdater` |
+ * | Framework | `Framework`, `defineView`, `EventDelegator` |
  * | State | `State`, `createStore`, `computed`, `bindStore`, `useUrlState` |
- * | Router | `Router`, `markRouterBooted`, `getRouteMode` |
+ * | Router | `Router` |
  * | View | `defineView`, `ViewCtx`, `useState`, `useEffect`, `useStore`, ... |
  * | Frame | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass` |
- * | Service | `createService`, `createPayload`, `ServiceApi`, `PayloadApi` |
- * | HMR | `hotSwapByView`, `hotSwapByTemplate`, `acceptView`, `disposeView`, ... |
- * | VDOM | `vdomCreate`, `createVDomRef` |
+ * | Service | `createService`, `ServiceApi`, `PayloadApi` |
+ * | VDOM | `vdomCreate` (used by compiled template modules) |
+ * | Types | All types from `./types` via `export *` |
+ *
+ * Internal-only utilities (`mark`, `createCache`, `createEmitter`, HMR swap
+ * functions, etc.) are accessible via the `Framework` object or `globalThis`
+ * rather than re-exported here — they are implementation details that bloat
+ * the public API surface without serving external consumers.
  */
 
-// Constants
-export {
-  SPLITTER,
-  LARK_VIEW,
-  EVENT_METHOD_REGEXP,
-  RouterEvents as ROUTER_EVENTS,
-  nextCounter,
-} from "./common";
-
-// Mark / Unmark (async callback validity tracking)
-export { mark, unmark } from "./mark";
-
-// Cache (LFU-style with frequency eviction — functional factory)
-export { createCache } from "./cache";
-export type { CacheApi } from "./types";
-
-// EventEmitter (multi-cast events — functional factory)
-export { createEmitter } from "./event-emitter";
-export type { EmitterApi } from "./types";
-
 // State (cross-view observable data)
-export { State, markBooted } from "./state";
+export { State } from "./state";
 
 // Router (history/hash with two-phase change)
-export { Router, markRouterBooted, getRouteMode } from "./router";
+export { Router } from "./router";
 
 // Frame (view lifecycle management — functional factory + singleton)
 export { Frame, createFrame } from "./frame";
 export type { FrameApi } from "./frame";
 export { registerViewClass, invalidateViewClass } from "./frame";
 
-// Module loader (async view loading via FrameworkConfig.require)
-export { config as frameworkConfig, use } from "./module-loader";
-
-// Updater (per-view data binding — functional factory)
-export { createUpdater } from "./updater";
-export type { UpdaterApi } from "./types";
-
-// ============================== VDOM ==============================
-
-// VDOM engine
-export { vdomCreate, createVDomRef } from "./vdom";
-
-// ============================== VDOM ==============================
 // View (functional — defineView factory)
-// Internal functions (mountCtx, unmountCtx, registerEvents, etc.) are NOT
-// re-exported here — they are called by the Frame system internally.
-// Tests import them directly from "./view".
 export { defineView } from "./view";
-export type { ViewCtx, ViewSetup } from "./types";
 
 // Hooks runtime
 export {
@@ -82,9 +49,9 @@ export {
   useEvent,
 } from "./hooks";
 
-// Service + Payload (API request management)
-export { createService, createPayload } from "./service";
-export type { ServiceApi, ServiceInstance, PayloadApi } from "./service";
+// Service (API request management)
+export { createService } from "./service";
+export type { ServiceApi, ServiceInstance } from "./service";
 
 // EventDelegator (DOM event delegation)
 export { EventDelegator } from "./event-delegator";
@@ -99,11 +66,9 @@ export { useUrlState } from "./url-state";
 export { createStore, computed, bindStore } from "./store";
 export type { StoreApi } from "./store";
 
-// HMR (import.meta.hot support)
-export { reloadViews, hotSwapView, hotSwapFrames, hotSwapByTemplate, hotSwapByView } from "./hmr";
-export { injectTemplateHmrSnippet, injectViewHmrSnippet, importsHtmlTemplate } from "./hmr-inject";
-export type { HotContext } from "./hmr";
-export type { Bundler } from "./hmr-inject";
+// VDOM engine — vdomCreate is imported by compiled template modules at runtime
+// (`import { vdomCreate } from "@lark.js/mvc"`). Must stay in the public barrel.
+export { vdomCreate } from "./vdom";
 
 // Types (re-exported for consumer convenience)
 export * from "./types";

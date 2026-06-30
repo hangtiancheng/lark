@@ -104,7 +104,6 @@ function createMockView(): ViewCtx {
     observeState: vi.fn(),
     capture: vi.fn(),
     release: vi.fn(),
-    leaveTip: vi.fn(),
     on: vi.fn().mockReturnThis(),
     off: vi.fn().mockReturnThis(),
     fire: vi.fn().mockReturnThis(),

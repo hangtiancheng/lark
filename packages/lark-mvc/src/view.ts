@@ -666,6 +666,5 @@ export function unmountCtx(ctx: ViewCtx): void {
 // ============================================================
 // HMR support
 // ============================================================
-// HMR accept/dispose is handled by the hmr module's acceptView/disposeView.
-// The view module no longer needs wrapper functions — consumers should import
-// acceptView/disposeView directly from ./hmr.
+// HMR hot-swap is handled by the hmr module (hotSwapByView / hotSwapByTemplate).
+// These are called via globalThis.__lark_hmr__ by auto-injected HMR snippets.

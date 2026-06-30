@@ -17,23 +17,23 @@ if (import.meta.hot) {
 }
 ```
 
-template hmr sippet for webpack/rspack
+template hmr snippet for webpack/rspack
 
 ```js
 // Auto-injected by larkMvcPlugin
 if (import.meta.webpackHot) {
-  // import.meta.webpackHot.accept();
-  import.meta.webpackHot.dispose((data) => {
-    data.oldTemplate = __larkTemplate;
-  });
-  import.meta.webpackHot.accept(() => {
-    const oldTemplate = import.meta.webpackHot.data?.oldTemplate;
-    const newTemplate = __webpack_require__(__webpack_module__.id);
-    if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
+  if (import.meta.webpackHot.data?.oldTemplate) {
+    const oldTemplate = import.meta.webpackHot.data.oldTemplate;
+    const newTemplate = __larkTemplate;
+    if (oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
+  }
+  import.meta.webpackHot.dispose((data) => {
+    data.oldTemplate = __larkTemplate;
   });
+  import.meta.webpackHot.accept();
 }
 ```
 
@@ -61,17 +61,17 @@ view hmr snippet for webpack/rspack
 ```js
 // Auto-injected by larkMvcPlugin
 if (import.meta.webpackHot) {
-  // import.meta.webpackHot.accept();
-  import.meta.webpackHot.dispose((data) => {
-    data.oldView = __larkViewDefault;
-  });
-  import.meta.webpackHot.accept(() => {
-    const oldView = bundler === import.meta.webpackHot.data?.oldView;
-    const newView = __webpack_require__(__webpack_module__.id);
-    if (oldView && newView && oldView !== newView) {
+  if (import.meta.webpackHot.data?.oldView) {
+    const oldView = import.meta.webpackHot.data.oldView;
+    const newView = __larkViewDefault;
+    if (oldView !== newView) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
+  }
+  import.meta.webpackHot.dispose((data) => {
+    data.oldView = __larkViewDefault;
   });
+  import.meta.webpackHot.accept();
 }
 ```

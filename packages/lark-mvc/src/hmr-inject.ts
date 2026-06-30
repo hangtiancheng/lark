@@ -122,16 +122,6 @@ if (import.meta.hot) {
   // the update FAILS to apply), NOT an update-success callback. Putting
   // swap logic inside accept(cb) would never run on successful updates.
   //
-  // IMPORTANT: The compiled template output always uses `import`/`export`
-  // syntax (ESM). For ESM modules:
-  //   - Rspack does NOT reliably expose `import.meta.webpackHot` — the check
-  //     `typeof module !== "undefined" && import.meta.webpackHot` silently fails,
-  //     the module never self-accepts, and the update propagates to a
-  //     full page reload (symptom: UI updates but state is lost).
-  //   - Webpack 5 exposes `import.meta.webpackHot` for backward compat, but its
-  //     `data` propagation has edge-case issues with Module Federation
-  //     shared consumers (symptom: UI never updates).
-  //
   // FIX: Use `import.meta.webpackHot` — the canonical ESM HMR API for
   // both webpack 5.40+ and Rspack. It's guaranteed to be available in
   // any module that uses `import`/`export` syntax, and properly supports
@@ -155,19 +145,19 @@ if (import.meta.hot) {
   return `
 // Auto-injected by larkMvcPlugin
 if (import.meta.webpackHot) {
-  // import.meta.webpackHot.accept();
-  import.meta.webpackHot.dispose((data) => {
-    data.oldTemplate = __larkTemplate;
-  });
-  import.meta.webpackHot.accept(() => {
-    const oldTemplate = import.meta.webpackHot.data?.oldTemplate;
-    const newTemplate = __webpack_require__(__webpack_module__.id);
-    if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
+  const oldTemplate = import.meta.webpackHot.data?.oldTemplate;
+  if (oldTemplate) {
+    const newTemplate = __larkTemplate;
+    if (oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByTemplate)
         hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
+  }
+  import.meta.webpackHot.dispose((data) => {
+    data.oldTemplate = __larkTemplate;
   });
+  import.meta.webpackHot.accept(console.error);
 }
 `;
 }
@@ -222,23 +212,24 @@ if (import.meta.hot) {
 
   // Webpack / Rspack — same self-accept pattern as the template snippet
   // above: `accept()` (no args) + `dispose()` + top-level data check.
-  // Uses `import.meta.webpackHot` (the canonical ESM HMR API) instead of
-  // `import.meta.webpackHot` — see getTemplateHmrSnippet for the full rationale.
+  // Uses `import.meta.webpackHot` (the canonical ESM HMR API) —
+  // see getTemplateHmrSnippet for the full rationale.
   return `
 // Auto-injected by larkMvcPlugin
 if (import.meta.webpackHot) {
-  // import.meta.webpackHot.accept();
-  import.meta.webpackHot.dispose((data) => {
-    data.oldView = __larkViewDefault;
-  });
-  import.meta.webpackHot.accept(() => {
-    const oldView = bundler === import.meta.webpackHot.data?.oldView;
-    const newView = __webpack_require__(__webpack_module__.id);
-    if (oldView && newView && oldView !== newView) {
+  const oldView = import.meta.webpackHot.data?.oldView;
+  if (oldView) {
+
+    const newView = __larkViewDefault;
+    if (oldView !== newView) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
+  }
+  import.meta.webpackHot.dispose((data) => {
+    data.oldView = __larkViewDefault;
   });
+  import.meta.webpackHot.accept(console.error);
 }
 `;
 }

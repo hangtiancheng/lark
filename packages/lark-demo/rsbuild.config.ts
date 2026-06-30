@@ -94,6 +94,18 @@ export default defineConfig(({ command }) => {
               "@lark.js/mvc": {
                 singleton: true,
                 requiredVersion: "*",
+                // eager: true places @lark.js/mvc directly in the initial chunk
+                // (no async shared-scope loader). Without this, MF generates a
+                // shared-scope init in the main chunk; on every .html/.ts HMR,
+                // rspack marks main as needing a hot-update. The main hot-update
+                // file IS emitted but contains only runtime module updates —
+                // executing these corrupts the HMR runtime's `modules` registry.
+                // Subsequent view/template hot-update.js files then crash with:
+                //   ChunkLoadError: Loading hot update chunk comp-xxx failed.
+                // because the modules registry is now undefined. eager avoids
+                // the async shared-scope path entirely, so HMR only touches the
+                // changed view/template chunk and main is never flagged.
+                eager: true,
               },
             },
           }),

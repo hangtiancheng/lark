@@ -69,7 +69,11 @@ export default defineConfig(({ command }) => {
               "./cdn-manager": "./src/exposed/cdn-manager.ts",
             },
             shared: {
-              "@lark.js/mvc": { singleton: true, requiredVersion: "*" },
+              "@lark.js/mvc": {
+                singleton: true,
+                requiredVersion: "*",
+                eager: true,
+              },
             },
           }),
         );

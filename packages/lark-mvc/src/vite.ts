@@ -6,8 +6,8 @@
  *
  * 0 configuration — just add the plugin and it works.
  * - All template operators: = (escape), ! (raw), @ (ref lookup), : (binding)
- * - @event attribute processing with $g prefix
- * - $eu (URI encoding), $eq (quote encoding), $i (reference lookup)
+ * - @event attribute processing with \x1f prefix + \x1e separator
+ * - __lark_enc_html__ (HTML entity encode), __lark_str_safe__ (null-safe toString), __lark_ref_fn__ (reference lookup)
  * - Debug mode with line tracking
  * - View ID injection
  * - Auto variable extraction

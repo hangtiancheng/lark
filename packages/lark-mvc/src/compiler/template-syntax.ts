@@ -7,10 +7,10 @@
  *   extractGlobalVars()   (AST-based global var analysis via @babel/parser)
  *
  * - All template operators: = (escape), ! (raw), @ (ref lookup), : (binding)
- * - @event attribute processing with $splitter prefix + \x1e separator
- * - $strSafe (null-safe toString), $encHtml (HTML entity encode), $encUri (URI encode), $encQuote (quote encode), $refFn (ref lookup)
- * - Debug mode with line tracking ($dbgExpr/$dbgArt) and try-catch error wrapper
- * - View ID injection (\x1f → '+$viewId+')
+ * - @event attribute processing with \x1f (viewId) prefix + \x1e (splitter) separator
+ * - __lark_str_safe__ (null-safe toString), __lark_enc_html__ (HTML entity encode), __lark_ref_fn__ (ref lookup)
+ * - Debug mode with line tracking (__lark_dbg_expr__/__lark_dbg_art__) and try-catch error wrapper
+ * - View ID injection (\x1f → '+__lark_view_id__+')
  * - Post-processing cleanup of empty concatenations
  * - 0 configuration: auto-extract variables via AST analysis
  *
@@ -102,7 +102,7 @@ export function restoreComments(source: string, comments: string[]): string {
 /**
  * Process @event attributes.
  *
- * 1. Add \x1f (VIEW_ID_PLACEHOLDER, becomes $viewId at render time) prefix + \x1e separator
+ * 1. Add \x1f (VIEW_ID_PLACEHOLDER, becomes __lark_view_id__ at render time) prefix + \x1e separator
  * 2. Convert JS object literal params to URL query params
  *
  * @click="handlerName({key: 'value'})" → @click="\x1f\x1ehandlerName(key=value)"

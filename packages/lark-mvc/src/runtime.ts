@@ -5,8 +5,9 @@
  * of inlining the implementations. That keeps each compiled `.html` module
  * small — no more ~400 bytes of duplicated helper code per template.
  *
- * The helpers below are aliased to `$strSafe / $encHtml / $encUri / $encQuote /
- * $refFn` inside the IIFE that the compiler produces — see `compiler.ts`.
+ * The compiler imports `encHtml` / `strSafe` / `refFn` from this module and
+ * aliases them as `__lark_enc_html__` / `__lark_str_safe__` / `__lark_ref_fn__`
+ * inside the compiled template function — see `compiler/compile-template.ts`.
  *
  * Canonical implementations live in `./common` so that dom.ts, runtime.ts,
  * and updater.ts all share a single copy.

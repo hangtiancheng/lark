@@ -246,111 +246,23 @@ function isAstNode(v: unknown): v is t.Node {
 
 /**
  * Built-in globals that should not be treated as template data variables.
+ *
+ * Template runtime helpers use `__lark_xxx__` naming (aligned with
+ * webpack conventions). They are excluded here so the AST walker does
+ * not mistake them for user data variables.
  */
 const BUILTIN_GLOBALS = new Set([
-  // ─── Template runtime helpers (injected by compileToFunction) ───────
-  //
-  // These variables appear in the generated template function signature
-  // or body. They must be excluded from extractGlobalVars() so that
-  // they are not mistaken for user data variables and destructured from $data.
-
-  // SPLITTER character constant (same as \x1e), used as namespace separator
-  // for refData keys, event attribute encoding, and internal data structures.
-  // Declared as: let $splitter='\x1e'
-  "$splitter",
-
-  // Data — the data object passed from Updater to the template function.
-  // User variables are destructured from $data at the top of the function:
-  //   let {name, age} = $data;
-  // This is the first parameter of the generated arrow function.
-  "$data",
-
-  // Null-safe toString: v => '' + (v == null ? '' : v)
-  // Converts null/undefined to empty string, otherwise calls toString().
-  // Wraps every {{!raw}} output to prevent "null" / "undefined" rendering.
-  "$strSafe",
-
-  // HTML entity encoder: v => $strSafe(v).replace(/[&<>"'`]/g, entityMap)
-  // Encodes &, <, >, ", ', ` to HTML entities (&amp; &lt; etc.)
-  // Applied to all {{=escaped}} and {{:binding}} outputs.
-  "$encHtml",
-
-  // HTML entity map — internal object used by $encHtml:
-  //   {'&':'amp','<':'gt','>':'gt','"':'#34','\'':'#39','`':'#96'}
-  // Not a standalone function; referenced inside $encHtml's closure.
-  "$entMap",
-
-  // HTML entity RegExp — internal regexp used by $encHtml:
-  //   /[&<>"'`]/g
-  "$entReg",
-
-  // HTML entity replacer function — internal helper used by $encHtml:
-  //   m => '&' + $entMap[m] + ';'
-  // Maps matched character to its entity string.
-  "$entFn",
-
-  // Output buffer — the string accumulator for rendered HTML.
-  // All template output is appended via $out += '...'.
-  // Declared as: let $out = ''
-  "$out",
-
-  // Reference lookup: (refData, value) => key
-  // Finds or allocates a SPLITTER-prefixed key in refData for a given
-  // object reference. Used by {{@ref}} operator for passing object
-  // references to child views via v-lark attributes.
-  "$refFn",
-
-  // URI encoder: v => encodeURIComponent($strSafe(v)).replace(/[!')(*]/g, extraMap)
-  // Extends encodeURIComponent with encoding of ! ' ( ) *.
-  // Applied to values in @event URL parameters and {{!uri}} contexts.
-  "$encUri",
-
-  // URI encode map — internal object used by $encUri:
-  //   {'!':'%21','\'':'%27','(':'%28',')':'%29','*':'%2A'}
-  "$uriMap",
-
-  // URI encode replacer — internal helper used by $encUri:
-  //   m => $uriMap[m]
-  "$uriFn",
-
-  // URI encode regexp — internal regexp used by $encUri:
-  //   /[!')(*]/g
-  "$uriReg",
-
-  // Quote encoder: v => $strSafe(v).replace(/['"\\]/g, '\\$&')
-  // Escapes quotes and backslashes for safe embedding in HTML attribute
-  // values (e.g. data-json='...').
-  "$encQuote",
-
-  // Quote encode regexp — internal regexp used by $encQuote:
-  //   /['"\\]/g
-  "$qReg",
-
-  // View ID — the unique identifier of the owning View instance.
-  // Injected into @event attribute values at render time so that
-  // EventDelegator can dispatch events to the correct View handler.
-  // The \x1f placeholder in compiled output is replaced with '+$viewId+'.
-  "$viewId",
-
-  // Debug: current expression text — stores the template expression being
-  // evaluated, for error reporting. Only present in debug mode.
-  // e.g. $dbgExpr='<%=user.name%>'
-  "$dbgExpr",
-
-  // Debug: original art syntax — stores the {{}} template syntax before
-  // conversion, for error reporting. Only present in debug mode.
-  // e.g. $dbgArt='{{=user.name}}'
-  "$dbgArt",
-
-  // RefData alias — fallback reference lookup table.
-  // Defaults to $data when no explicit $refAlt is provided.
-  // Ensures $refFn() does not crash when @ operator is used without refData.
-  "$refAlt",
-
-  // Temporary variable — used by the compiler for intermediate
-  // expression results in generated code (e.g. loop variables,
-  // conditional branches). Declared as: let $tmp
-  "$tmp",
+  // ── Template runtime helpers (injected by the compiler) ──
+  "__lark_data__",
+  "__lark_view_id__",
+  "__lark_ref_alt__",
+  "__lark_enc_html__",
+  "__lark_str_safe__",
+  "__lark_ref_fn__",
+  "__lark_out__",
+  "__lark_vdom_create__",
+  "__lark_dbg_expr__",
+  "__lark_dbg_art__",
 
   // JS literals
   "undefined",

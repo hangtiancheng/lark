@@ -11,8 +11,7 @@ if (import.meta.hot) {
     const oldTemplate = import.meta.hot.data?.oldTemplate;
     if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
-      if (hmr && hmr.hotSwapByTemplate)
-        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
+      if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   });
 }
@@ -28,8 +27,7 @@ if (import.meta.webpackHot) {
     const newTemplate = __lark_template__;
     if (oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
-      if (hmr && hmr.hotSwapByTemplate)
-        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
+      if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   }
   import.meta.webpackHot.dispose((data) => {

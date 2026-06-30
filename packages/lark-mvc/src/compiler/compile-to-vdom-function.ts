@@ -28,9 +28,7 @@ const VOID_ELEMENTS = new Set([
   "wbr",
 ]);
 
-/**
- * Escape a string for embedding in a JS single-quoted string literal.
- */
+/** Escape a string for embedding in a JS single-quoted string literal. */
 function vdomEscapeStr(s: string): string {
   return s
     .replace(/\\/g, "\\\\")
@@ -44,25 +42,9 @@ function vdomEscapeStr(s: string): string {
  * Resolve an attribute value that contains code-block (statement)
  * placeholders into an IIFE that builds and returns the final string.
  *
- * Code blocks (compiled from `{{if}}/{{else}}/{{forOf}}/{{/if}}` etc.)
- * are JS statements (e.g. "if(width){", "}else{", "}"), which cannot be
- * used in a concatenation expression. Instead we emit them as raw
- * statements inside an IIFE that accumulates text into a local `$s`
- * variable and returns it.
- *
- * Example — template:
- *   style="{{if width}}width: {{=width}}px;{{else}}width: 100%;{{/if}}"
- *
- * Compiled IIFE:
- *   (()=>{
- *     let $s='';
- *     if(width){
- *       $s+='width: ';$s+=$strSafe(width);$s+='px;';
- *     }else{
- *       $s+='width: 100%;';
- *     }
- *     return $s;
- *   })()
+ * Code blocks are JS statements (if/else/for) that cannot participate in
+ * a concatenation expression. We emit them inside an IIFE that accumulates
+ * text into `_s` and returns it.
  */
 function vdomResolveAttrValueIIFE(rawValue: string, exprStore: VDomExprEntry[]): string {
   const stmts: string[] = [];
@@ -84,22 +66,21 @@ function vdomResolveAttrValueIIFE(rawValue: string, exprStore: VDomExprEntry[]):
     }
 
     if (nextSpecial === -1) {
-      if (remaining) stmts.push(`$s+='${vdomEscapeStr(remaining)}'`);
+      if (remaining) stmts.push(`_s+='${vdomEscapeStr(remaining)}'`);
       break;
     }
 
     if (nextSpecial > 0) {
-      stmts.push(`$s+='${vdomEscapeStr(remaining.substring(0, nextSpecial))}'`);
+      stmts.push(`_s+='${vdomEscapeStr(remaining.substring(0, nextSpecial))}'`);
     }
 
     if (specialType === "vi") {
-      stmts.push(`$s+=$viewId`);
+      stmts.push(`_s+=__lark_view_id__`);
       remaining = remaining.substring(nextSpecial + 1);
     } else {
-      // Placeholder: \x00N\x00
       const closeIdx = remaining.indexOf("\x00", nextSpecial + 1);
       if (closeIdx === -1) {
-        stmts.push(`$s+='${vdomEscapeStr(remaining.substring(nextSpecial))}'`);
+        stmts.push(`_s+='${vdomEscapeStr(remaining.substring(nextSpecial))}'`);
         break;
       }
 
@@ -107,17 +88,12 @@ function vdomResolveAttrValueIIFE(rawValue: string, exprStore: VDomExprEntry[]):
       const expr = exprStore[idx];
 
       if (expr.op === "=" || expr.op === ":") {
-        stmts.push(`$s+=$strSafe(${expr.content})`);
+        stmts.push(`_s+=__lark_str_safe__(${expr.content})`);
       } else if (expr.op === "!") {
-        if (expr.content.startsWith("$encUri(") && expr.content.endsWith(")")) {
-          stmts.push(`$s+=${expr.content}`);
-        } else {
-          stmts.push(`$s+=$strSafe(${expr.content})`);
-        }
+        stmts.push(`_s+=__lark_str_safe__(${expr.content})`);
       } else if (expr.op === "@") {
-        stmts.push(`$s+=$refFn($refAlt,${expr.content})`);
+        stmts.push(`_s+=__lark_ref_fn__(__lark_ref_alt__,${expr.content})`);
       } else {
-        // Code block (statement) — emit raw JS (if/else/for/etc.)
         stmts.push(expr.content);
       }
 
@@ -126,27 +102,16 @@ function vdomResolveAttrValueIIFE(rawValue: string, exprStore: VDomExprEntry[]):
   }
 
   const body = stmts.join(";");
-  return `(()=>{let $s='';${body};return $s;})()`;
+  return `(()=>{let _s='';${body};return _s;})()`;
 }
 
 /**
  * Resolve an attribute value that may contain `\x00N\x00` placeholders
- * (template expressions) or `\x1f` (viewId placeholder) into a JS expression
- * string.
+ * (template expressions) or `\x1f` (viewId) into a JS expression string.
  *
- * When the attribute value contains only expression placeholders
- * (`<%= %>`, `<%! %>`, `<%@ %>`), a simple concatenation expression is
- * returned (e.g. `'text '+$strSafe(expr)+'more'`).
- *
- * When the attribute value also contains code-block placeholders
- * (`<%if(...){%>`, `<%}else{%>`, `<%}%>`, etc. — compiled from
- * `{{if}}/{{else}}/{{/if}}` and other control-flow tags), those entries
- * are JS **statements**, not expressions, and cannot participate in a
- * `$strSafe(...)` wrapping. In that case an IIFE is generated that builds
- * and returns the attribute string via statement-based accumulation —
- * mirroring the approach used by the real-DOM (string) compiler's
- * `compileToFunction`, where `if/else/for` statements naturally wrap
- * `$out+=...` concatenation statements.
+ * When only expression placeholders are present, returns a concatenation
+ * expression. When code-block placeholders are present, routes to the
+ * IIFE-based resolver.
  */
 function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): string {
   const hasPlaceholders = rawValue.includes("\x00");
@@ -156,11 +121,7 @@ function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): str
     return `'${vdomEscapeStr(rawValue)}'`;
   }
 
-  // Detect code-block (statement) placeholders: {{if}}/{{else}}/{{forOf}}
-  // etc. compile to op="" entries containing statements like "if(...){",
-  // "}else{", "}". These are statements, not expressions — wrapping them
-  // in $strSafe() would produce invalid JS such as $strSafe(if(width){).
-  // When present, route to the IIFE-based resolver.
+  // Detect code-block placeholders → route to IIFE
   if (hasPlaceholders) {
     const codeBlockRegExp = /\x00(\d+)\x00/g;
     let m: RegExpExecArray | null;
@@ -200,10 +161,9 @@ function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): str
     }
 
     if (specialType === "vi") {
-      segments.push("$viewId");
+      segments.push("__lark_view_id__");
       remaining = remaining.substring(nextSpecial + 1);
     } else {
-      // Placeholder: \x00N\x00
       const closeIdx = remaining.indexOf("\x00", nextSpecial + 1);
       if (closeIdx === -1) {
         segments.push(`'${vdomEscapeStr(remaining.substring(nextSpecial))}'`);
@@ -214,18 +174,13 @@ function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): str
       const expr = exprStore[idx];
 
       if (expr.op === "=" || expr.op === ":") {
-        segments.push(`$strSafe(${expr.content})`);
+        segments.push(`__lark_str_safe__(${expr.content})`);
       } else if (expr.op === "!") {
-        if (expr.content.startsWith("$encUri(") && expr.content.endsWith(")")) {
-          segments.push(expr.content);
-        } else {
-          segments.push(`$strSafe(${expr.content})`);
-        }
+        segments.push(`__lark_str_safe__(${expr.content})`);
       } else if (expr.op === "@") {
-        segments.push(`$refFn($refAlt,${expr.content})`);
+        segments.push(`__lark_ref_fn__(__lark_ref_alt__,${expr.content})`);
       } else {
-        // Code block in attribute — unusual, emit as expression
-        segments.push(`$strSafe(${expr.content})`);
+        segments.push(`__lark_str_safe__(${expr.content})`);
       }
 
       remaining = remaining.substring(closeIdx + 1);
@@ -237,15 +192,7 @@ function vdomResolveAttrValue(rawValue: string, exprStore: VDomExprEntry[]): str
   return segments.join("+");
 }
 
-/**
- * Build a JS props object literal from htmlparser2's parsed `attribs` map.
- *
- * Each attribute value is resolved via `vdomResolveAttrValue` — which handles
- * template expression placeholders (`\x00N\x00`) and view-ID markers (`\x1f`).
- *
- * @returns The JS source string (e.g. `{class:'foo',id:'x'+$strSafe(expr)}`),
- *   or `"null"` if there are no attributes.
- */
+/** Build a JS props object literal from htmlparser2's parsed `attribs` map. */
 function vdomBuildPropsFromAttribs(
   attribs: Record<string, string> | undefined,
   exprStore: VDomExprEntry[],
@@ -271,19 +218,17 @@ function vdomBuildPropsFromAttribs(
  * Uses htmlparser2 for robust HTML parsing:
  * 1. Extract `<% %>` blocks into a store, replace with `\x00N\x00` placeholders
  * 2. Parse the protected source with `parseDocument`
- * 3. Walk the DOM tree recursively, emitting `$vdomCreate()` calls
+ * 3. Walk the DOM tree recursively, emitting `__lark_vdom_create__()` calls
  *
  * Output is an arrow function:
- *   `($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote)=>{...}`
- * that returns the root VDomNode.
+ *   `(__lark_data__,__lark_view_id__,__lark_ref_alt__,__lark_str_safe__,__lark_ref_fn__)=>{...}`
  */
 export function compileToVDomFunction(source: string, debug: boolean, file?: string): string {
   const lines: string[] = [];
   let varCounter = 0;
   let propsCounter = 0;
 
-  // ── Step 1: Extract <% %> blocks, replace with \x00N\x00 placeholders ──
-
+  // ── Step 1: Extract <% %> blocks ──
   const exprStore: VDomExprEntry[] = [];
   const protectedSource = source.replace(
     /<%([@=!:])?([\s\S]*?)%>/g,
@@ -295,7 +240,6 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
   );
 
   // ── Step 2: Parse with htmlparser2 ──
-
   const doc = parseDocument(protectedSource, {
     recognizeSelfClosing: true,
     lowerCaseTags: false,
@@ -304,24 +248,14 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
   });
 
   // ── Step 3: Allocate variables ──
-  //
-  // Variables are allocated on demand and declared after compilation
-  // completes (see Step 6). There is no hard cap — previously a fixed
-  // `maxVars = 30` caused variable exhaustion for templates with more
-  // than 30 elements, which silently aliased all overflow nodes to the
-  // last variable ($v29). That aliasing produced self-referential
-  // children arrays (span.children === arr, then arr.push(span)) and
-  // lost earlier siblings, leading to duplicated/missing output.
-  const rootVar = `$v${varCounter++}`;
+  const rootVar = `_v${varCounter++}`;
   lines.push(`let ${rootVar}=[]`);
 
   function allocVar(): string {
-    return `$v${varCounter++}`;
+    return `_v${varCounter++}`;
   }
 
-  // ── Step 4: Walk the DOM tree and emit code ──
-
-  /** htmlparser2 node — minimal shape we use */
+  // ── Step 4: Walk the DOM tree ──
   interface HPNode {
     type: string;
     data?: string;
@@ -330,36 +264,24 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
     children?: HPNode[];
   }
 
-  /** Dispatch a single htmlparser2 node to the appropriate emitter (text or element). */
   function emitNode(node: HPNode, parentVar: string): void {
     const type: string = node.type;
-
     if (type === "text") {
       emitText((node.data || "") as string, parentVar);
     } else if (type === "tag" || type === "script" || type === "style") {
       emitElement(node, parentVar);
     }
-    // Skip: comment, directive (DOCTYPE), cdata
   }
 
-  /**
-   * Emit `$vdomCreate` calls for a text node, splitting at `\x00N\x00`
-   * placeholder boundaries so embedded template expressions become separate
-   * VDomNode children.
-   */
   function emitText(text: string, parentVar: string): void {
-    // Split text at \x00N\x00 boundaries
     const parts = text.split(/\x00(\d+)\x00/);
-
     for (let i = 0; i < parts.length; i++) {
       if (i % 2 === 0) {
-        // Regular text segment
         const trimmed = parts[i];
         if (trimmed.trim()) {
-          lines.push(`${parentVar}.push($vdomCreate(0,'${vdomEscapeStr(trimmed)}'))`);
+          lines.push(`${parentVar}.push(__lark_vdom_create__(0,'${vdomEscapeStr(trimmed)}'))`);
         }
       } else {
-        // Placeholder index
         const idx = parseInt(parts[i]);
         const expr = exprStore[idx];
         emitExpr(expr, parentVar);
@@ -367,104 +289,64 @@ export function compileToVDomFunction(source: string, debug: boolean, file?: str
     }
   }
 
-  /**
-   * Emit a `$vdomCreate` call for a template expression placeholder.
-   *
-   * - `=`/`:` → text node with `$strSafe(content)`
-   * - `!` → raw-HTML node (children arg = `1` so vdomCreate tags it as SPLITTER)
-   * - `@` → text node with `$refFn($refAlt, content)`
-   * - code block → raw JS statement (if/for/else)
-   */
   function emitExpr(expr: VDomExprEntry, parentVar: string): void {
     if (expr.op === "=" || expr.op === ":") {
-      lines.push(`${parentVar}.push($vdomCreate(0,$strSafe(${expr.content})))`);
+      lines.push(`${parentVar}.push(__lark_vdom_create__(0,__lark_str_safe__(${expr.content})))`);
     } else if (expr.op === "!") {
-      // Raw HTML output: pass `1` as the children argument so vdomCreate
-      // produces a SPLITTER-tagged raw-HTML node (tag=\x1e) instead of a
-      // V_TEXT_NODE. This is critical — V_TEXT_NODE children are HTML-encoded
-      // (via encodeHTML) when serialized into the parent's innerHTML, which
-      // would escape the raw HTML and break {{!}} semantics in VDOM mode.
-      //
-      // SPLITTER nodes are rendered via vdomCreateNode's <template>-based
-      // path (see vdom.ts), which parses the raw HTML namespace-agnostically,
-      // matching string-mode innerHTML behavior.
-      if (expr.content.startsWith("$encUri(") && expr.content.endsWith(")")) {
-        lines.push(`${parentVar}.push($vdomCreate(0,${expr.content},1))`);
-      } else {
-        lines.push(`${parentVar}.push($vdomCreate(0,$strSafe(${expr.content}),1))`);
-      }
+      lines.push(`${parentVar}.push(__lark_vdom_create__(0,__lark_str_safe__(${expr.content}),1))`);
     } else if (expr.op === "@") {
-      lines.push(`${parentVar}.push($vdomCreate(0,$refFn($refAlt,${expr.content})))`);
+      lines.push(
+        `${parentVar}.push(__lark_vdom_create__(0,__lark_ref_fn__(__lark_ref_alt__,${expr.content})))`,
+      );
     } else if (expr.content) {
-      // Code block — emit raw JS (if/for/else/etc.)
       lines.push(expr.content);
     }
   }
 
-  /**
-   * Emit `$vdomCreate` calls for an element node and its children.
-   *
-   * Allocates a child-variable array, recurses into children, then emits
-   * the parent `$vdomCreate(tag, props, children)` call. Void elements
-   * (br, img, input, etc.) with no children use `1` as the children arg
-   * (self-closing marker).
-   */
   function emitElement(node: HPNode, parentVar: string): void {
     const tagName: string = node.name || "";
     const children: HPNode[] = node.children || [];
     const childVar = allocVar();
-    const propsKey = `__p${propsCounter++}`;
+    const propsKey = `_p${propsCounter++}`;
     const props = vdomBuildPropsFromAttribs(node.attribs, exprStore);
 
     lines.push(`let ${propsKey}=${props}`);
     lines.push(`${childVar}=[]`);
 
-    // Recurse into children
     for (const child of children) {
       emitNode(child, childVar);
     }
 
-    // Emit vdomCreate call — use 1 (self-closing) for void elements
     const isVoid = VOID_ELEMENTS.has(tagName) && children.length === 0;
     const childrenArg = isVoid ? "1" : childVar;
-
-    lines.push(`${parentVar}.push($vdomCreate('${tagName}',${propsKey},${childrenArg}))`);
+    lines.push(`${parentVar}.push(__lark_vdom_create__('${tagName}',${propsKey},${childrenArg}))`);
   }
 
-  // Walk root-level children
   for (const child of doc.children) {
     emitNode(child, rootVar);
   }
 
   // ── Step 5: Emit return ──
-
-  lines.push(`return $vdomCreate($viewId,0,${rootVar})`);
+  lines.push(`return __lark_vdom_create__(__lark_view_id__,0,${rootVar})`);
 
   // ── Step 6: Build function body ──
-
-  // Declare every allocated child variable ($v1 .. $v{varCounter-1}).
-  // rootVar ($v0) is already declared in lines[0]. Placing the
-  // declaration here (instead of a fixed upfront block) is what lets
-  // us support arbitrarily deep templates without exhausting vars.
   const varDeclStmts: string[] = [];
-  for (let i = 1; i < varCounter; i++) varDeclStmts.push(`$v${i}`);
+  for (let i = 1; i < varCounter; i++) varDeclStmts.push(`_v${i}`);
   const varDecl = varDeclStmts.length ? `let ${varDeclStmts.join(",")};` : "";
   const body = varDecl + lines.join(";");
 
   let funcBody = body;
   if (debug) {
     const filePart = file ? `\\r\\n\\tat file:${file}` : "";
-    funcBody = `let $dbgExpr,$dbgArt;try{${body}}catch(e){let msg='render error:'+(e.message||e);msg+='${filePart}';throw msg;}`;
+    funcBody = `let __lark_dbg_expr__,__lark_dbg_art__;try{${body}}catch(e){let msg='render error:'+(e.message||e);msg+='${filePart}';throw msg;}`;
   }
 
-  // View ID injection: any remaining \x1f in code blocks → '+$viewId+'
+  // View ID injection: \x1f → '+__lark_view_id__+'
   const viewIdRegExp = new RegExp(String.fromCharCode(0x1f), "g");
-  funcBody = funcBody.replace(viewIdRegExp, `'+$viewId+'`);
+  funcBody = funcBody.replace(viewIdRegExp, `'+__lark_view_id__+'`);
 
-  // Build complete function source
-  const refFallback = "if(!$refAlt)$refAlt=$data;";
-  const fullSource = `${refFallback}let $splitter='\\x1e'{{VARS}};${funcBody}`;
+  const refFallback = "if(!__lark_ref_alt__)__lark_ref_alt__=__lark_data__;";
+  const fullSource = `${refFallback}{{__lark_vars__}};${funcBody}`;
 
-  // VDOM arrow function signature: 7 params (no $encHtml)
-  return `($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote)=>{${fullSource}}`;
+  return `(__lark_data__,__lark_view_id__,__lark_ref_alt__,__lark_str_safe__,__lark_ref_fn__)=>{${fullSource}}`;
 }

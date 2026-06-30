@@ -9,15 +9,7 @@
  * digests them, and triggers DOM re-rendering when needed.
  */
 import { setData, hasOwnProperty, noop, getById, funcWithTry, EMPTY_STRING_SET } from "./utils";
-import {
-  SPLITTER,
-  isRefToken,
-  refFn,
-  encodeHTML,
-  strSafe,
-  encodeURIExtra,
-  encodeQuote,
-} from "./common";
+import { SPLITTER, isRefToken } from "./common";
 import { domGetNode, domSetChildNodes, applyDomOps, applyIdUpdates, createDomRef } from "./dom";
 import { vdomSetChildNodes, createVDomRef } from "./vdom";
 import type { UpdaterApi, VDomNode } from "./types";
@@ -163,19 +155,10 @@ export function createUpdater(viewId: string): UpdaterApi {
 
       const template = view.getTemplate();
       if (typeof template === "function") {
-        // Call template with all params — string mode uses all 8, VDOM mode
-        // ignores the extra 5. Return type is `string | VDomNode`; we narrow
-        // by checking `typeof result === "string"` to avoid type assertions.
-        const result = template(
-          data,
-          viewId,
-          refData,
-          encodeHTML,
-          strSafe,
-          encodeURIExtra,
-          refFn,
-          encodeQuote,
-        );
+        // Compiled templates import their own runtime helpers from
+        // `@lark.js/mvc/runtime`, so we only pass the 3 core args.
+        // Return type is `string | VDomNode`; narrow via typeof.
+        const result = template(data, viewId, refData);
 
         if (typeof result === "string") {
           // ── String rendering path ──

@@ -15,20 +15,20 @@ import { extractGlobalVars } from "./extract-global-vars";
  *
  * Walks the source with a regex matcher, converting each `<%operate content%>`
  * block into the corresponding JS expression:
- * - `<%=expr%>` / `<%:expr%>` → `$encHtml(expr)` (HTML-escaped output)
- * - `<%!expr%>` → `$strSafe(expr)` (raw output)
- * - `<%@expr%>` → `$refFn($refAlt, expr)` (reference token)
+ * - `<%=expr%>` / `<%:expr%>` → `__lark_enc_html__(expr)` (HTML-escaped output)
+ * - `<%!expr%>` → `__lark_str_safe__(expr)` (raw output)
+ * - `<%@expr%>` → `__lark_ref_fn__(__lark_ref_alt__, expr)` (reference token)
  * - `<%code%>` → raw JS statement (if/for/else blocks)
  *
- * Plain text between blocks is escaped and appended to `$out`.
+ * Plain text between blocks is escaped and appended to `__lark_out__`.
  *
- * In debug mode, wraps each expression in a `$dbgExpr` assignment so runtime
- * errors report the original template expression and line number.
+ * In debug mode, wraps each expression in a `__lark_dbg_expr__` assignment so
+ * runtime errors report the original template expression and line number.
  *
  * @param source - The `<% %>`-syntax source (from `convertArtSyntax`)
  * @param debug - Enable debug mode (line tracking + try-catch wrapper)
  * @param file - Optional file path for debug error messages
- * @returns An arrow function source string: `($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote) => { ... return $out }`
+ * @returns An arrow function source string
  */
 function compileToFunction(
   source: string,
@@ -37,7 +37,7 @@ function compileToFunction(
 ): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
-  let funcSource = `$out+='`;
+  let funcSource = `__lark_out__+='`;
 
   // Escape regexp for string literals
   const escapeSlashRegExp = /\\|'/g;
@@ -73,19 +73,15 @@ function compileToFunction(
       }
 
       if (operate === "@") {
-        funcSource += `'+($dbgExpr='<%${operate + expr}%>',$refFn($refAlt,${content}))+'`;
+        funcSource += `'+(__lark_dbg_expr__='<%${operate + expr}%>',__lark_ref_fn__(__lark_ref_alt__,${content}))+'`;
       } else if (operate === "=" || operate === ":") {
         // : (binding) is treated the same as = (escaped output) for rendering
-        funcSource += `'+($dbgExpr='<%${operate + expr}%>',$encHtml(${content}))+'`;
+        funcSource += `'+(__lark_dbg_expr__='<%${operate + expr}%>',__lark_enc_html__(${content}))+'`;
       } else if (operate === "!") {
-        // Check if content is already a $encUri() call — if so, don't wrap with $strSafe()
-        if (!content.startsWith("$encUri(") || !content.endsWith(")")) {
-          content = `$strSafe(${content})`;
-        }
-        funcSource += `'+($dbgExpr='<%${operate + expr}%>',${content})+'`;
+        funcSource += `'+(__lark_dbg_expr__='<%${operate + expr}%>',__lark_str_safe__(${content}))+'`;
       } else if (content) {
         if (artM) {
-          funcSource += `';$dbgArt='${art}';`;
+          funcSource += `';__lark_dbg_art__='${art}';`;
           content = "";
         } else {
           funcSource += `';`;
@@ -95,30 +91,26 @@ function compileToFunction(
           funcSource = funcSource.substring(0, funcSource.length - 4) + ";";
         }
         if (expr) {
-          funcSource += `$dbgExpr='<%${expr}%>';`;
+          funcSource += `__lark_dbg_expr__='<%${expr}%>';`;
         }
-        funcSource += content + `;$out+='`;
+        funcSource += content + `;__lark_out__+='`;
       }
     } else {
       // Production mode: compact output
       if (operate === "@") {
-        funcSource += `'+$refFn($refAlt,${content})+'`;
+        funcSource += `'+__lark_ref_fn__(__lark_ref_alt__,${content})+'`;
       } else if (operate === "=" || operate === ":") {
         // : (binding) is treated the same as = (escaped output) for rendering
-        funcSource += `'+$encHtml(${content})+'`;
+        funcSource += `'+__lark_enc_html__(${content})+'`;
       } else if (operate === "!") {
-        // Check if content is already a $encUri() call
-        if (!content.startsWith("$encUri(") || !content.endsWith(")")) {
-          content = `$strSafe(${content})`;
-        }
-        funcSource += `'+${content}+'`;
+        funcSource += `'+__lark_str_safe__(${content})+'`;
       } else if (content) {
         funcSource += `';`;
         // Clean up trailing +''; → ;
         if (funcSource.endsWith(`+'';`)) {
           funcSource = funcSource.substring(0, funcSource.length - 4) + ";";
         }
-        funcSource += `${content};$out+='`;
+        funcSource += `${content};__lark_out__+='`;
       }
     }
     return match;
@@ -128,36 +120,36 @@ function compileToFunction(
 
   // ─── Post-processing cleanup ──────────────────────────────────────
 
-  // Remove empty concatenations: $out+=''; → (removed)
-  funcSource = funcSource.replace(/\$out\+='';/g, "");
-  // Fix empty string concatenation: $out=''+ → $out=
-  funcSource = funcSource.replace(/\$out\+=''\+/g, "$out+=");
+  // Remove empty concatenations: __lark_out__=''; → (removed)
+  funcSource = funcSource.replace(/__lark_out__\+='';/g, "");
+  // Fix empty string concatenation: __lark_out__=''+ → __lark_out__+=
+  funcSource = funcSource.replace(/__lark_out__\+=''\+/g, "__lark_out__+=");
 
   // ─── Debug error wrapper ──────────────────────────────────────────
 
   if (debug) {
     const filePart = file ? `\\r\\n\\tat file:${file}` : "";
-    funcSource = `let $dbgExpr,$dbgArt;try{${funcSource}}catch(e){let msg='render error:'+(e.message||e);if($dbgArt)msg+='\\r\\n\\tsrc art:{{'+$dbgArt+'}}';msg+='\\r\\n\\t'+($dbgArt?'translate to:':'expr:');msg+=$dbgExpr+'${filePart}';throw msg;}`;
+    funcSource = `let __lark_dbg_expr__,__lark_dbg_art__;try{${funcSource}}catch(e){let msg='render error:'+(e.message||e);if(__lark_dbg_art__)msg+='\\r\\n\\tsrc art:{{'+__lark_dbg_art__+'}}';msg+='\\r\\n\\t'+(__lark_dbg_art__?'translate to:':'expr:');msg+=__lark_dbg_expr__+'${filePart}';throw msg;}`;
   }
 
-  // ─── View ID injection: \x1f → '+$viewId+' ────────────────────────
+  // ─── View ID injection: \x1f → '+__lark_view_id__+' ────────────────
 
   // Use String.fromCharCode to safely handle \x1f control character
   const viewIdRegExp = new RegExp(String.fromCharCode(0x1f), "g");
-  funcSource = funcSource.replace(viewIdRegExp, `'+$viewId+'`);
+  funcSource = funcSource.replace(viewIdRegExp, `'+__lark_view_id__+'`);
 
   // ─── Build complete function source ───────────────────────────────
   //
-  // All `$strSafe / $encHtml / $encUri / $encQuote / $refFn` come in as
-  // parameters that the wrapper supplies from `@lark.js/mvc/runtime` — see
-  // `compileTemplate()`. So we no longer emit inline `if(!$xxx) {...}` guards.
-  // The only remaining setup is the `$refAlt` fallback for templates that
-  // are invoked without refData.
-  const refFallback = "if(!$refAlt)$refAlt=$data;";
-  const fullSource = `${refFallback}let $splitter='\\x1e',$tmp,$out=''{{VARS}};${funcSource}return $out`;
+  // Runtime helpers (`__lark_enc_html__`, `__lark_str_safe__`,
+  // `__lark_ref_fn__`) come in as parameters supplied from
+  // `@lark.js/mvc/runtime` — see `compileTemplate()`.
+  // The only remaining setup is the `__lark_ref_alt__` fallback for
+  // templates invoked without refData.
+  const refFallback = "if(!__lark_ref_alt__)__lark_ref_alt__=__lark_data__;";
+  const fullSource = `${refFallback}let __lark_out__='';{{__lark_vars__}};${funcSource}return __lark_out__`;
 
-  // Wrap in arrow function signature
-  return `($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)=>{${fullSource}}`;
+  // Wrap in arrow function signature — 6 params (encUri/encQuote removed: dead code)
+  return `(__lark_data__,__lark_view_id__,__lark_ref_alt__,__lark_enc_html__,__lark_str_safe__,__lark_ref_fn__)=>{${fullSource}}`;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────
@@ -170,7 +162,7 @@ function compileToFunction(
  *   (data, viewId, refData) => string
  *
  * Internally it calls the compiled template function with the standard
- * signature: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)
+ * signature: (__lark_data__,__lark_view_id__,__lark_ref_alt__,__lark_enc_html__,__lark_str_safe__,__lark_ref_fn__)
  *
  * @param source - The raw HTML template content
  * @param options - Compilation options
@@ -200,54 +192,57 @@ export async function compileTemplate(
 
   // Build the variable declarations string from globalVars
   const varDeclarations = globalVars
-    .map((key) => `,${key}=$data.${key}`)
+    .map((key) => `let ${key}=__lark_data__.${key};`)
     .join("");
 
   if (vdom) {
     // ── VDOM mode ──
     const funcBody = compileToVDomFunction(finalSource, debug, file);
-    const funcWithVars = funcBody.replace("{{VARS}}", () => varDeclarations);
+    const funcWithVars = funcBody.replace(
+      "{{__lark_vars__}}",
+      () => varDeclarations,
+    );
 
     // VDOM module wrapper:
     // - Imports vdomCreate from @lark.js/mvc (not just runtime helpers)
     // - Does NOT import encHtml (not needed — VDOM text uses createTextNode)
-    // - Inner function: 7 params ($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote)
-    // - $strSafe (null-safe toString) for text content and attribute values
+    // - Inner function: 5 params (data, viewId, refAlt, strSafe, refFn)
+    // - encUri/encQuote removed: dead code (never called in generated output)
     //
     // The default export is a named function (__lark_template__) so that the
     // auto-injected HMR snippet (see hmr-inject.ts) can reference it by name.
     return `import { vdomCreate as __lark_vdom_create__ } from "@lark.js/mvc";
-import { strSafe as __lark_str_safe__, encUri as __lark_enc_uri__, encQuote as __lark_enc_quote__, refFn as __lark_ref_fn__ } from "@lark.js/mvc/runtime";
+import { strSafe as __lark_str_safe__, refFn as __lark_ref_fn__ } from "@lark.js/mvc/runtime";
 function __lark_template__(data, viewId, refData) {
-  let $data = data || {},
-      $viewId = viewId || '',
-      $vdomCreate = __lark_vdom_create__,
-      $strSafe = __lark_str_safe__;
-  return (${funcWithVars})($data, $viewId, refData,
-    $strSafe, __lark_ref_fn__, __lark_enc_uri__, __lark_enc_quote__
+  let __lark_data__ = data || {},
+      __lark_view_id__ = viewId || '';
+  return (${funcWithVars})(__lark_data__, __lark_view_id__, refData,
+    __lark_str_safe__, __lark_ref_fn__
   );
 }
 export default __lark_template__;`;
   }
 
-  // ── String mode (existing, unchanged) ──
+  // ── String mode ──
   const funcBody = compileToFunction(finalSource, debug, file);
-  const funcWithVars = funcBody.replace("{{VARS}}", () => varDeclarations);
+  const funcWithVars = funcBody.replace(
+    "{{__lark_vars__}}",
+    () => varDeclarations,
+  );
 
-  // Runtime helpers (`encHtml`, `strSafe`, `encUri`, `encQuote`, `refFn`) are
-  // imported from `@lark.js/mvc/runtime` rather than inlined into every
-  // compiled template — saves ~400 bytes per `.html` module in the bundle.
-  //
-  // Internal function signature: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)
+  // Runtime helpers (`encHtml`, `strSafe`, `refFn`) are imported from
+  // `@lark.js/mvc/runtime` rather than inlined into every compiled template —
+  // saves bytes per `.html` module in the bundle.
+  // encUri/encQuote removed: dead code (never called in generated output).
   //
   // The default export is a named function (__lark_template__) so that the
   // auto-injected HMR snippet (see hmr-inject.ts) can reference it by name.
-  return `import { encHtml as __lark_enc_html__, strSafe as __lark_str_safe__, encUri as __lark_enc_uri__, encQuote as __lark_enc_quote__, refFn as __lark_ref_fn__ } from "@lark.js/mvc/runtime";
+  return `import { encHtml as __lark_enc_html__, strSafe as __lark_str_safe__, refFn as __lark_ref_fn__ } from "@lark.js/mvc/runtime";
 function __lark_template__(data, viewId, refData) {
-  let $data = data || {},
-      $viewId = viewId || '';
-  return (${funcWithVars})($data, $viewId, refData,
-    __lark_enc_html__, __lark_str_safe__, __lark_enc_uri__, __lark_ref_fn__, __lark_enc_quote__
+  let __lark_data__ = data || {},
+      __lark_view_id__ = viewId || '';
+  return (${funcWithVars})(__lark_data__, __lark_view_id__, refData,
+    __lark_enc_html__, __lark_str_safe__, __lark_ref_fn__
   );
 }
 export default __lark_template__;`;

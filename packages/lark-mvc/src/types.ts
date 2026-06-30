@@ -327,12 +327,7 @@ export interface FrameInvokeEntry {
  * `data`/`viewId`/`refData` are required; subsequent encoder args are
  * injected by the Updater (encodeHTML/encodeSafe/encodeURIExtra/refFn/encodeQ).
  */
-export type ViewTemplate = (
-  data: unknown,
-  viewId: string,
-  refData: unknown,
-  ...encoders: unknown[]
-) => string;
+export type ViewTemplate = (data: unknown, viewId: string, refData: unknown) => string;
 
 export interface ViewLocationObserved {
   /** Whether observing location */

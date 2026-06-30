@@ -32,7 +32,7 @@ async function compileAndRun(
     )
     .replace(
       /import\s*\{[^}]*\}\s*from\s*["']@lark\.js\/mvc\/runtime["'];?\n?/,
-      "const { strSafe: __lark_str_safe__, encUri: __lark_enc_uri__, encQuote: __lark_enc_quote__, refFn: __lark_ref_fn__ } = __runtime;\n",
+      "const { strSafe: __lark_str_safe__, refFn: __lark_ref_fn__ } = __runtime;\n",
     )
     .replace("function __lark_template__(", "return function(")
     .replace("\nexport default __lark_template__;", "");
@@ -59,16 +59,12 @@ describe("VDOM Compiler", () => {
   describe("module output format", () => {
     it("imports vdomCreate from @lark.js/mvc", async () => {
       const src = await compileSource("<div>hi</div>");
-      expect(src).toContain(
-        'import { vdomCreate as __lark_vdom_create__ } from "@lark.js/mvc"',
-      );
+      expect(src).toContain('import { vdomCreate as __lark_vdom_create__ } from "@lark.js/mvc"');
     });
 
     it("imports runtime helpers from @lark.js/mvc/runtime", async () => {
       const src = await compileSource("<div>hi</div>");
       expect(src).toContain("strSafe as __lark_str_safe__");
-      expect(src).toContain("encUri as __lark_enc_uri__");
-      expect(src).toContain("encQuote as __lark_enc_quote__");
       expect(src).toContain("refFn as __lark_ref_fn__");
     });
 
@@ -79,16 +75,14 @@ describe("VDOM Compiler", () => {
 
     it("exports default function with correct signature", async () => {
       const src = await compileSource("<div>hi</div>");
-      expect(src).toContain(
-        "function __lark_template__(data, viewId, refData)",
-      );
+      expect(src).toContain("function __lark_template__(data, viewId, refData)");
       expect(src).toContain("export default __lark_template__");
     });
 
-    it("inner function has 7 params (no $encHtml)", async () => {
+    it("inner function has 5 params (no encHtml/encUri/encQuote)", async () => {
       const src = await compileSource("<div>hi</div>");
       expect(src).toContain(
-        "$data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote",
+        "__lark_data__,__lark_view_id__,__lark_ref_alt__,__lark_str_safe__,__lark_ref_fn__",
       );
     });
 
@@ -96,7 +90,7 @@ describe("VDOM Compiler", () => {
       const src = await compileSource("<div>{{=title}}</div>", {
         globalVars: ["title", "count"],
       });
-      expect(src).toContain(",title=$data.title,count=$data.count");
+      expect(src).toContain(",title=__lark_data__.title,count=__lark_data__.count");
     });
   });
 
@@ -113,16 +107,14 @@ describe("VDOM Compiler", () => {
     });
 
     it("compiles element with static attributes", async () => {
-      const root = await compileAndRun(
-        '<div class="container" id="main">content</div>',
-      );
+      const root = await compileAndRun('<div class="container" id="main">content</div>');
       expect(root).toBeDefined();
     });
 
     it("compiles self-closing elements", async () => {
       const src = await compileSource("<div><br/><hr/></div>");
-      expect(src).toMatch(/\$vdomCreate\('br',\w+,1\)/);
-      expect(src).toMatch(/\$vdomCreate\('hr',\w+,1\)/);
+      expect(src).toMatch(/__lark_vdom_create__\('br',\w+,1\)/);
+      expect(src).toMatch(/__lark_vdom_create__\('hr',\w+,1\)/);
     });
 
     it("compiles multiple sibling elements", async () => {
@@ -131,20 +123,13 @@ describe("VDOM Compiler", () => {
     });
 
     // Regression: previously a fixed maxVars=30 caused every element past
-    // the 30th to alias the last variable ($v29). That produced
+    // the 30th to alias the last variable (_v29). That produced
     // self-referential children arrays (span.children === arr, then
     // arr.push(span)) and silently dropped earlier siblings, leading to
     // duplicated/missing output. With >30 elements all content must survive.
     it("renders all siblings when template exceeds 30 elements", async () => {
-      const spans = Array.from(
-        { length: 35 },
-        (_, i) => `<span>item${i}</span>`,
-      ).join("");
-      const root = await compileAndRun(
-        `<div class="container">${spans}</div>`,
-        {},
-        [],
-      );
+      const spans = Array.from({ length: 35 }, (_, i) => `<span>item${i}</span>`).join("");
+      const root = await compileAndRun(`<div class="container">${spans}</div>`, {}, []);
 
       const texts: string[] = [];
       function walk(node: VDomNode) {
@@ -172,26 +157,26 @@ describe("VDOM Compiler", () => {
       const src = await compileSource("<div>{{=name}}</div>", {
         globalVars: ["name"],
       });
-      expect(src).toContain("$vdomCreate(0,$strSafe(name))");
+      expect(src).toContain("__lark_vdom_create__(0,__lark_str_safe__(name))");
     });
 
     it("compiles {{!expr}} as SPLITTER raw HTML node (not V_TEXT_NODE)", async () => {
       // {{!}} must produce a SPLITTER-tagged raw HTML node by passing `1`
-      // as the children argument: `$vdomCreate(0, $strSafe(expr), 1)`.
+      // as the children argument: `__lark_vdom_create__(0, __lark_str_safe__(expr), 1)`.
       // If it omitted the `1` (as before the fix), vdomCreate would return a
       // V_TEXT_NODE whose html gets HTML-encoded when serialized into the
       // parent's innerHTML — breaking raw HTML semantics in VDOM mode.
       const src = await compileSource("<div>{{!rawContent}}</div>", {
         globalVars: ["rawContent"],
       });
-      expect(src).toContain("$vdomCreate(0,$strSafe(rawContent),1)");
+      expect(src).toContain("__lark_vdom_create__(0,__lark_str_safe__(rawContent),1)");
     });
 
     it("compiles {{@expr}} as ref lookup", async () => {
       const src = await compileSource("<div>{{@objRef}}</div>", {
         globalVars: ["objRef"],
       });
-      expect(src).toContain("$refFn($refAlt,objRef)");
+      expect(src).toContain("__lark_ref_fn__(__lark_ref_alt__,objRef)");
     });
 
     it("compiles expression in attribute value", async () => {
@@ -205,30 +190,24 @@ describe("VDOM Compiler", () => {
       const src = await compileSource('<span class="{{=cls}}"></span>', {
         globalVars: ["cls"],
       });
-      expect(src).toContain("$strSafe(cls)");
+      expect(src).toContain("__lark_str_safe__(cls)");
     });
   });
 
   // ===== D. Control flow =====
   describe("control flow", () => {
     it("compiles {{if}}...{{/if}}", async () => {
-      const src = await compileSource(
-        "<div>{{if show}}<span>visible</span>{{/if}}</div>",
-        {
-          globalVars: ["show"],
-        },
-      );
+      const src = await compileSource("<div>{{if show}}<span>visible</span>{{/if}}</div>", {
+        globalVars: ["show"],
+      });
       expect(src).toContain("if(show)");
       expect(src).toContain("visible");
     });
 
     it("compiles {{if}}...{{else}}...{{/if}}", async () => {
-      const src = await compileSource(
-        "<div>{{if a}}<p>yes</p>{{else}}<p>no</p>{{/if}}</div>",
-        {
-          globalVars: ["a"],
-        },
-      );
+      const src = await compileSource("<div>{{if a}}<p>yes</p>{{else}}<p>no</p>{{/if}}</div>", {
+        globalVars: ["a"],
+      });
       expect(src).toContain("if(a)");
       expect(src).toContain("}else{");
     });
@@ -252,12 +231,9 @@ describe("VDOM Compiler", () => {
     });
 
     it("compiles {{set}} variable declaration", async () => {
-      const src = await compileSource(
-        "<div>{{set x = 42}}<span>{{=x}}</span></div>",
-        {
-          globalVars: [],
-        },
-      );
+      const src = await compileSource("<div>{{set x = 42}}<span>{{=x}}</span></div>", {
+        globalVars: [],
+      });
       expect(src).toContain("let x = 42");
     });
   });
@@ -267,20 +243,17 @@ describe("VDOM Compiler", () => {
   // When {{if}}/{{else}}/{{/if}} (or {{forOf}} etc.) appear inside an HTML
   // attribute value, the compiled code-block entries are JS statements
   // (e.g. "if(width){", "}else{", "}") that cannot be wrapped in
-  // $strSafe(). The compiler must detect this and generate an IIFE that
+  // __lark_str_safe__(). The compiler must detect this and generate an IIFE that
   // builds and returns the attribute string via statement-based accumulation.
   describe("control flow in attributes", () => {
-    it("compiles {{if}} inside attribute value as IIFE (not $strSafe(if())", async () => {
-      const src = await compileSource(
-        '<div class="base {{if show}}extra{{/if}}">x</div>',
-        {
-          globalVars: ["show"],
-        },
-      );
-      // Must NOT produce the buggy $strSafe(if(...)) wrapping
-      expect(src).not.toContain("$strSafe(if(");
-      // Must produce an IIFE that accumulates into $s
-      expect(src).toContain("(()=>{let $s=''");
+    it("compiles {{if}} inside attribute value as IIFE (not __lark_str_safe__(if())", async () => {
+      const src = await compileSource('<div class="base {{if show}}extra{{/if}}">x</div>', {
+        globalVars: ["show"],
+      });
+      // Must NOT produce the buggy __lark_str_safe__(if(...)) wrapping
+      expect(src).not.toContain("__lark_str_safe__(if(");
+      // Must produce an IIFE that accumulates into _s
+      expect(src).toContain("(()=>{let _s=''");
       expect(src).toContain("if(show)");
     });
 
@@ -289,9 +262,9 @@ describe("VDOM Compiler", () => {
         '<div style="{{if w}}width:{{=w}}px;{{else}}width:100%;{{/if}}">x</div>',
         { globalVars: ["w"] },
       );
-      expect(src).not.toContain("$strSafe(if(");
-      expect(src).not.toContain("$strSafe(}else{)");
-      expect(src).not.toContain("$strSafe(})");
+      expect(src).not.toContain("__lark_str_safe__(if(");
+      expect(src).not.toContain("__lark_str_safe__(}else{)");
+      expect(src).not.toContain("__lark_str_safe__(})");
       expect(src).toContain("if(w)");
       expect(src).toContain("}else{");
     });
@@ -301,7 +274,7 @@ describe("VDOM Compiler", () => {
         '<a class="base {{if disabled || loading}}opacity-50{{/if}}">x</a>',
         { globalVars: ["disabled", "loading"] },
       );
-      expect(src).not.toContain("$strSafe(if(");
+      expect(src).not.toContain("__lark_str_safe__(if(");
       expect(src).toContain("if(disabled || loading)");
     });
 
@@ -310,8 +283,8 @@ describe("VDOM Compiler", () => {
         '<div class="{{forOf items as item}}{{=item}} {{/forOf}}">x</div>',
         { globalVars: ["items"] },
       );
-      expect(src).not.toContain("$strSafe(for(");
-      expect(src).toContain("(()=>{let $s=''");
+      expect(src).not.toContain("__lark_str_safe__(for(");
+      expect(src).toContain("(()=>{let _s=''");
       expect(src).toContain("for(let");
     });
 
@@ -388,11 +361,9 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders dynamic text from data", async () => {
-      const root = await compileAndRun(
-        "<p>{{=message}}</p>",
-        { message: "Hello World" },
-        ["message"],
-      );
+      const root = await compileAndRun("<p>{{=message}}</p>", { message: "Hello World" }, [
+        "message",
+      ]);
       expect(root.tag).toBe("test-view");
       expect(root.html).toContain("Hello World");
       const pChild = root.children![0] as VDomNode;
@@ -474,9 +445,7 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders null/undefined as empty string in {{=}}", async () => {
-      const root = await compileAndRun("<p>{{=val}}</p>", { val: null }, [
-        "val",
-      ]);
+      const root = await compileAndRun("<p>{{=val}}</p>", { val: null }, ["val"]);
       const p = root.children![0] as VDomNode;
       const textNode = p.children![0] as VDomNode;
       expect(textNode.html).toBe("");
@@ -502,16 +471,14 @@ describe("VDOM Compiler", () => {
     it("renders {{!expr}} as raw HTML (not escaped) in VDOM mode", async () => {
       // Regression test for the compiler + vdomCreateNode coupling bug:
       // {{!}} must produce a SPLITTER-tagged raw HTML node (via
-      // $vdomCreate(0, $strSafe(expr), 1)) whose html is NOT HTML-encoded
+      // __lark_vdom_create__(0, __lark_str_safe__(expr), 1)) whose html is NOT HTML-encoded
       // when serialized into the parent's innerHTML.
       //
       // Before the fix, {{!}} produced a V_TEXT_NODE whose html was
       // escaped via encodeHTML, so <b>bold</b> became &lt;b&gt;bold&lt;/b&gt;.
-      const root = await compileAndRun(
-        "<div>{{!rawHtml}}</div>",
-        { rawHtml: "<b>bold</b>" },
-        ["rawHtml"],
-      );
+      const root = await compileAndRun("<div>{{!rawHtml}}</div>", { rawHtml: "<b>bold</b>" }, [
+        "rawHtml",
+      ]);
       const div = root.children![0] as VDomNode;
       const rawNode = div.children![0] as VDomNode;
 
@@ -561,7 +528,7 @@ describe("VDOM Compiler", () => {
       });
       expect(src).toContain("encHtml");
       expect(src).not.toContain("vdomCreate");
-      expect(src).toContain("$out");
+      expect(src).toContain("__lark_out__");
     });
 
     it("still generates HTML string when vdom is not specified", async () => {
@@ -583,11 +550,7 @@ describe("VDOM Compiler", () => {
     });
 
     it("renders {{set}} and uses the declared variable", async () => {
-      const root = await compileAndRun(
-        "<div>{{set x = 42}}<span>{{=x}}</span></div>",
-        {},
-        [],
-      );
+      const root = await compileAndRun("<div>{{set x = 42}}<span>{{=x}}</span></div>", {}, []);
       expect(root.html).toContain("42");
     });
 

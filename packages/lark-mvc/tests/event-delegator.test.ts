@@ -63,37 +63,11 @@ describe("EventDelegator", () => {
     });
   });
 
-  describe("clearRangeEvents", () => {
-    it("clears range events for a view ID without error", () => {
-      expect(() => {
-        EventDelegator.clearRangeEvents("some-view-id");
-      }).not.toThrow();
-    });
-
-    it("clears range events for non-existent view ID", () => {
-      expect(() => {
-        EventDelegator.clearRangeEvents("nonexistent-view");
-      }).not.toThrow();
-    });
-  });
-
   describe("setFrameGetter", () => {
     it("accepts a getter function", () => {
       expect(() => {
         EventDelegator.setFrameGetter((_id: string, _unused: void) => undefined);
       }).not.toThrow();
-    });
-  });
-
-  describe("nextElementGuid", () => {
-    it("returns incrementing numbers", () => {
-      const g1 = EventDelegator.nextElementGuid();
-      const g2 = EventDelegator.nextElementGuid();
-      expect(g2).toBe(g1 + 1);
-    });
-
-    it("returns a number", () => {
-      expect(typeof EventDelegator.nextElementGuid()).toBe("number");
     });
   });
 });

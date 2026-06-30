@@ -44,10 +44,6 @@ declare global {
     autoId?: number;
     /** View rendered flag — used by selector matching during event delegation */
     viewRendered?: number;
-    /** Range frame ID — identifies the Frame owning a range-event boundary */
-    rangeFrameId?: string;
-    /** Range element GUID — unique numeric tag for range-event tracking */
-    rangeElementGuid?: number;
   }
 
   interface Element {

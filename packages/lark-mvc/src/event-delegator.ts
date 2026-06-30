@@ -43,12 +43,6 @@ const rootEvents: Record<string, number> = {};
 /** Selector events counter: eventType -> count */
 const selectorEvents: Record<string, number> = {};
 
-/** Range events: frameId -> { elementGuid -> { eventType: 1 } } */
-const rangeEvents: Record<string, Record<string, Record<string, number>>> = {};
-
-/** Global GUID counter for element tagging */
-let elementGuid = 0;
-
 /** Event info cache */
 const eventInfoCache = createCache<Record<string, string>>({
   maxSize: 30,
@@ -265,16 +259,6 @@ function domEventProcessor(domEvent: Event): void {
       }
     }
 
-    // Check range events (view boundary)
-    const rangeFrameId = current.getAttribute("data-range-fid");
-    const rangeGuid = current.getAttribute("data-range-guid");
-    if (rangeFrameId && rangeGuid) {
-      const rangeMap = rangeEvents[rangeFrameId];
-      if (rangeMap?.[rangeGuid]?.[eventType]) {
-        break;
-      }
-    }
-
     if ((domEvent as Event & { isPropagationStopped?: () => boolean }).isPropagationStopped?.()) {
       break;
     }
@@ -350,18 +334,6 @@ export const EventDelegator = {
   },
 
   /**
-   * Remove all range-event registrations for a destroyed view.
-   *
-   * Range events stop propagation at view boundaries. When a view is
-   * destroyed, its range-event entries must be cleaned up to prevent leaks.
-   *
-   * @param viewId - The Frame ID of the destroyed view
-   */
-  clearRangeEvents(viewId: string): void {
-    Reflect.deleteProperty(rangeEvents, viewId);
-  },
-
-  /**
    * Inject the Frame lookup function.
    *
    * Called by `Framework.boot` so the delegator can resolve DOM element IDs
@@ -370,15 +342,5 @@ export const EventDelegator = {
    */
   setFrameGetter(getter: (id: string) => FrameObj | undefined): void {
     frameGetter = getter;
-  },
-
-  /**
-   * Allocate the next element GUID for range-event tagging.
-   *
-   * Each element that participates in range events gets a unique numeric ID
-   * so the delegator can track it independently of DOM element identity.
-   */
-  nextElementGuid(): number {
-    return ++elementGuid;
   },
 };

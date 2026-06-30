@@ -41,16 +41,6 @@ let dataIsChanged = false;
 const emitter = createEmitter();
 
 /**
- * Mark framework as booted (called from Framework.boot).
- *
- * Kept as a no-op for backward API compatibility — the boot state itself
- * is tracked in `framework.ts` (`Framework.isBooted`) and `router.ts`.
- */
-export function markBooted(): void {
-  // no-op: boot state is tracked in framework.ts and router.ts
-}
-
-/**
  * Increment the reference count for each observed key.
  *
  * Called by `State.clean(keys)(ctx)` during view setup. When a key is first

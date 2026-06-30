@@ -613,12 +613,3 @@ export const Router: RouterApi = {
 export function markRouterBooted(): void {
   booted = true;
 }
-
-/**
- * Get the current routing mode (`"history"` or `"hash"`).
- *
- * Set by `Framework.boot` via `Router._setConfig(cfg)`.
- */
-export function getRouteMode(): "history" | "hash" {
-  return routeMode;
-}

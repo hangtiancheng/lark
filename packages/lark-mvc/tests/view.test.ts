@@ -46,7 +46,6 @@ describe("View (functional)", () => {
       expect(ctx.id).toBe("test-frame-1");
       expect(ctx.owner).toBe(frame);
       expect(ctx.updater).toBeDefined();
-      expect(typeof ctx.init).toBe("function");
       expect(typeof ctx.render).toBe("function");
       expect(ctx.getTemplate()).toBe(templateFn);
 

@@ -590,7 +590,6 @@ export interface ViewCtx {
 
   // Lifecycle / framework API methods
   render(): void;
-  init(params?: unknown): void;
   beginUpdate(id?: string): void;
   endUpdate(id?: string, inner?: boolean): void;
   wrapAsync<Fn extends AnyFunc>(
@@ -1121,10 +1120,6 @@ export interface FrameBoundElement extends HTMLElement {
   frameBound?: number;
   /** View rendered flag */
   viewRendered?: number;
-  /** Range frame ID */
-  rangeFrameId?: string;
-  /** Range element guid */
-  rangeElementGuid?: number;
 }
 
 /** Options for compileTemplate() */

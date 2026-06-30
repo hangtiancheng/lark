@@ -27,7 +27,7 @@ import { mark, unmark } from "./mark";
 import { createCache } from "./cache";
 import { createEmitter } from "./event-emitter";
 import { Router, markRouterBooted } from "./router";
-import { State, markBooted as markStateBooted } from "./state";
+import { State } from "./state";
 import { Frame } from "./frame";
 import type { FrameObj } from "./types";
 import { EventDelegator } from "./event-delegator";
@@ -423,7 +423,6 @@ export const Framework: FrameworkApi = {
 
     // Mark as booted
     booted = true;
-    markStateBooted();
     markRouterBooted();
 
     // Install the Frame Devtool Bridge for devtools support.

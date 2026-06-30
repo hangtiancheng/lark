@@ -308,11 +308,6 @@ export function createCtx(frame: FrameObj): ViewCtx {
     }
   }
 
-  // ── Init (called by Frame after setup) ──
-  function init(_params?: unknown): void {
-    // Init hook — currently a no-op; params are passed to setup() directly
-  }
-
   // ── Getters/setters as functions (no getter/setter syntax) ──
   function getTemplate(): ViewTemplate | VDomTemplate | undefined {
     return mutable.template;
@@ -366,7 +361,6 @@ export function createCtx(frame: FrameObj): ViewCtx {
     getAssign,
     setAssign,
     render,
-    init,
     beginUpdate,
     endUpdate,
     wrapAsync,
@@ -456,7 +450,6 @@ export function unregisterEvents(ctx: ViewCtx): void {
         // Global event: remove listener
         // The boundHandler is stored on the prototype in the old system.
         // In the functional system, we track it in the events map metadata.
-        // For now, we rely on EventDelegator.clearRangeEvents for DOM events.
       } else if (isSelector) {
         EventDelegator.unbind(eventType, true);
       } else {
@@ -464,8 +457,6 @@ export function unregisterEvents(ctx: ViewCtx): void {
       }
     }
   }
-
-  EventDelegator.clearRangeEvents(ctx.id);
 }
 
 /** Register a global (window/document) event listener */
@@ -655,9 +646,6 @@ export function unmountCtx(ctx: ViewCtx): void {
   if (ctx.signature.value > 0) {
     ctx.fire("destroy", undefined, true, true);
   }
-
-  // Clear range events
-  EventDelegator.clearRangeEvents(ctx.id);
 
   // Mark as destroyed
   ctx.signature.value = 0;

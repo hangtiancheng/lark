@@ -23,10 +23,10 @@ async function render(
   const transformed = moduleCode
     .replace(
       /import\s*\{[\s\S]*?\}\s*from\s*["']@lark\.js\/mvc\/runtime["'];?/,
-      "const { encHtml: __larkEncHtml, strSafe: __larkStrSafe, encUri: __larkEncUri, encQuote: __larkEncQuote, refFn: __larkRefFn } = __runtime;",
+      "const { encHtml: __lark_enc_html__, strSafe: __lark_str_safe__, encUri: __lark_enc_uri__, encQuote: __lark_enc_quote__, refFn: __lark_ref_fn__ } = __runtime;",
     )
-    .replace("function __larkTemplate(", "return function(")
-    .replace("\nexport default __larkTemplate;", "");
+    .replace("function __lark_template__(", "return function(")
+    .replace("\nexport default __lark_template__;", "");
 
   const fn = new Function("__runtime", transformed)(runtime);
   return fn(data, "testViewId", null);
@@ -62,18 +62,24 @@ describe("compileTemplate", () => {
 
   describe("{{forOf}} loop", () => {
     it("basic array iteration", async () => {
-      const result = await render("{{forOf list as item}}<span>{{=item}}</span>{{/forOf}}", {
-        list: ["a", "b", "c"],
-      });
+      const result = await render(
+        "{{forOf list as item}}<span>{{=item}}</span>{{/forOf}}",
+        {
+          list: ["a", "b", "c"],
+        },
+      );
       expect(result).toContain("<span>a</span>");
       expect(result).toContain("<span>b</span>");
       expect(result).toContain("<span>c</span>");
     });
 
     it("array iteration with index", async () => {
-      const result = await render("{{forOf list as item idx}}[{{=idx}}:{{=item}}]{{/forOf}}", {
-        list: ["x", "y"],
-      });
+      const result = await render(
+        "{{forOf list as item idx}}[{{=idx}}:{{=item}}]{{/forOf}}",
+        {
+          list: ["x", "y"],
+        },
+      );
       expect(result).toContain("[0:x]");
       expect(result).toContain("[1:y]");
     });
@@ -151,9 +157,12 @@ describe("compileTemplate", () => {
 
   describe("{{forIn}} object iteration", () => {
     it("iterates over object properties", async () => {
-      const result = await render("{{forIn obj as val key}}[{{=key}}:{{=val}}]{{/forIn}}", {
-        obj: { x: 1, y: 2 },
-      });
+      const result = await render(
+        "{{forIn obj as val key}}[{{=key}}:{{=val}}]{{/forIn}}",
+        {
+          obj: { x: 1, y: 2 },
+        },
+      );
       expect(result).toContain("[x:1]");
       expect(result).toContain("[y:2]");
     });
@@ -177,14 +186,20 @@ describe("compileTemplate", () => {
 
   describe("@event attribute handling", () => {
     it("@click event binding", async () => {
-      const result = await render('<div @click="handlerName()">click</div>', {});
+      const result = await render(
+        '<div @click="handlerName()">click</div>',
+        {},
+      );
       // @event attribute should include viewId prefix
       expect(result).toContain("@click=");
       expect(result).toContain("handlerName()");
     });
 
     it("@click with arguments", async () => {
-      const result = await render("<div @click=\"handlerName({key: 'value'})\">click</div>", {});
+      const result = await render(
+        "<div @click=\"handlerName({key: 'value'})\">click</div>",
+        {},
+      );
       expect(result).toContain("@click=");
       expect(result).toContain("handlerName(");
     });
@@ -192,10 +207,13 @@ describe("compileTemplate", () => {
 
   describe("HTML comment protection", () => {
     it("template syntax inside comments is not transformed", async () => {
-      const result = await render("<!-- {{=shouldNotRender}} --><p>{{=text}}</p>", {
-        text: "visible",
-        shouldNotRender: "hidden",
-      });
+      const result = await render(
+        "<!-- {{=shouldNotRender}} --><p>{{=text}}</p>",
+        {
+          text: "visible",
+          shouldNotRender: "hidden",
+        },
+      );
       expect(result).toContain("visible");
       // Comment content should remain unchanged
       expect(result).toContain("shouldNotRender");
@@ -213,8 +231,8 @@ describe("compileTemplate", () => {
   describe("debug mode", () => {
     it("compiles successfully in debug mode", async () => {
       const moduleCode = await compileTemplate("{{=name}}", { debug: true });
-      expect(moduleCode).toContain("function __larkTemplate");
-      expect(moduleCode).toContain("export default __larkTemplate");
+      expect(moduleCode).toContain("function __lark_template__");
+      expect(moduleCode).toContain("export default __lark_template__");
     });
   });
 
@@ -258,10 +276,10 @@ describe("compileTemplate", () => {
       const transformed = moduleCode
         .replace(
           /import\s*\{[\s\S]*?\}\s*from\s*["']@lark\.js\/mvc\/runtime["'];?/,
-          "const { encHtml: __larkEncHtml, strSafe: __larkStrSafe, encUri: __larkEncUri, encQuote: __larkEncQuote, refFn: __larkRefFn } = __runtime;",
+          "const { encHtml: __lark_enc_html__, strSafe: __lark_str_safe__, encUri: __lark_enc_uri__, encQuote: __lark_enc_quote__, refFn: __lark_ref_fn__ } = __runtime;",
         )
-        .replace("function __larkTemplate(", "return function(")
-        .replace("\nexport default __larkTemplate;", "");
+        .replace("function __lark_template__(", "return function(")
+        .replace("\nexport default __lark_template__;", "");
       const fn = new Function("__runtime", transformed)(runtime);
       const result = fn(
         {
@@ -286,7 +304,9 @@ describe("extractGlobalVars", () => {
   });
 
   it("extracts variables from each loop", async () => {
-    const vars = await extractGlobalVars("{{forOf list as item}}{{=item}}{{/forOf}}");
+    const vars = await extractGlobalVars(
+      "{{forOf list as item}}{{=item}}{{/forOf}}",
+    );
     expect(vars).toContain("list");
   });
 

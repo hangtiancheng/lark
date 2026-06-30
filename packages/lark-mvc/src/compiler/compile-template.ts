@@ -30,7 +30,11 @@ import { extractGlobalVars } from "./extract-global-vars";
  * @param file - Optional file path for debug error messages
  * @returns An arrow function source string: `($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote) => { ... return $out }`
  */
-function compileToFunction(source: string, debug: boolean, file?: string): string {
+function compileToFunction(
+  source: string,
+  debug: boolean,
+  file?: string,
+): string {
   const matcher = /<%([@=!:])?([\s\S]*?)%>|$/g;
   let index = 0;
   let funcSource = `$out+='`;
@@ -49,7 +53,10 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
 
     if (debug) {
       // Debug mode: extract expression and art info for error reporting
-      let expr = source.substring(index - match.length + 2 + (operate ? 1 : 0), index - 2);
+      let expr = source.substring(
+        index - match.length + 2 + (operate ? 1 : 0),
+        index - 2,
+      );
       // Use String.fromCharCode to safely construct regexp with \x11 control character
       const x11 = String.fromCharCode(0x11);
       const artRegExp = new RegExp(`^'(\\d+)${x11}([^${x11}]+)${x11}'$`);
@@ -60,7 +67,9 @@ function compileToFunction(source: string, debug: boolean, file?: string): strin
         expr = expr.replace(artRegExp, "");
         art = artM[2];
       } else {
-        expr = expr.replace(escapeSlashRegExp, "\\$&").replace(escapeBreakReturnRegExp, "\\n");
+        expr = expr
+          .replace(escapeSlashRegExp, "\\$&")
+          .replace(escapeBreakReturnRegExp, "\\n");
       }
 
       if (operate === "@") {
@@ -190,7 +199,9 @@ export async function compileTemplate(
   const finalSource = restoreComments(viewEventProcessed, comments);
 
   // Build the variable declarations string from globalVars
-  const varDeclarations = globalVars.map((key) => `,${key}=$data.${key}`).join("");
+  const varDeclarations = globalVars
+    .map((key) => `,${key}=$data.${key}`)
+    .join("");
 
   if (vdom) {
     // ── VDOM mode ──
@@ -203,20 +214,20 @@ export async function compileTemplate(
     // - Inner function: 7 params ($data,$viewId,$refAlt,$strSafe,$refFn,$encUri,$encQuote)
     // - $strSafe (null-safe toString) for text content and attribute values
     //
-    // The default export is a named function (__larkTemplate) so that the
+    // The default export is a named function (__lark_template__) so that the
     // auto-injected HMR snippet (see hmr-inject.ts) can reference it by name.
-    return `import { vdomCreate as __larkVdomCreate } from "@lark.js/mvc";
-import { strSafe as __larkStrSafe, encUri as __larkEncUri, encQuote as __larkEncQuote, refFn as __larkRefFn } from "@lark.js/mvc/runtime";
-function __larkTemplate(data, viewId, refData) {
+    return `import { vdomCreate as __lark_vdom_create__ } from "@lark.js/mvc";
+import { strSafe as __lark_str_safe__, encUri as __lark_enc_uri__, encQuote as __lark_enc_quote__, refFn as __lark_ref_fn__ } from "@lark.js/mvc/runtime";
+function __lark_template__(data, viewId, refData) {
   let $data = data || {},
       $viewId = viewId || '',
-      $vdomCreate = __larkVdomCreate,
-      $strSafe = __larkStrSafe;
+      $vdomCreate = __lark_vdom_create__,
+      $strSafe = __lark_str_safe__;
   return (${funcWithVars})($data, $viewId, refData,
-    $strSafe, __larkRefFn, __larkEncUri, __larkEncQuote
+    $strSafe, __lark_ref_fn__, __lark_enc_uri__, __lark_enc_quote__
   );
 }
-export default __larkTemplate;`;
+export default __lark_template__;`;
   }
 
   // ── String mode (existing, unchanged) ──
@@ -229,15 +240,15 @@ export default __larkTemplate;`;
   //
   // Internal function signature: ($data,$viewId,$refAlt,$encHtml,$strSafe,$encUri,$refFn,$encQuote)
   //
-  // The default export is a named function (__larkTemplate) so that the
+  // The default export is a named function (__lark_template__) so that the
   // auto-injected HMR snippet (see hmr-inject.ts) can reference it by name.
-  return `import { encHtml as __larkEncHtml, strSafe as __larkStrSafe, encUri as __larkEncUri, encQuote as __larkEncQuote, refFn as __larkRefFn } from "@lark.js/mvc/runtime";
-function __larkTemplate(data, viewId, refData) {
+  return `import { encHtml as __lark_enc_html__, strSafe as __lark_str_safe__, encUri as __lark_enc_uri__, encQuote as __lark_enc_quote__, refFn as __lark_ref_fn__ } from "@lark.js/mvc/runtime";
+function __lark_template__(data, viewId, refData) {
   let $data = data || {},
       $viewId = viewId || '';
   return (${funcWithVars})($data, $viewId, refData,
-    __larkEncHtml, __larkStrSafe, __larkEncUri, __larkRefFn, __larkEncQuote
+    __lark_enc_html__, __lark_str_safe__, __lark_enc_uri__, __lark_ref_fn__, __lark_enc_quote__
   );
 }
-export default __larkTemplate;`;
+export default __lark_template__;`;
 }

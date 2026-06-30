@@ -837,7 +837,7 @@ compileToFunction()    -- <% %> to JS template function (string mode)
     or
 compileToVDomFunction() -- <% %> to VDomNode tree builder (VDOM mode)
     |
-ES module output       -- exports default __larkTemplate
+ES module output       -- exports default __lark_template__
 ```
 
 ### Updater

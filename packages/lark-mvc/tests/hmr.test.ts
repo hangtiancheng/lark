@@ -213,7 +213,9 @@ describe("HMR", () => {
       expect(frame.view).toBe(viewBefore);
       // New template applied
       expect(
-        document.getElementById("accept-webpack-fb")!.querySelector(".webpack-template"),
+        document
+          .getElementById("accept-webpack-fb")!
+          .querySelector(".webpack-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame);
@@ -360,7 +362,9 @@ describe("HMR", () => {
 
       const frame = createTestFrame("reload-test-4");
       // viewPath with query params — parseUri extracts path = "test/reload-params"
-      vi.spyOn(frame, "getViewPath").mockReturnValue("test/reload-params?x=1&y=2");
+      vi.spyOn(frame, "getViewPath").mockReturnValue(
+        "test/reload-params?x=1&y=2",
+      );
 
       const mountSpy = vi.spyOn(frame, "mountView");
 
@@ -473,7 +477,9 @@ describe("HMR", () => {
       expect(frame.view!.updater.get<number>("count")).toBe(10);
       // New template is applied to DOM
       expect(
-        document.getElementById("hot-swap-no-init")!.querySelector(".new-template"),
+        document
+          .getElementById("hot-swap-no-init")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame);
@@ -562,10 +568,14 @@ describe("HMR", () => {
 
       // Both frames use the new template
       expect(
-        document.getElementById("hot-swap-batch-1")!.querySelector(".new-template"),
+        document
+          .getElementById("hot-swap-batch-1")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
       expect(
-        document.getElementById("hot-swap-batch-2")!.querySelector(".new-template"),
+        document
+          .getElementById("hot-swap-batch-2")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame1);
@@ -591,7 +601,9 @@ describe("HMR", () => {
 
       expect(frame.view!.updater.get<number>("count")).toBe(5);
       expect(
-        document.getElementById("hot-swap-other")!.querySelector(".old-template"),
+        document
+          .getElementById("hot-swap-other")!
+          .querySelector(".old-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame);
@@ -629,7 +641,9 @@ describe("HMR", () => {
       // State preserved through the accept callback
       expect(frame.view!.updater.get<number>("count")).toBe(99);
       expect(
-        document.getElementById("accept-preserve")!.querySelector(".new-template"),
+        document
+          .getElementById("accept-preserve")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
 
       // New class registered for future synchronous mounts
@@ -664,12 +678,18 @@ describe("HMR", () => {
       expect(frame.view!.updater.get<number>("count")).toBe(77);
       // New template applied
       expect(
-        document.getElementById("hot-swap-template")!.querySelector(".new-template"),
+        document
+          .getElementById("hot-swap-template")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
       expect(
-        document.getElementById("hot-swap-template")!.querySelector(".old-template"),
+        document
+          .getElementById("hot-swap-template")!
+          .querySelector(".old-template"),
       ).toBeNull();
-      expect(document.getElementById("hot-swap-template")!.textContent).toContain("count=77");
+      expect(
+        document.getElementById("hot-swap-template")!.textContent,
+      ).toContain("count=77");
 
       cleanupFrame(frame);
     });
@@ -690,7 +710,9 @@ describe("HMR", () => {
       // No crash, state intact
       expect(frame.view!.updater.get<number>("count")).toBe(5);
       expect(
-        document.getElementById("hot-swap-same")!.querySelector(".same-template"),
+        document
+          .getElementById("hot-swap-same")!
+          .querySelector(".same-template"),
       ).not.toBeNull();
 
       cleanupFrame(frame);
@@ -722,7 +744,9 @@ describe("HMR", () => {
       expect(frame.view!.updater.get<number>("count")).toBe(33);
       // New template applied
       expect(
-        document.getElementById("hot-swap-class")!.querySelector(".new-template"),
+        document
+          .getElementById("hot-swap-class")!
+          .querySelector(".new-template"),
       ).not.toBeNull();
       // Registry updated
       expect(getViewClassRegistry()["test/hot-swap-class"]).toBe(NewView);
@@ -757,7 +781,7 @@ describe("HMR", () => {
         const result = injectTemplateHmrSnippet(source, "vite");
         expect(result).toContain("import.meta.hot");
         expect(result).toContain("hotSwapByTemplate");
-        expect(result).toContain("__larkTemplate");
+        expect(result).toContain("__lark_template__");
         expect(result).not.toContain("module.hot");
       });
 
@@ -779,8 +803,12 @@ describe("HMR", () => {
 
     describe("importsHtmlTemplate", () => {
       it("detects .html import", () => {
-        expect(importsHtmlTemplate('import template from "./home.html";')).toBe(true);
-        expect(importsHtmlTemplate('import t from "../components/counter.html"')).toBe(true);
+        expect(importsHtmlTemplate('import template from "./home.html";')).toBe(
+          true,
+        );
+        expect(
+          importsHtmlTemplate('import t from "../components/counter.html"'),
+        ).toBe(true);
       });
 
       it("returns false for files without .html import", () => {
@@ -801,8 +829,8 @@ export default View.extend({
         const result = injectViewHmrSnippet(source, "vite");
 
         // Should create a named const
-        expect(result).toContain("const __larkViewDefault = View.extend");
-        expect(result).toContain("export default __larkViewDefault");
+        expect(result).toContain("const __lark_view__ = View.extend");
+        expect(result).toContain("export default __lark_view__");
         // Should append HMR
         expect(result).toContain("import.meta.hot");
         expect(result).toContain("hotSwapByView");

@@ -4,14 +4,15 @@ template hmr snippet for vite
 // Auto-injected by larkMvcPlugin
 if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
-    data.oldTemplate = __larkTemplate;
+    data.oldTemplate = __lark_template__;
   });
   import.meta.hot.accept((newMod) => {
     const newTemplate = newMod?.default;
     const oldTemplate = import.meta.hot.data?.oldTemplate;
     if (oldTemplate && newTemplate && oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
-      if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
+      if (hmr && hmr.hotSwapByTemplate)
+        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   });
 }
@@ -24,14 +25,15 @@ template hmr snippet for webpack/rspack
 if (import.meta.webpackHot) {
   if (import.meta.webpackHot.data?.oldTemplate) {
     const oldTemplate = import.meta.webpackHot.data.oldTemplate;
-    const newTemplate = __larkTemplate;
+    const newTemplate = __lark_template__;
     if (oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
-      if (hmr && hmr.hotSwapByTemplate) hmr.hotSwapByTemplate(oldTemplate, newTemplate);
+      if (hmr && hmr.hotSwapByTemplate)
+        hmr.hotSwapByTemplate(oldTemplate, newTemplate);
     }
   }
   import.meta.webpackHot.dispose((data) => {
-    data.oldTemplate = __larkTemplate;
+    data.oldTemplate = __lark_template__;
   });
   import.meta.webpackHot.accept();
 }
@@ -43,7 +45,7 @@ view hmr snippet for vite
 // Auto-injected by larkMvcPlugin
 if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
-    data.oldView = __larkViewDefault;
+    data.oldView = __lark_view__;
   });
   import.meta.hot.accept((newMod) => {
     const newView = newMod?.default;
@@ -63,14 +65,14 @@ view hmr snippet for webpack/rspack
 if (import.meta.webpackHot) {
   if (import.meta.webpackHot.data?.oldView) {
     const oldView = import.meta.webpackHot.data.oldView;
-    const newView = __larkViewDefault;
+    const newView = __lark_view__;
     if (oldView !== newView) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   }
   import.meta.webpackHot.dispose((data) => {
-    data.oldView = __larkViewDefault;
+    data.oldView = __lark_view__;
   });
   import.meta.webpackHot.accept();
 }

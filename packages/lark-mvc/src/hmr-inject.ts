@@ -66,7 +66,7 @@ export type Bundler = "vite" | "webpack" | "rspack";
 /**
  * IMPORTANT
  *
- * __larkTemplate: The named export identifier that `compileTemplate` uses for the template
+ * __lark_template__: The named export identifier that `compileTemplate` uses for the template
  * function. The HMR snippet references this by name.
  *
  *
@@ -75,9 +75,9 @@ export type Bundler = "vite" | "webpack" | "rspack";
 /**
  * Generate the HMR snippet for a compiled template module.
  *
- * The snippet assumes the module has a named function `__larkTemplate` (set
+ * The snippet assumes the module has a named function `__lark_template__` (set
  * by `compileTemplate`) and a default export pointing to it. It:
- * 1. On `dispose`: saves the current `__larkTemplate` reference into
+ * 1. On `dispose`: saves the current `__lark_template__` reference into
  *    `hot.data` so the accept callback can retrieve the OLD function.
  * 2. On `accept`: determines the NEW template function, then calls
  *    `hotSwapByTemplate(old, new)` to update all mounted views.
@@ -100,7 +100,7 @@ function getTemplateHmrSnippet(bundler: Bundler): string {
 // Auto-injected by larkMvcPlugin
 if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
-    data.oldTemplate = __larkTemplate;
+    data.oldTemplate = __lark_template__;
   });
   import.meta.hot.accept((newMod) => {
     const newTemplate = newMod?.default;
@@ -147,7 +147,7 @@ if (import.meta.hot) {
 if (import.meta.webpackHot) {
   const oldTemplate = import.meta.webpackHot.data?.oldTemplate;
   if (oldTemplate) {
-    const newTemplate = __larkTemplate;
+    const newTemplate = __lark_template__;
     if (oldTemplate !== newTemplate) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByTemplate)
@@ -155,7 +155,7 @@ if (import.meta.webpackHot) {
     }
   }
   import.meta.webpackHot.dispose((data) => {
-    data.oldTemplate = __larkTemplate;
+    data.oldTemplate = __lark_template__;
   });
   import.meta.webpackHot.accept((err) => {
     if (err) {
@@ -178,7 +178,10 @@ if (import.meta.webpackHot) {
  * @param bundler - Which bundler's HMR API to use
  * @returns The source with HMR accept/dispose code appended
  */
-export function injectTemplateHmrSnippet(source: string, bundler: Bundler): string {
+export function injectTemplateHmrSnippet(
+  source: string,
+  bundler: Bundler,
+): string {
   return source + "\n" + getTemplateHmrSnippet(bundler);
 }
 
@@ -189,10 +192,10 @@ export function injectTemplateHmrSnippet(source: string, bundler: Bundler): stri
 /**
  * Generate the HMR snippet for a view `.ts` module.
  *
- * This snippet references `__larkViewDefault`, which must be a named const
+ * This snippet references `__lark_view__`, which must be a named const
  * holding the View class. The `transformViewClassSource` function (below)
  * rewrites `export default defineView(...)` into
- * `const __larkViewDefault = defineView(...); export default __larkViewDefault;`
+ * `const __lark_view__ = defineView(...); export default __lark_view__;`
  * so that the HMR callback can capture the old class reference.
  */
 function getViewHmrSnippet(bundler: Bundler): string {
@@ -201,7 +204,7 @@ function getViewHmrSnippet(bundler: Bundler): string {
 // Auto-injected by larkMvcPlugin
 if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
-    data.oldView = __larkViewDefault;
+    data.oldView = __lark_view__;
   });
   import.meta.hot.accept((newMod) => {
     const newView = newMod?.default;
@@ -225,14 +228,14 @@ if (import.meta.webpackHot) {
   const oldView = import.meta.webpackHot.data?.oldView;
   if (oldView) {
 
-    const newView = __larkViewDefault;
+    const newView = __lark_view__;
     if (oldView !== newView) {
       const hmr = globalThis.__lark_hmr__;
       if (hmr && hmr.hotSwapByView) hmr.hotSwapByView(oldView, newView);
     }
   }
   import.meta.webpackHot.dispose((data) => {
-    data.oldView = __larkViewDefault;
+    data.oldView = __lark_view__;
   });
   import.meta.webpackHot.accept((err) => {
     if (err) {
@@ -245,7 +248,8 @@ if (import.meta.webpackHot) {
 }
 
 /** Regex to detect a `.html` import statement in a `.ts` source. */
-const HTML_IMPORT_RE = /import\s+(?:template\s+from\s+|.*from\s+)?["'][^"']+\.html["']/;
+const HTML_IMPORT_RE =
+  /import\s+(?:template\s+from\s+|.*from\s+)?["'][^"']+\.html["']/;
 
 /**
  * Quick check: does this `.ts` source import a `.html` template?
@@ -264,7 +268,7 @@ export function importsHtmlTemplate(source: string): boolean {
  * 1. Check if the source imports a `.html` template. If not, return as-is.
  * 2. Find the `export default` declaration (via @babel/parser AST).
  * 3. Rewrite it to a named const + export, so the HMR snippet can reference
- *    the View class by name (`__larkViewDefault`).
+ *    the View class by name (`__lark_view__`).
  * 4. Append the HMR snippet.
  *
  * If the source has no `export default`, or if parsing fails, the source is
@@ -306,8 +310,8 @@ export function injectViewHmrSnippet(source: string, bundler: Bundler): string {
   const after = source.substring(endIdx);
   const transformed =
     before +
-    `const __larkViewDefault = ${expression};` +
-    `\nexport default __larkViewDefault;` +
+    `const __lark_view__ = ${expression};` +
+    `\nexport default __lark_view__;` +
     after +
     "\n" +
     getViewHmrSnippet(bundler);

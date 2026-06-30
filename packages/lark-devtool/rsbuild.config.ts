@@ -106,6 +106,10 @@ export default defineConfig(({ command }) => {
     dev: {
       hmr: true,
       // lazyCompilation: false,
+      client: {
+        host: "localhost",
+        port: 5173,
+      },
     },
   };
 });

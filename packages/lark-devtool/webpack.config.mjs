@@ -98,6 +98,7 @@ export default (env, argv) => {
 
     devServer: {
       port: 5173,
+      host: "localhost",
       open: true,
       hot: true,
       compress: true,

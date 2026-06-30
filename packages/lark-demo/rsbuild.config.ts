@@ -185,6 +185,10 @@ export default defineConfig(({ command }) => {
 
     dev: {
       hmr: true,
+      client: {
+        host: "localhost",
+        port: 3000,
+      },
     },
   };
 });

@@ -157,7 +157,10 @@ if (import.meta.webpackHot) {
   import.meta.webpackHot.dispose((data) => {
     data.oldTemplate = __larkTemplate;
   });
-  import.meta.webpackHot.accept(console.error);
+  import.meta.webpackHot.accept((err) => {
+    console.error(err);
+    globalThis.location?.reload();
+  });
 }
 `;
 }
@@ -229,7 +232,10 @@ if (import.meta.webpackHot) {
   import.meta.webpackHot.dispose((data) => {
     data.oldView = __larkViewDefault;
   });
-  import.meta.webpackHot.accept(console.error);
+  import.meta.webpackHot.accept((err) => {
+    console.error(err);
+    globalThis.location?.reload();
+  });
 }
 `;
 }

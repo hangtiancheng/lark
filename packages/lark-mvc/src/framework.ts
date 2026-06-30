@@ -34,7 +34,13 @@ import { EventDelegator } from "./event-delegator";
 import { defineView } from "./view";
 import { hotSwapByTemplate, hotSwapByView } from "./hmr";
 import { installFrameDevtoolBridge } from "./devtool";
-import type { AnyFunc, FrameworkConfig, ViewCtx, ChangeEvent, FrameworkApi } from "./types";
+import type {
+  AnyFunc,
+  FrameworkConfig,
+  ViewCtx,
+  ChangeEvent,
+  FrameworkApi,
+} from "./types";
 
 // ============================================================
 // Internal state
@@ -100,7 +106,10 @@ function executeTaskChunk(deadline?: IdleDeadline): void {
         scheduleTaskChunk();
         return;
       }
-    } else if (Date.now() - startTime > CALL_BREAK_TIME && taskList.length > taskIndex + 3) {
+    } else if (
+      Date.now() - startTime > CALL_BREAK_TIME &&
+      taskList.length > taskIndex + 3
+    ) {
       // Fixed: 48ms budget, and there are more tasks remaining
       scheduleTaskChunk();
       return;
@@ -195,7 +204,10 @@ function viewIsObserveChanged(view: ViewCtx): boolean {
 /**
  * Check if a view's observed state keys have changed.
  */
-function stateIsObserveChanged(view: ViewCtx, stateKeys: ReadonlySet<string>): boolean {
+function stateIsObserveChanged(
+  view: ViewCtx,
+  stateKeys: ReadonlySet<string>,
+): boolean {
   const observedKeys = view.getObservedStateKeys();
   if (!observedKeys) return false;
   for (const key of observedKeys) {
@@ -213,7 +225,10 @@ function stateIsObserveChanged(view: ViewCtx, stateKeys: ReadonlySet<string>): b
  * frame is processed after the promise resolves; sibling subtrees keep
  * draining the stack synchronously meanwhile.
  */
-function dispatcherUpdate(frame: FrameObj, stateKeys?: ReadonlySet<string>): void {
+function dispatcherUpdate(
+  frame: FrameObj,
+  stateKeys?: ReadonlySet<string>,
+): void {
   const stack: FrameObj[] = [frame];
 
   const drain = (s: FrameObj[]): void => {
@@ -237,7 +252,12 @@ function dispatcherUpdate(frame: FrameObj, stateKeys?: ReadonlySet<string>): voi
 
       let renderPromise: PromiseLike<void> | undefined;
       if (isChanged) {
-        const renderResult = funcWithTry(view.renderMethod ?? view.render, [], view, noop);
+        const renderResult = funcWithTry(
+          view.renderMethod ?? view.render,
+          [],
+          view,
+          noop,
+        );
         if (isThenable(renderResult)) {
           renderPromise = renderResult;
         }
@@ -301,7 +321,11 @@ function dispatcherNotifyChange(e: ChangeEvent): void {
 /**
  * Fire a custom DOM event on a target element.
  */
-function dispatchEvent(target: EventTarget, eventType: string, eventInit?: CustomEventInit): void {
+function dispatchEvent(
+  target: EventTarget,
+  eventType: string,
+  eventInit?: CustomEventInit,
+): void {
   const event = new CustomEvent(eventType, {
     bubbles: true,
     cancelable: true,
@@ -323,7 +347,10 @@ export const WAIT_TIMEOUT_OR_NOT_FOUND = 0;
 /**
  * Wait for all views in a zone to be rendered.
  */
-function waitZoneViewsRendered(viewId: string, timeout?: number): Promise<number> {
+function waitZoneViewsRendered(
+  viewId: string,
+  timeout?: number,
+): Promise<number> {
   if (timeout == null) {
     timeout = 30 * 1000;
   }
@@ -355,7 +382,9 @@ function waitZoneViewsRendered(viewId: string, timeout?: number): Promise<number
  */
 function getConfigImpl(): FrameworkConfig;
 function getConfigImpl<T = unknown>(key: string): T | undefined;
-function getConfigImpl<T = unknown>(key?: string): FrameworkConfig | T | undefined {
+function getConfigImpl<T = unknown>(
+  key?: string,
+): FrameworkConfig | T | undefined {
   if (key === undefined) return config;
   // Generic retrieval from config — cast is unavoidable
   return Reflect.get(config, key) as T | undefined;
@@ -447,7 +476,7 @@ export const Framework: FrameworkApi = {
     //
     // CRITICAL: check `viewPath` (set synchronously at the top of mountView)
     // instead of `view` (the viewInstance, which is only assigned inside
-    // doMountView — AFTER the async view class load completes).
+    // doMountView — AFTER the async view setup load completes).
     //
     // When views are loaded asynchronously (via config.require / dynamic
     // import), Router._bind() → diff() → CHANGED → mountView(routeView)

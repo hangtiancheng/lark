@@ -975,7 +975,7 @@ export interface FrameworkConfig {
   unmatchedView?: string;
   /**
    * Module require function for asynchronous view loading.
-   * Called by `Framework.use()` when a view class is not found in the registry.
+   * Called by `Framework.use()` when a view setup is not found in the registry.
    * Integrate with Webpack Module Federation or other dynamic loading strategies.
    *
    * @param names - Array of module names to load (e.g., `["remote-app/views/home"]`)

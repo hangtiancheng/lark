@@ -87,7 +87,10 @@ export function createFrame(id: string, parentId?: string): FrameObj {
     readyMap,
     emitter,
 
-    mountView(viewPathArg: string, viewInitParams?: Record<string, unknown>): void {
+    mountView(
+      viewPathArg: string,
+      viewInitParams?: Record<string, unknown>,
+    ): void {
       const node = document.getElementById(frame.id);
       const pId = frame.parentId;
 
@@ -573,7 +576,11 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
  * emits a SPLITTER-prefixed token instead of the raw value. This function
  * resolves those tokens so the child view receives the actual objects.
  */
-function translateQuery(pId: string, src: string, params: Record<string, string>): void {
+function translateQuery(
+  pId: string,
+  src: string,
+  params: Record<string, string>,
+): void {
   const parentFrame = frameRegistry.get(pId);
   const parentView = parentFrame?.view;
   if (!parentView) return;
@@ -601,7 +608,11 @@ function translateQuery(pId: string, src: string, params: Record<string, string>
 }
 
 // ============================================================
-// View class registration (re-exported)
+// View setup registration (re-exported)
 // ============================================================
 
-export { registerViewClass, invalidateViewClass, getViewClassRegistry } from "./view-registry";
+export {
+  registerViewClass,
+  invalidateViewClass,
+  getViewClassRegistry,
+} from "./view-registry";

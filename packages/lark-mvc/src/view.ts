@@ -446,9 +446,9 @@ export function unregisterEvents(ctx: ViewCtx): void {
       const globalNode: EventTarget | undefined = VIEW_GLOBALS[selectorOrCallback];
 
       if (isSelector && globalNode) {
-        // Global event: remove listener
-        // The boundHandler is stored on the prototype in the old system.
-        // In the functional system, we track it in the events map metadata.
+        // Global event (window/document): cleanup is handled by the
+        // ctx.on("destroy") callback registered in registerGlobalEvent,
+        // so no explicit unregistration is needed here.
       } else if (isSelector) {
         EventDelegator.unbind(eventType, true);
       } else {

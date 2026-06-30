@@ -6,8 +6,8 @@
  * React's `@vitejs/plugin-react` and Vue's `@vitejs/plugin-vue` auto-inject
  * HMR boilerplate at compile time so users never write `import.meta.hot`
  * themselves. Lark's `larkMvcPlugin` / `larkMvcLoader` previously did NOT
- * inject any HMR code, forcing users to manually call `acceptView()` /
- * `disposeView()` in every view file — a poor DX.
+ * inject any HMR code, forcing users to manually write HMR accept/dispose
+ * boilerplate in every view file — a poor DX.
  *
  * This module generates the HMR snippet strings that the three bundler
  * integrations (vite.ts, webpack.ts, rspack.ts) append to compiled output.
@@ -21,7 +21,7 @@
  *    `.html` changes, the accept callback calls `hotSwapByTemplate(old, new)`
  *    to update the template on all mounted views — preserving state.
  *
- * 2. **View class module** (`.ts` file that imports `.html`): self-accepts.
+ * 2. **View setup module** (`.ts` file that imports `.html`): self-accepts.
  *    When the `.ts` changes, the accept callback calls
  *    `hotSwapByView(old, new)` to swap the setup function on all mounted
  *    instances — preserving state.
@@ -38,17 +38,17 @@
  * in this file: swap logic placed inside `accept(cb)` never executed on
  * successful updates.
  *
- * Additional critical difference: since the compiled template output always
- * uses `import`/`export` (ESM) syntax, Rspack does NOT reliably provide
- * `import.meta.webpackHot` for these modules. Using the legacy `import.meta.webpackHot` API caused:
- *   - Webpack: `import.meta.webpackHot.data` not populated correctly with MF → UI never
- *     updated.
- *   - Rspack: `import.meta.webpackHot` undefined for ESM → module never self-accepts →
- *     update propagates to full page reload → state lost.
+ * Additional critical difference: the naive approach of putting swap logic
+ * inside `accept(cb)` failed on both Webpack and Rspack:
+ *   - Webpack: `import.meta.webpackHot.data` not populated correctly with
+ *     Module Federation → UI never updated.
+ *   - Rspack: ESM modules never self-accepted → update propagated to a full
+ *     page reload → state lost.
  *
  * The fix: Vite uses `accept(cb)` with swap inside cb; webpack/rspack use
- * `import.meta.webpackHot.accept()` (no args) + `dispose()` + a top-level
- * `import.meta.webpackHot.data` check that runs on HMR re-execution.
+ * the self-accept pattern: `import.meta.webpackHot.accept()` (no args) +
+ * `dispose()` + a top-level `import.meta.webpackHot.data` check that runs
+ * on HMR re-execution.
  * See getTemplateHmrSnippet / getViewHmrSnippet for the detailed rationale.
  */
 
@@ -178,22 +178,25 @@ if (import.meta.webpackHot) {
  * @param bundler - Which bundler's HMR API to use
  * @returns The source with HMR accept/dispose code appended
  */
-export function injectTemplateHmrSnippet(source: string, bundler: Bundler): string {
+export function injectTemplateHmrSnippet(
+  source: string,
+  bundler: Bundler,
+): string {
   return source + "\n" + getTemplateHmrSnippet(bundler);
 }
 
 // ============================================================
-// View class HMR injection (for .ts files)
+// View setup HMR injection (for .ts files)
 // ============================================================
 
 /**
  * Generate the HMR snippet for a view `.ts` module.
  *
  * This snippet references `__lark_view__`, which must be a named const
- * holding the View class. The `transformViewClassSource` function (below)
- * rewrites `export default defineView(...)` into
+ * holding the View setup function. The `injectViewHmrSnippet` function
+ * (below) rewrites `export default defineView(...)` into
  * `const __lark_view__ = defineView(...); export default __lark_view__;`
- * so that the HMR callback can capture the old class reference.
+ * so that the HMR callback can capture the old setup reference.
  */
 function getViewHmrSnippet(bundler: Bundler): string {
   if (bundler === "vite") {
@@ -245,7 +248,8 @@ if (import.meta.webpackHot) {
 }
 
 /** Regex to detect a `.html` import statement in a `.ts` source. */
-const HTML_IMPORT_RE = /import\s+(?:template\s+from\s+|.*from\s+)?["'][^"']+\.html["']/;
+const HTML_IMPORT_RE =
+  /import\s+(?:template\s+from\s+|.*from\s+)?["'][^"']+\.html["']/;
 
 /**
  * Quick check: does this `.ts` source import a `.html` template?
@@ -258,13 +262,13 @@ export function importsHtmlTemplate(source: string): boolean {
 }
 
 /**
- * Transform a `.ts` view file source to add view class HMR.
+ * Transform a `.ts` view file source to add view setup HMR.
  *
  * Steps:
  * 1. Check if the source imports a `.html` template. If not, return as-is.
  * 2. Find the `export default` declaration (via @babel/parser AST).
  * 3. Rewrite it to a named const + export, so the HMR snippet can reference
- *    the View class by name (`__lark_view__`).
+ *    the View setup by name (`__lark_view__`).
  * 4. Append the HMR snippet.
  *
  * If the source has no `export default`, or if parsing fails, the source is

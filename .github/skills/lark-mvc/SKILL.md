@@ -50,7 +50,7 @@ Any task that names or clearly implies Lark:
 - Embedding remote views via Module Federation (`CrossSite`, `FrameworkConfig.require`).
 - API request layers using `createService`, `service.all/one/save`, `cleanKeys`.
 - Hot module replacement: `hotSwapByView(old, new)`, `hotSwapByTemplate(old, new)` (auto-injected by bundler plugins).
-- Choosing between the real-DOM diff renderer and the virtual-DOM diff renderer (`config.virtualDom`).
+- Choosing between the real-DOM diff renderer and the virtual-DOM diff renderer (`config.vdom`).
 
 ## Architecture
 
@@ -85,20 +85,6 @@ Lark separates code along three orthogonal axes:
 ### Dispatcher: iterative frame-tree walk
 
 When Router or State fires `changed`, the dispatcher walks the Frame tree using an explicit LIFO stack (not recursion). Each visit checks whether the view's observed keys have changed; if so, it calls `render()`. A monotonic `dispatcherUpdateTag` prevents double-visits within the same cycle.
-
-### Window globals
-
-After boot, the framework attaches these to `window` for debugging and HMR:
-
-| Global                               | Value            | Purpose                               |
-| ------------------------------------ | ---------------- | ------------------------------------- |
-| `window.__lark_Framework`            | Framework object | Direct framework access               |
-| `window.__lark_State`                | State object     | Direct state access                   |
-| `window.__lark_Router`               | Router object    | Direct router access                  |
-| `window.__lark_Frame`                | Frame singleton  | Direct Frame access                   |
-| `window.__lark_registerViewClass`    | function         | HMR helper: re-register a View setup  |
-| `window.__lark_invalidateViewClass`  | function         | HMR helper: drop a View from registry |
-| `window.__lark_getViewClassRegistry` | function         | HMR helper: read the View registry    |
 
 ## Project structure
 
@@ -143,7 +129,7 @@ export default defineConfig({
 });
 ```
 
-Options: `{ debug?: boolean, virtualDom?: boolean }`.
+Options: `{ debug?: boolean, vdom?: boolean }`.
 
 **Webpack:**
 
@@ -506,7 +492,7 @@ export default defineView((ctx, params) => {
 
 ## Defining the Framework Boot
 
-`Framework.boot(config)` accepts a `FrameworkConfig` with `rootId` (required), `routeMode` ("history" | "hash"), `defaultView`, `routes`, `unmatchedView`, `require` (async View loader), `virtualDom` (boolean), and more. After boot, use `Framework.getConfig(key)` for reads and `Framework.setConfig(patch)` for writes.
+`Framework.boot(config)` accepts a `FrameworkConfig` with `rootId` (required), `routeMode` ("history" | "hash"), `defaultView`, `routes`, `unmatchedView`, `require` (async View loader), `vdom` (boolean), and more. After boot, use `Framework.getConfig(key)` for reads and `Framework.setConfig(patch)` for writes.
 
 ## Router
 

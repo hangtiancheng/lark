@@ -1,18 +1,14 @@
 /**
- * Investigation: VDOM mode `v-lark` sub-view compatibility.
+ * VDOM mode `v-lark` sub-view compatibility.
  *
- * Verifies whether the `v-lark` attribute (LARK_VIEW = "v-lark") can work
+ * Verifies that the `v-lark` attribute (LARK_VIEW = "v-lark") works correctly
  * across the full VDOM lifecycle: first render, diff update, and dynamic
  * creation of new v-lark elements.
+ *
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  vdomCreate,
-  vdomSetChildNodes,
-  createVDomRef,
-  vdomCreateNode,
-} from "../src/vdom";
-import { LARK_VIEW } from "../src/common";
+import { vdomCreate, vdomSetChildNodes, createVDomRef, vdomCreateNode } from "../src/vdom";
+import { LARK_VIEW, LARK_PROP_PREFIX } from "../src/common";
 import {
   Frame,
   createFrame,
@@ -38,54 +34,70 @@ function cleanup(): void {
   }
 }
 
-describe("VDOM v-lark compatibility investigation", () => {
+function findChild(parentFrame: FrameObj): FrameObj | undefined {
+  return Array.from(Frame.getAll().values()).find(
+    (f) => f.parentId === parentFrame.id && f.getViewPath(),
+  );
+}
+
+const PROP_MSG = `${LARK_PROP_PREFIX}msg`;
+
+describe("VDOM v-lark compatibility", () => {
   beforeEach(() => {
     const reg = getViewClassRegistry();
     for (const key of Object.keys(reg)) invalidateViewClass(key);
   });
   afterEach(() => cleanup());
 
-  it("setAttribute('v-lark', ...) throws InvalidCharacterError in jsdom", () => {
+  // ============================================================
+  // 1. setAttribute works (v-lark is a valid HTML attribute name)
+  // ============================================================
+  it("setAttribute('v-lark', ...) works without throwing", () => {
     const el = document.createElement("div");
-    let err: unknown;
-    try {
+    expect(() => {
       el.setAttribute(LARK_VIEW, "test/child");
-    } catch (e) {
-      err = e;
-    }
-    expect(err).toBeInstanceOf(DOMException);
-    expect((err as DOMException).name).toBe("InvalidCharacterError");
+    }).not.toThrow();
+    expect(el.getAttribute(LARK_VIEW)).toBe("test/child");
   });
 
   it("innerHTML parsing preserves v-lark attribute on the DOM", () => {
     const el = document.createElement("div");
-    el.innerHTML = `<div ${LARK_VIEW}="test/child" p-lark-g="hello"></div>`;
+    el.innerHTML = `<div ${LARK_VIEW}="test/child" ${PROP_MSG}="hello"></div>`;
     const child = el.firstElementChild as HTMLElement;
     expect(child).not.toBeNull();
-    // The v-lark attribute should be accessible via getAttribute
     expect(child.getAttribute(LARK_VIEW)).toBe("test/child");
-    expect(child.getAttribute("p-lark-g")).toBe("hello");
+    expect(child.getAttribute(PROP_MSG)).toBe("hello");
   });
 
-  it("vdomCreateNode throws when creating a v-lark element (setAttribute path)", () => {
-    const vnode = vdomCreate("div", { [LARK_VIEW]: "test/child" });
+  // ============================================================
+  // 2. vdomCreateNode works for v-lark elements (no crash)
+  // ============================================================
+  it("vdomCreateNode creates a v-lark element without throwing", () => {
+    const vnode = vdomCreate("div", {
+      [LARK_VIEW]: "test/child",
+      [PROP_MSG]: "hello",
+    });
     const ref = createVDomRef("test");
     const owner = document.createElement("div");
-    let err: unknown;
-    try {
-      vdomCreateNode(vnode, owner, ref);
-    } catch (e) {
-      err = e;
-    }
-    expect(err).toBeInstanceOf(DOMException);
+
+    let node: ChildNode | undefined;
+    expect(() => {
+      node = vdomCreateNode(vnode, owner, ref);
+    }).not.toThrow();
+
+    expect(node).toBeDefined();
+    const el = node as Element;
+    expect(el.getAttribute(LARK_VIEW)).toBe("test/child");
+    expect(el.getAttribute(PROP_MSG)).toBe("hello");
   });
 
-  it("vdomSetChildNodes first-render via innerHTML fast path works (no setAttribute)", () => {
-    // First render goes through the fast path: realNode.innerHTML = newVDom.html
-    // Browser parses the HTML string, preserving v-lark attribute.
+  // ============================================================
+  // 3. vdomSetChildNodes — first render (innerHTML fast path)
+  // ============================================================
+  it("vdomSetChildNodes first-render via innerHTML fast path works", () => {
     const childVNode = vdomCreate("div", {
       [LARK_VIEW]: "test/child",
-      "p-lark-g": "hello",
+      [PROP_MSG]: "hello",
     });
     const rootVNode = vdomCreate("root", 0, [childVNode]) as VDomNode;
 
@@ -108,17 +120,16 @@ describe("VDOM v-lark compatibility investigation", () => {
       );
     }).not.toThrow();
 
-    // The v-lark element should be in the DOM
-    const viewEl = root.querySelector(
-      `[${LARK_VIEW.replace("#", "\\#")}]`,
-    ) as HTMLElement;
+    const viewEl = root.querySelector(`[${LARK_VIEW}]`) as HTMLElement;
     expect(viewEl).not.toBeNull();
     expect(viewEl.getAttribute(LARK_VIEW)).toBe("test/child");
-    expect(viewEl.getAttribute("p-lark-g")).toBe("hello");
+    expect(viewEl.getAttribute(PROP_MSG)).toBe("hello");
   });
 
-  it("vdomSetChildNodes diff update crashes when v-lark element is newly created", () => {
-    // Initial state: no v-lark element
+  // ============================================================
+  // 4. vdomSetChildNodes — diff creates new v-lark element (NO crash)
+  // ============================================================
+  it("vdomSetChildNodes diff creates new v-lark element without crashing", () => {
     const root = document.createElement("div");
     root.id = "root-invest-2";
     root.innerHTML = "<span>placeholder</span>";
@@ -127,7 +138,7 @@ describe("VDOM v-lark compatibility investigation", () => {
 
     const childVNode = vdomCreate("div", {
       [LARK_VIEW]: "test/child",
-      "p-lark-g": "hello",
+      [PROP_MSG]: "hello",
     });
     const oldVNode = vdomCreate("root", 0, [
       vdomCreate("span", 0, [vdomCreate(0, "placeholder")]),
@@ -135,8 +146,7 @@ describe("VDOM v-lark compatibility investigation", () => {
     const newVNode = vdomCreate("root", 0, [childVNode]) as VDomNode;
 
     const ref = createVDomRef("root-invest-2");
-    let err: unknown;
-    try {
+    expect(() => {
       vdomSetChildNodes(
         root,
         oldVNode,
@@ -147,18 +157,20 @@ describe("VDOM v-lark compatibility investigation", () => {
         undefined as never,
         () => {},
       );
-    } catch (e) {
-      err = e;
-    }
-    // This SHOULD crash because vdomCreateNode → vdomSetAttributes → setAttribute('v-lark', ...)
-    expect(err).toBeInstanceOf(DOMException);
+    }).not.toThrow();
+
+    // The new v-lark element should be in the DOM
+    const viewEl = root.querySelector(`[${LARK_VIEW}]`) as HTMLElement;
+    expect(viewEl).not.toBeNull();
+    expect(viewEl.getAttribute(LARK_VIEW)).toBe("test/child");
+    expect(viewEl.getAttribute(PROP_MSG)).toBe("hello");
   });
 
   // ============================================================
-  // End-to-end: VDOM mode with defineView
+  // 5. End-to-end: VDOM mode with defineView
   // ============================================================
   describe("end-to-end VDOM mode defineView", () => {
-    it("first render of v-lark child works (innerHTML fast path)", async () => {
+    it("first render of v-lark child works", async () => {
       let childReceived: unknown;
       registerViewClass(
         "test/child",
@@ -175,16 +187,13 @@ describe("VDOM v-lark compatibility investigation", () => {
         defineView((ctx) => {
           ctx.updater.digest({ greeting: "hello" });
           return {
-            // Return a root VDomNode (like the compiler output):
-            //   vdomCreate(viewId, 0, [childDiv])
-            // The childDiv carries v-lark + p-lark-attributes.
             template: (data: unknown, viewId: string) => {
               const d = (data || {}) as Record<string, unknown>;
               const childDiv = vdomCreate(
                 "div",
                 {
                   [LARK_VIEW]: "test/child",
-                  "p-lark-g": String(d["greeting"]),
+                  [PROP_MSG]: String(d["greeting"]),
                 },
                 [],
               );
@@ -203,12 +212,11 @@ describe("VDOM v-lark compatibility investigation", () => {
         err = e;
       }
 
-      // First render via innerHTML fast path should work
       expect(err).toBeUndefined();
       expect(childReceived).toBe("hello");
     });
 
-    it("second render (diff) when v-lark element unchanged works", async () => {
+    it("second render (diff) pushes updated props to child", async () => {
       let childReceived: unknown[] = [];
       registerViewClass(
         "test/child",
@@ -236,7 +244,7 @@ describe("VDOM v-lark compatibility investigation", () => {
                 "div",
                 {
                   [LARK_VIEW]: "test/child",
-                  "p-lark-g": String(d["greeting"]),
+                  [PROP_MSG]: String(d["greeting"]),
                 },
                 [],
               );
@@ -252,33 +260,33 @@ describe("VDOM v-lark compatibility investigation", () => {
 
       // Verify DOM state after first render
       const root2 = document.getElementById("e2e-2")!;
-      const viewEl2 = root2.querySelector(`[\\${LARK_VIEW}]`) as HTMLElement;
+      const viewEl2 = root2.querySelector(`[${LARK_VIEW}]`) as HTMLElement;
       expect(viewEl2).not.toBeNull();
       expect(viewEl2.getAttribute(LARK_VIEW)).toBe("test/child");
-      expect(viewEl2.getAttribute("p-lark-g")).toBe("first");
+      expect(viewEl2.getAttribute(PROP_MSG)).toBe("first");
 
       // Second render: change prop value → diff path
       frame.view!.updater.set({ greeting: "second" }).digest();
       await new Promise((r) => setTimeout(r, 10));
 
       // Verify diff updated the DOM attribute
-      const viewEl2b = root2.querySelector(`[\\${LARK_VIEW}]`) as HTMLElement;
-      expect(viewEl2b.getAttribute("p-lark-g")).toBe("second");
+      const viewEl2b = root2.querySelector(`[${LARK_VIEW}]`) as HTMLElement;
+      expect(viewEl2b.getAttribute(PROP_MSG)).toBe("second");
 
       // Verify child view's updater received the updated prop
-      const childFrame = Array.from(Frame.getAll().values()).find(
-        (f) => f.parentId === frame.id && f.getViewPath(),
-      );
+      const childFrame = findChild(frame);
       expect(childFrame?.view?.updater.get<string>("msg")).toBe("second");
 
       // Setup runs once with initial "first"; props update via updater.set
       expect(childReceived).toContain("first");
     });
 
-    it("dynamic creation of new v-lark element crashes (vdomCreateNode path)", async () => {
+    it("dynamic creation of new v-lark element works (no crash)", async () => {
+      let childMounted = false;
       registerViewClass(
         "test/child",
         defineView((ctx) => {
+          childMounted = true;
           ctx.updater.digest({});
           return { template: () => "<div>child</div>" };
         }),
@@ -293,13 +301,9 @@ describe("VDOM v-lark compatibility investigation", () => {
               const d = (data || {}) as Record<string, unknown>;
               const children: VDomNode[] = [];
               if (d["show"]) {
-                children.push(
-                  vdomCreate("div", { [LARK_VIEW]: "test/child" }, []),
-                );
+                children.push(vdomCreate("div", { [LARK_VIEW]: "test/child" }, []));
               } else {
-                children.push(
-                  vdomCreate("span", 0, [vdomCreate(0, "placeholder")]),
-                );
+                children.push(vdomCreate("span", 0, [vdomCreate(0, "placeholder")]));
               }
               return vdomCreate(viewId || "root", 0, children) as VDomNode;
             },
@@ -311,7 +315,10 @@ describe("VDOM v-lark compatibility investigation", () => {
       frame.mountView("test/parent");
       await new Promise((r) => setTimeout(r, 10));
 
-      // Toggle show=true → diff needs to create a new v-lark element
+      // Initially no child view
+      expect(findChild(frame)).toBeUndefined();
+
+      // Toggle show=true → diff creates a new v-lark element via vdomCreateNode
       let err: unknown;
       try {
         frame.view!.updater.set({ show: true }).digest();
@@ -319,8 +326,11 @@ describe("VDOM v-lark compatibility investigation", () => {
       } catch (e) {
         err = e;
       }
-      // vdomCreateNode → vdomSetAttributes → setAttribute('v-lark', ...) throws
-      expect(err).toBeInstanceOf(DOMException);
+
+      // v-lark is a valid attribute name, so vdomCreateNode no longer throws
+      expect(err).toBeUndefined();
+      expect(childMounted).toBe(true);
+      expect(findChild(frame)).toBeDefined();
     });
   });
 });

@@ -22,10 +22,7 @@ declare global {
   /** Scheduler API (Chrome 94+) — used by `Framework.task` for time-slicing. */
   var scheduler: Scheduler;
   var __lark_hmr__: {
-    hotSwapByTemplate: (
-      oldTemplate: ViewTemplate,
-      newTemplate: ViewTemplate,
-    ) => boolean;
+    hotSwapByTemplate: (oldTemplate: ViewTemplate, newTemplate: ViewTemplate) => boolean;
     hotSwapByView: (oldSetup: ViewSetup, newSetup: ViewSetup) => boolean;
   };
 

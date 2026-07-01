@@ -6,13 +6,7 @@
  * with closure-based methods. The `Frame` singleton provides static-like
  * registry methods (get, getAll, getRoot, createRoot, on, off, fire).
  */
-import {
-  SPLITTER,
-  LARK_VIEW,
-  LARK_PROP_PREFIX,
-  LARK_EVENT_PREFIX,
-  isRefToken,
-} from "./common";
+import { SPLITTER, LARK_VIEW, LARK_PROP_PREFIX, LARK_EVENT_PREFIX, isRefToken } from "./common";
 import {
   hasOwnProperty,
   parseUri,
@@ -93,10 +87,7 @@ export function createFrame(id: string, parentId?: string): FrameObj {
     readyMap,
     emitter,
 
-    mountView(
-      viewPathArg: string,
-      viewInitParams?: Record<string, unknown>,
-    ): void {
+    mountView(viewPathArg: string, viewInitParams?: Record<string, unknown>): void {
       const node = document.getElementById(frame.id);
       const pId = frame.parentId;
 
@@ -260,7 +251,6 @@ export function createFrame(id: string, parentId?: string): FrameObj {
       if (!rootEl) return;
 
       // v-lark is a valid HTML attribute name — no CSS escaping needed
-      // (unlike the former #view which required [\#view] escaping)
       const selector = `[${LARK_VIEW}]`;
       const viewElements = rootEl.querySelectorAll(selector);
       const mountList: Array<{
@@ -279,9 +269,7 @@ export function createFrame(id: string, parentId?: string): FrameObj {
             const propName = attr.name.slice(LARK_PROP_PREFIX.length);
             const val = attr.value;
             if (parentRefData && isRefToken(val)) {
-              props[propName] = hasOwnProperty(parentRefData, val)
-                ? parentRefData[val]
-                : val;
+              props[propName] = hasOwnProperty(parentRefData, val) ? parentRefData[val] : val;
             } else {
               props[propName] = val;
             }
@@ -660,11 +648,7 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
  * emits a SPLITTER-prefixed token instead of the raw value. This function
  * resolves those tokens so the child view receives the actual objects.
  */
-function translateQuery(
-  pId: string,
-  src: string,
-  params: Record<string, string>,
-): void {
+function translateQuery(pId: string, src: string, params: Record<string, string>): void {
   const parentFrame = frameRegistry.get(pId);
   const parentView = parentFrame?.view;
   if (!parentView) return;
@@ -695,8 +679,4 @@ function translateQuery(
 // View setup registration (re-exported)
 // ============================================================
 
-export {
-  registerViewClass,
-  invalidateViewClass,
-  getViewClassRegistry,
-} from "./view-registry";
+export { registerViewClass, invalidateViewClass, getViewClassRegistry } from "./view-registry";

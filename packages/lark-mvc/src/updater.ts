@@ -10,13 +10,7 @@
  */
 import { setData, hasOwnProperty, getById, EMPTY_STRING_SET } from "./utils";
 import { SPLITTER, isRefToken } from "./common";
-import {
-  domGetNode,
-  domSetChildNodes,
-  applyDomOps,
-  applyIdUpdates,
-  createDomRef,
-} from "./dom";
+import { domGetNode, domSetChildNodes, applyDomOps, applyIdUpdates, createDomRef } from "./dom";
 import { vdomSetChildNodes, createVDomRef } from "./vdom";
 import type { UpdaterApi, VDomNode } from "./types";
 import { Frame } from "./frame";
@@ -93,16 +87,8 @@ export function createUpdater(viewId: string): UpdaterApi {
    * @param excludes - Keys to skip change tracking for
    * @returns The updater API for chaining
    */
-  function set(
-    newData: Record<string, unknown>,
-    excludes?: ReadonlySet<string>,
-  ): UpdaterApi {
-    const changed = setData(
-      newData,
-      data,
-      changedKeys,
-      excludes || EMPTY_STRING_SET,
-    );
+  function set(newData: Record<string, unknown>, excludes?: ReadonlySet<string>): UpdaterApi {
+    const changed = setData(newData, data, changedKeys, excludes || EMPTY_STRING_SET);
     if (changed) {
       version++;
       hasChangedFlag = 1;

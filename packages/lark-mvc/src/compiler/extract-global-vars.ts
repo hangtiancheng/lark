@@ -3,6 +3,7 @@ import type * as t from "@babel/types";
 import {
   convertArtSyntax,
   processViewEvents,
+  processViewBindings,
   protectComments,
   restoreComments,
 } from "./template-syntax";
@@ -28,7 +29,8 @@ export async function extractGlobalVars(source: string): Promise<string[]> {
   // (reuse the same pipeline as compilation, but without debug markers)
   const { protectedSource, comments: _comments } = protectComments(source);
   const viewEventProcessed = processViewEvents(protectedSource);
-  const converted = convertArtSyntax(viewEventProcessed, false);
+  const viewBindingsProcessed = processViewBindings(viewEventProcessed);
+  const converted = convertArtSyntax(viewBindingsProcessed, false);
   const template = restoreComments(converted, _comments);
 
   // Step 2: Convert <% %> template commands into a JS-parsable form

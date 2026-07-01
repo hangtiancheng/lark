@@ -6,7 +6,7 @@
  * with closure-based methods. The `Frame` singleton provides static-like
  * registry methods (get, getAll, getRoot, createRoot, on, off, fire).
  */
-import { SPLITTER, LARK_VIEW } from "./common";
+import { SPLITTER, LARK_VIEW, isRefToken } from "./common";
 import {
   hasOwnProperty,
   parseUri,
@@ -87,10 +87,7 @@ export function createFrame(id: string, parentId?: string): FrameObj {
     readyMap,
     emitter,
 
-    mountView(
-      viewPathArg: string,
-      viewInitParams?: Record<string, unknown>,
-    ): void {
+    mountView(viewPathArg: string, viewInitParams?: Record<string, unknown>): void {
       const node = document.getElementById(frame.id);
       const pId = frame.parentId;
 
@@ -253,8 +250,15 @@ export function createFrame(id: string, parentId?: string): FrameObj {
       const rootEl = document.getElementById(targetZone);
       if (!rootEl) return;
 
-      const viewElements = rootEl.querySelectorAll(`[${LARK_VIEW}]`);
-      const frames: [string, string][] = [];
+      // Escape # for CSS selector: [#view] → [\#view]
+      const selector = LARK_VIEW.charAt(0) === "#" ? `[\\${LARK_VIEW}]` : `[${LARK_VIEW}]`;
+      const viewElements = rootEl.querySelectorAll(selector);
+      const mountList: Array<{
+        frameId: string;
+        viewPathArg: string;
+        props: Record<string, unknown>;
+        events: Record<string, string>;
+      }> = [];
 
       viewElements.forEach((el) => {
         if (!(el instanceof HTMLElement)) return;
@@ -262,14 +266,63 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         const elId = ensureElementId(el, "frame_");
         Reflect.set(el, "frameBound", 1);
         const viewPathArg = getAttribute(el, LARK_VIEW);
-        if (viewPathArg) {
-          frames.push([elId, viewPathArg]);
+        if (!viewPathArg) return;
+
+        // Read data-prop-* attributes → resolve ref tokens from parent refData
+        const props: Record<string, unknown> = {};
+        const parentView = frame.view;
+        const parentRefData = parentView?.updater.refData;
+        for (const attr of el.attributes) {
+          if (attr.name.startsWith("data-prop-")) {
+            const propName = attr.name.slice("data-prop-".length);
+            const val = attr.value;
+            if (parentRefData && isRefToken(val)) {
+              props[propName] = hasOwnProperty(parentRefData, val) ? parentRefData[val] : val;
+            } else {
+              props[propName] = val;
+            }
+          }
         }
+
+        // Read data-event-* attributes → child-to-parent event bindings
+        const events: Record<string, string> = {};
+        for (const attr of el.attributes) {
+          if (attr.name.startsWith("data-event-")) {
+            const eventName = attr.name.slice("data-event-".length);
+            events[eventName] = attr.value;
+          }
+        }
+
+        mountList.push({ frameId: elId, viewPathArg, props, events });
       });
 
-      // Mount each frame
-      for (const [frameId, viewPathArg] of frames) {
-        frame.mountFrame(frameId, viewPathArg);
+      // Mount each frame with props
+      for (const { frameId, viewPathArg, props, events } of mountList) {
+        const childFrame = frame.mountFrame(frameId, viewPathArg, props);
+
+        // Wire child-to-parent event bindings:
+        // data-event-increment="increment" → childFrame.on("increment", parentHandler)
+        // The parent handler is found by matching the name prefix in the parent's events map
+        const parentEvents = frame.view?.getEvents();
+        if (parentEvents) {
+          for (const eventName in events) {
+            const handlerName = events[eventName];
+            // Find parent handler: key starts with `${handlerName}<`
+            const prefix = handlerName + "<";
+            let handler: AnyFunc | undefined;
+            for (const key in parentEvents) {
+              if (key.startsWith(prefix)) {
+                handler = parentEvents[key];
+                break;
+              }
+            }
+            if (handler && childFrame) {
+              childFrame.on(eventName, (data?: Record<string, unknown>) => {
+                funcWithTry(handler!, data ? [data] : [], frame.view, noop);
+              });
+            }
+          }
+        }
       }
 
       // Release hold
@@ -576,11 +629,7 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
  * emits a SPLITTER-prefixed token instead of the raw value. This function
  * resolves those tokens so the child view receives the actual objects.
  */
-function translateQuery(
-  pId: string,
-  src: string,
-  params: Record<string, string>,
-): void {
+function translateQuery(pId: string, src: string, params: Record<string, string>): void {
   const parentFrame = frameRegistry.get(pId);
   const parentView = parentFrame?.view;
   if (!parentView) return;
@@ -611,8 +660,4 @@ function translateQuery(
 // View setup registration (re-exported)
 // ============================================================
 
-export {
-  registerViewClass,
-  invalidateViewClass,
-  getViewClassRegistry,
-} from "./view-registry";
+export { registerViewClass, invalidateViewClass, getViewClassRegistry } from "./view-registry";

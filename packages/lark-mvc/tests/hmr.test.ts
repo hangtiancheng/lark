@@ -127,7 +127,7 @@ describe("HMR", () => {
     it("updates template on all views using the old template", async () => {
       const oldTpl = makeTemplate("old");
       const newTpl = makeTemplate("new");
-      const frame = createTestFrame("tpl-swap");
+      const frame = createTestFrame("template-swap");
       registerViewClass(
         "test/tpl",
         defineView(() => ({ template: oldTpl })),
@@ -139,13 +139,13 @@ describe("HMR", () => {
       hotSwapByTemplate(oldTpl, newTpl);
 
       expect(frame.view!.updater.get<number>("count")).toBe(77);
-      expect(document.getElementById("tpl-swap")!.querySelector(".new")).not.toBeNull();
+      expect(document.getElementById("template-swap")!.querySelector(".new")).not.toBeNull();
       cleanupFrame(frame);
     });
 
     it("does nothing when oldTemplate === newTemplate", async () => {
       const tpl = makeTemplate("same");
-      const frame = createTestFrame("tpl-same");
+      const frame = createTestFrame("template-same");
       registerViewClass(
         "test/same",
         defineView((ctx) => {

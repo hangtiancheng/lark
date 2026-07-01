@@ -23,13 +23,7 @@
  * - `vdomSetAttributes` — diff attributes between two `VDomNode`s
  * - `createVDomRef` — create a diff operation tracker
  */
-import {
-  SPLITTER,
-  V_TEXT_NODE,
-  VDOM_NS_MAP,
-  LARK_VIEW,
-  encodeHTML,
-} from "./common";
+import { SPLITTER, V_TEXT_NODE, VDOM_NS_MAP, LARK_VIEW, encodeHTML } from "./common";
 import { parseUri, hasOwnProperty, callFunction } from "./utils";
 import { domUnmountFrames } from "./dom";
 import type { VDomNode, VDomRef, FrameObj, ViewCtx } from "./types";
@@ -167,12 +161,7 @@ export function vdomCreate(
       const parsed = parseUri(value as string);
       isLarkView = parsed.path;
       if (!viewList) viewList = [];
-      viewList.push([
-        isLarkView,
-        propsObj["lark-owner"] as string,
-        value as string,
-        parsed.params,
-      ]);
+      viewList.push([isLarkView, propsObj["lark-owner"] as string, value as string, parsed.params]);
       if (!compareKey) {
         compareKey = tag + SPLITTER + isLarkView;
       }
@@ -238,11 +227,7 @@ function isSameVDomNode(a: VDomNode, b: VDomNode): boolean {
  * Text node → `document.createTextNode(html)`
  * Element → `createElementNS` + `vdomSetAttributes` + `innerHTML`
  */
-export function vdomCreateNode(
-  vnode: VDomNode,
-  owner: Element,
-  ref: VDomRef,
-): ChildNode {
+export function vdomCreateNode(vnode: VDomNode, owner: Element, ref: VDomRef): ChildNode {
   const tag = vnode.tag;
   if (tag === V_TEXT_NODE) {
     return document.createTextNode(vnode.html);
@@ -433,10 +418,7 @@ function vdomSetNode(
       if (lastVDom.html !== newVDom.html) {
         ref.changed = 1;
         domUnmountFrames(frame, realNode);
-        oldParent.replaceChild(
-          vdomCreateNode(newVDom, oldParent, ref),
-          realNode,
-        );
+        oldParent.replaceChild(vdomCreateNode(newVDom, oldParent, ref), realNode);
       }
       return;
     }
@@ -459,12 +441,7 @@ function vdomSetNode(
     // Attribute diff
     let attrChanged = 0;
     if (lastVDom.attrs !== newVDom.attrs || newVDom.hasSpecials) {
-      attrChanged = vdomSetAttributes(
-        realNode as Element,
-        newVDom,
-        ref,
-        lastVDom,
-      );
+      attrChanged = vdomSetAttributes(realNode as Element, newVDom, ref, lastVDom);
       if (attrChanged) ref.changed = 1;
     }
 
@@ -488,16 +465,7 @@ function vdomSetNode(
 
     // Recursive child diff
     if (updateChildren && !newVDom.selfClose) {
-      vdomSetChildNodes(
-        realNode as Element,
-        lastVDom,
-        newVDom,
-        ref,
-        frame,
-        keys,
-        rootView,
-        ready,
-      );
+      vdomSetChildNodes(realNode as Element, lastVDom, newVDom, ref, frame, keys, rootView, ready);
     }
   } else {
     // Tag mismatch: replace entire node
@@ -640,17 +608,7 @@ export function vdomSetChildNodes(
     if (!isSameVDomNode(nc, oc)) break;
     if (nc.tag === SPLITTER || oc.tag === SPLITTER) break;
 
-    vdomSetNode(
-      oldDomNodes[headIdx],
-      realNode,
-      oc,
-      nc,
-      ref,
-      frame,
-      keys,
-      view,
-      ready,
-    );
+    vdomSetNode(oldDomNodes[headIdx], realNode, oc, nc, ref, frame, keys, view, ready);
     usedOldDomNodes.add(oldDomNodes[headIdx]);
     headIdx++;
     newHead++;
@@ -664,17 +622,7 @@ export function vdomSetChildNodes(
     if (!isSameVDomNode(nc, oc)) break;
     if (nc.tag === SPLITTER || oc.tag === SPLITTER) break;
 
-    vdomSetNode(
-      oldDomNodes[tailIdx],
-      realNode,
-      oc,
-      nc,
-      ref,
-      frame,
-      keys,
-      view,
-      ready,
-    );
+    vdomSetNode(oldDomNodes[tailIdx], realNode, oc, nc, ref, frame, keys, view, ready);
     usedOldDomNodes.add(oldDomNodes[tailIdx]);
     tailIdx--;
     newTail--;
@@ -689,10 +637,7 @@ export function vdomSetChildNodes(
   // ── Phase 3: Build keyMap from remaining old children ──
   // Maps compareKey → [{ domNode, vdomNode }] for keyed lookup.
   // Duplicate keys are stored as arrays to support repeated keys.
-  const keyMap: Record<
-    string,
-    Array<{ domNode: ChildNode; vdomNode: VDomNode }>
-  > = {};
+  const keyMap: Record<string, Array<{ domNode: ChildNode; vdomNode: VDomNode }>> = {};
   for (let i = headIdx; i <= tailIdx; i++) {
     const c = oldChildren![i];
     if (c?.compareKey) {
@@ -728,11 +673,7 @@ export function vdomSetChildNodes(
   if (newHead > newTail) {
     for (let i = 0; i < oldLen; i++) {
       const domNode = oldDomNodes[i];
-      if (
-        domNode &&
-        !usedOldDomNodes.has(domNode) &&
-        domNode.parentNode === realNode
-      ) {
+      if (domNode && !usedOldDomNodes.has(domNode) && domNode.parentNode === realNode) {
         domUnmountFrames(frame, domNode);
         ref.changed = 1;
         realNode.removeChild(domNode);
@@ -771,8 +712,7 @@ export function vdomSetChildNodes(
   // `nextNode` is always the correct insertion anchor: the DOM node that
   // should come immediately after the current position. By iterating
   // right-to-left, each processed node becomes the anchor for the next.
-  let nextNode: ChildNode | null =
-    tailIdx + 1 < oldLen ? oldDomNodes[tailIdx + 1] : null;
+  let nextNode: ChildNode | null = tailIdx + 1 < oldLen ? oldDomNodes[tailIdx + 1] : null;
 
   for (let j = newRemaining - 1; j >= 0; j--) {
     const newIdx = newHead + j;
@@ -825,11 +765,7 @@ export function vdomSetChildNodes(
   // Uses the snapshot references, not live NodeList positions.
   for (let i = 0; i < oldLen; i++) {
     const domNode = oldDomNodes[i];
-    if (
-      domNode &&
-      !usedOldDomNodes.has(domNode) &&
-      domNode.parentNode === realNode
-    ) {
+    if (domNode && !usedOldDomNodes.has(domNode) && domNode.parentNode === realNode) {
       domUnmountFrames(frame, domNode);
       ref.changed = 1;
       realNode.removeChild(domNode);

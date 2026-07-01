@@ -132,6 +132,35 @@ export function processViewEvents(source: string): string {
   );
 }
 
+/**
+ * Process *prop and @event bindings on #view elements.
+ *
+ * *count="{{=count}}"        → data-prop-count="{{=count}}"
+ * *history="{{@history}}"    → data-prop-history="{{@history}}"
+ * @increment="increment"    → data-event-increment="increment"
+ *
+ * Must run AFTER processViewEvents (which only processes @event with parens).
+ * No-parens @event="handlerName" attributes are child-to-parent event bindings
+ * on #view elements, not DOM event handlers.
+ */
+export function processViewBindings(source: string): string {
+  // Transform *prop="value" → data-prop-name="value"
+  // The * prefix is only used for props on #view elements.
+  let result = source.replace(/\s\*(\w+)="([^"]*)"/g, (_, name, value) => {
+    return ` data-prop-${name}="${value}"`;
+  });
+
+  // Transform @event="handlerName" (no parens, plain identifier)
+  // → data-event-name="handlerName"
+  // After processViewEvents, @event with parens have been converted to
+  // @event="\x1f\x1ehandler(params)" which won't match \w+ (contains \x1f).
+  result = result.replace(/\s@(\w+)="(\w+)"/g, (_, eventName, handlerName) => {
+    return ` data-event-${eventName}="${handlerName}"`;
+  });
+
+  return result;
+}
+
 // ─── Phase 2: Art-template syntax → Internal <% %> syntax ────────────────
 
 /**

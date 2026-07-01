@@ -1,6 +1,7 @@
 import {
   convertArtSyntax,
   processViewEvents,
+  processViewBindings,
   protectComments,
   restoreComments,
 } from "./template-syntax";
@@ -178,8 +179,11 @@ export async function compileTemplate(
   // Phase 3: Process @event attributes after art conversion
   const viewEventProcessed = processViewEvents(converted);
 
+  // Phase 3b: Process *prop and @event bindings on #view elements
+  const viewBindingsProcessed = processViewBindings(viewEventProcessed);
+
   // Restore comments
-  const finalSource = restoreComments(viewEventProcessed, comments);
+  const finalSource = restoreComments(viewBindingsProcessed, comments);
 
   // Build the variable declarations string from globalVars
   const varDeclarations = globalVars.map((key) => `let ${key}=__lark_data__.${key};`).join("");

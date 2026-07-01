@@ -6,7 +6,13 @@
  * with closure-based methods. The `Frame` singleton provides static-like
  * registry methods (get, getAll, getRoot, createRoot, on, off, fire).
  */
-import { SPLITTER, LARK_VIEW, isRefToken } from "./common";
+import {
+  SPLITTER,
+  LARK_VIEW,
+  LARK_PROP_PREFIX,
+  LARK_EVENT_PREFIX,
+  isRefToken,
+} from "./common";
 import {
   hasOwnProperty,
   parseUri,
@@ -253,9 +259,9 @@ export function createFrame(id: string, parentId?: string): FrameObj {
       const rootEl = document.getElementById(targetZone);
       if (!rootEl) return;
 
-      // Escape # for CSS selector: [v-lark] → [\v-lark]
-      const selector =
-        LARK_VIEW.charAt(0) === "#" ? `[\\${LARK_VIEW}]` : `[${LARK_VIEW}]`;
+      // v-lark is a valid HTML attribute name — no CSS escaping needed
+      // (unlike the former #view which required [\#view] escaping)
+      const selector = `[${LARK_VIEW}]`;
       const viewElements = rootEl.querySelectorAll(selector);
       const mountList: Array<{
         frameId: string;
@@ -269,8 +275,8 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         const props: Record<string, unknown> = {};
         const parentRefData = frame.view?.updater.refData;
         for (const attr of el.attributes) {
-          if (attr.name.startsWith("p-lark-")) {
-            const propName = attr.name.slice("p-lark-".length);
+          if (attr.name.startsWith(LARK_PROP_PREFIX)) {
+            const propName = attr.name.slice(LARK_PROP_PREFIX.length);
             const val = attr.value;
             if (parentRefData && isRefToken(val)) {
               props[propName] = hasOwnProperty(parentRefData, val)
@@ -312,8 +318,8 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         // HTML lowercases attribute names; emitter matches case-insensitively
         const events: Record<string, string> = {};
         for (const attr of el.attributes) {
-          if (attr.name.startsWith("e-lark-")) {
-            const eventName = attr.name.slice("e-lark-".length);
+          if (attr.name.startsWith(LARK_EVENT_PREFIX)) {
+            const eventName = attr.name.slice(LARK_EVENT_PREFIX.length);
             events[eventName] = attr.value;
           }
         }

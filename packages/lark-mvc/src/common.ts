@@ -45,6 +45,12 @@ export const RouterEvents = {
 /** Attribute name: v-lark */
 export const LARK_VIEW = "v-lark";
 
+/** Attribute prefix for component props: p-lark-{name} */
+export const LARK_PROP_PREFIX = "p-lark-";
+
+/** Attribute prefix for child→parent event bindings: e-lark-{name} */
+export const LARK_EVENT_PREFIX = "e-lark-";
+
 /** View event method regex: e.g. "app\x1eclickHandler(click)" or "clickHandler()"
  * Group 1: optional frame ID (before SPLITTER)
  * Group 2: handler name

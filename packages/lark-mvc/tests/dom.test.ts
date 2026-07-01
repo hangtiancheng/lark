@@ -14,6 +14,7 @@ import {
   strSafe,
   encodeURIExtra,
   encodeQuote,
+  LARK_VIEW,
 } from "../src/common";
 import { Frame, createFrame } from "../src/frame";
 import type { FrameObj } from "../src/types";
@@ -57,12 +58,11 @@ describe("DOM Diff Engine", () => {
     });
 
     it("falls back to v-lark path when present", () => {
-      // Use innerHTML because setAttribute("v-lark", ...) throws in jsdom
-      // — # is not a valid XML Name start char. In production, the attribute
-      // is created by the HTML parser (innerHTML), which accepts # in attr names.
-      const container = document.createElement("div");
-      container.innerHTML = '<div v-lark="views/home?x=1"></div>';
-      const el = container.firstElementChild as Element;
+      // v-lark is a valid HTML attribute name, so setAttribute works directly.
+      // (Previously #view required innerHTML because # is not a valid XML Name
+      // start char — v-lark has no such limitation.)
+      const el = document.createElement("div");
+      el.setAttribute(LARK_VIEW, "views/home?x=1");
       expect(domGetCompareKey(el)).toBe("views/home");
     });
 

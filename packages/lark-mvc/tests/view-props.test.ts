@@ -43,14 +43,14 @@ function findChild(parentFrame: FrameObj): FrameObj | undefined {
  *
  * The returned template function receives (data, viewId, refData) and calls
  * refFn(refData, data[key], "") to store the value and get a SPLITTER token.
- * The token is rendered into the p-larkattribute.
+ * The token is rendered into the p-lark-attribute.
  */
 function makeRefPropTemplate(propName: string, dataKey: string): ViewTemplate {
   return (data: unknown, _viewId: string, refData: unknown) => {
     const d = (data || {}) as Record<string, unknown>;
     const ref = refData as Record<string, unknown>;
     const token = refFn(ref, d[dataKey], "");
-    return `<div v-lark="test/child" p-larkpropName}="${token}"></div>`;
+    return `<div v-lark="test/child" p-lark-${propName}="${token}"></div>`;
   };
 }
 
@@ -87,7 +87,7 @@ describe("v-lark Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div v-lark="test/child" p-larkg="${d["greeting"]}"></div>`;
+              return `<div v-lark="test/child" p-lark-msg="${d["greeting"]}"></div>`;
             },
           };
         }),
@@ -122,7 +122,7 @@ describe("v-lark Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div v-lark="test/child" p-larkg="${d["greeting"]}"></div>`;
+              return `<div v-lark="test/child" p-lark-msg="${d["greeting"]}"></div>`;
             },
           };
         }),
@@ -160,7 +160,7 @@ describe("v-lark Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div v-lark="test/child" p-larkl="${d["val"]}"></div>`;
+              return `<div v-lark="test/child" p-lark-val="${d["val"]}"></div>`;
             },
           };
         }),
@@ -466,7 +466,7 @@ describe("v-lark Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div v-lark="test/child" p-larkl="${d["val"]}"></div>`;
+              return `<div v-lark="test/child" p-lark-val="${d["val"]}"></div>`;
             },
           };
         }),
@@ -754,7 +754,7 @@ describe("v-lark Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div v-lark="test/child" p-lark"${d["a"]}" p-lp-larkd["b"]}" p-larkp-larkc"]}"></div>`;
+              return `<div v-lark="test/child" p-lark-a="${d["a"]}" p-lark-b="${d["b"]}" p-lark-c="${d["c"]}"></div>`;
             },
           };
         }),
@@ -769,7 +769,7 @@ describe("v-lark Props & Events", () => {
       expect(received["c"]).toBe("valC");
     });
 
-    it("does not call digest on child when no p-larkattributes", async () => {
+    it("does not call digest on child when no p-lark-attributes", async () => {
       registerViewClass(
         "test/child",
         defineView((ctx) => {
@@ -819,7 +819,7 @@ describe("v-lark Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div v-lark="test/child" p-larkunt="${d["count"]}"></div>`;
+              return `<div v-lark="test/child" p-lark-count="${d["count"]}"></div>`;
             },
           };
         }),

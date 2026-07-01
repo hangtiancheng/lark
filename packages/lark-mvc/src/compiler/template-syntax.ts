@@ -135,23 +135,23 @@ export function processViewEvents(source: string): string {
 /**
  * Process *prop and @event bindings on v-lark elements.
  *
- * *count="{{=count}}"        → p-larkunt="{{=count}}"
- * *history="{{@history}}"    → p-larkstory="{{@history}}"
+ * *count="{{=count}}"        → p-lark-count="{{=count}}"
+ * *history="{{@history}}"    → p-lark-history="{{@history}}"
  * @increment="increment"    → e-lark-increment="increment"
  *
  * Must run AFTER processViewEvents (which only processes @event with parens).
  */
 export function processViewBindings(source: string): string {
-  // Transform *prop="value" → p-larkme="value"
+  // Transform *prop="value" → p-lark-prop="value"
   let result = source.replace(
     /\s\*(\w+)="([^"]*)"/g,
     (_, name: string, value: string) => {
-      return ` p-larkname}="${value}"`;
+      return ` p-lark-${name}="${value}"`;
     },
   );
 
   // Transform @event="handlerName" (no parens, plain identifier)
-  // → e-lark-name="handlerName"
+  // → e-lark-event="handlerName"
   result = result.replace(
     /\s@(\w+)="(\w+)"/g,
     (_, eventName: string, handlerName: string) => {

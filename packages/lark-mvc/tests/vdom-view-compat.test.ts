@@ -59,12 +59,12 @@ describe("VDOM v-lark compatibility investigation", () => {
 
   it("innerHTML parsing preserves v-lark attribute on the DOM", () => {
     const el = document.createElement("div");
-    el.innerHTML = `<div ${LARK_VIEW}="test/child" p-larkg="hello"></div>`;
+    el.innerHTML = `<div ${LARK_VIEW}="test/child" p-lark-g="hello"></div>`;
     const child = el.firstElementChild as HTMLElement;
     expect(child).not.toBeNull();
     // The v-lark attribute should be accessible via getAttribute
     expect(child.getAttribute(LARK_VIEW)).toBe("test/child");
-    expect(child.getAttribute("p-larkg")).toBe("hello");
+    expect(child.getAttribute("p-lark-g")).toBe("hello");
   });
 
   it("vdomCreateNode throws when creating a v-lark element (setAttribute path)", () => {
@@ -85,7 +85,7 @@ describe("VDOM v-lark compatibility investigation", () => {
     // Browser parses the HTML string, preserving v-lark attribute.
     const childVNode = vdomCreate("div", {
       [LARK_VIEW]: "test/child",
-      "p-larkg": "hello",
+      "p-lark-g": "hello",
     });
     const rootVNode = vdomCreate("root", 0, [childVNode]) as VDomNode;
 
@@ -114,7 +114,7 @@ describe("VDOM v-lark compatibility investigation", () => {
     ) as HTMLElement;
     expect(viewEl).not.toBeNull();
     expect(viewEl.getAttribute(LARK_VIEW)).toBe("test/child");
-    expect(viewEl.getAttribute("p-larkg")).toBe("hello");
+    expect(viewEl.getAttribute("p-lark-g")).toBe("hello");
   });
 
   it("vdomSetChildNodes diff update crashes when v-lark element is newly created", () => {
@@ -127,7 +127,7 @@ describe("VDOM v-lark compatibility investigation", () => {
 
     const childVNode = vdomCreate("div", {
       [LARK_VIEW]: "test/child",
-      "p-larkg": "hello",
+      "p-lark-g": "hello",
     });
     const oldVNode = vdomCreate("root", 0, [
       vdomCreate("span", 0, [vdomCreate(0, "placeholder")]),
@@ -177,14 +177,14 @@ describe("VDOM v-lark compatibility investigation", () => {
           return {
             // Return a root VDomNode (like the compiler output):
             //   vdomCreate(viewId, 0, [childDiv])
-            // The childDiv carries v-lark + p-larkattributes.
+            // The childDiv carries v-lark + p-lark-attributes.
             template: (data: unknown, viewId: string) => {
               const d = (data || {}) as Record<string, unknown>;
               const childDiv = vdomCreate(
                 "div",
                 {
                   [LARK_VIEW]: "test/child",
-                  "p-larkg": String(d["greeting"]),
+                  "p-lark-g": String(d["greeting"]),
                 },
                 [],
               );
@@ -236,7 +236,7 @@ describe("VDOM v-lark compatibility investigation", () => {
                 "div",
                 {
                   [LARK_VIEW]: "test/child",
-                  "p-larkg": String(d["greeting"]),
+                  "p-lark-g": String(d["greeting"]),
                 },
                 [],
               );
@@ -255,7 +255,7 @@ describe("VDOM v-lark compatibility investigation", () => {
       const viewEl2 = root2.querySelector(`[\\${LARK_VIEW}]`) as HTMLElement;
       expect(viewEl2).not.toBeNull();
       expect(viewEl2.getAttribute(LARK_VIEW)).toBe("test/child");
-      expect(viewEl2.getAttribute("p-larkg")).toBe("first");
+      expect(viewEl2.getAttribute("p-lark-g")).toBe("first");
 
       // Second render: change prop value → diff path
       frame.view!.updater.set({ greeting: "second" }).digest();
@@ -263,7 +263,7 @@ describe("VDOM v-lark compatibility investigation", () => {
 
       // Verify diff updated the DOM attribute
       const viewEl2b = root2.querySelector(`[\\${LARK_VIEW}]`) as HTMLElement;
-      expect(viewEl2b.getAttribute("p-larkg")).toBe("second");
+      expect(viewEl2b.getAttribute("p-lark-g")).toBe("second");
 
       // Verify child view's updater received the updated prop
       const childFrame = Array.from(Frame.getAll().values()).find(

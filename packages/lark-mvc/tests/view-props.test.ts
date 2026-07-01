@@ -43,20 +43,20 @@ function findChild(parentFrame: FrameObj): FrameObj | undefined {
  *
  * The returned template function receives (data, viewId, refData) and calls
  * refFn(refData, data[key], "") to store the value and get a SPLITTER token.
- * The token is rendered into the data-prop-* attribute.
+ * The token is rendered into the p-larkattribute.
  */
 function makeRefPropTemplate(propName: string, dataKey: string): ViewTemplate {
   return (data: unknown, _viewId: string, refData: unknown) => {
     const d = (data || {}) as Record<string, unknown>;
     const ref = refData as Record<string, unknown>;
     const token = refFn(ref, d[dataKey], "");
-    return `<div #view="test/child" data-prop-${propName}="${token}"></div>`;
+    return `<div v-lark="test/child" p-larkpropName}="${token}"></div>`;
   };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────
 
-describe("#view Props & Events", () => {
+describe("v-lark Props & Events", () => {
   beforeEach(() => {
     const reg = getViewClassRegistry();
     for (const key of Object.keys(reg)) invalidateViewClass(key);
@@ -87,7 +87,7 @@ describe("#view Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div #view="test/child" data-prop-msg="${d["greeting"]}"></div>`;
+              return `<div v-lark="test/child" p-larkg="${d["greeting"]}"></div>`;
             },
           };
         }),
@@ -122,7 +122,7 @@ describe("#view Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div #view="test/child" data-prop-msg="${d["greeting"]}"></div>`;
+              return `<div v-lark="test/child" p-larkg="${d["greeting"]}"></div>`;
             },
           };
         }),
@@ -145,7 +145,9 @@ describe("#view Props & Events", () => {
       registerViewClass(
         "test/child",
         defineView((ctx, params) => {
-          received = String((params as Record<string, unknown>)?.["val"] ?? "UNSET");
+          received = String(
+            (params as Record<string, unknown>)?.["val"] ?? "UNSET",
+          );
           ctx.updater.digest({});
           return { template: () => "<div>child</div>" };
         }),
@@ -158,7 +160,7 @@ describe("#view Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div #view="test/child" data-prop-val="${d["val"]}"></div>`;
+              return `<div v-lark="test/child" p-larkl="${d["val"]}"></div>`;
             },
           };
         }),
@@ -264,14 +266,18 @@ describe("#view Props & Events", () => {
       frame.mountView("test/parent");
       await flush();
 
-      const childEl3 = document.getElementById("o3")!.querySelector("[data-len]");
+      const childEl3 = document
+        .getElementById("o3")!
+        .querySelector("[data-len]");
       expect(childEl3?.getAttribute("data-len")).toBe("1");
 
       arr.push("b", "c");
       frame.view!.updater.set({ history: arr }).digest();
       await flush();
 
-      const childEl3b = document.getElementById("o3")!.querySelector("[data-len]");
+      const childEl3b = document
+        .getElementById("o3")!
+        .querySelector("[data-len]");
       expect(childEl3b?.getAttribute("data-len")).toBe("3");
     });
 
@@ -460,7 +466,7 @@ describe("#view Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div #view="test/child" data-prop-val="${d["val"]}"></div>`;
+              return `<div v-lark="test/child" p-larkl="${d["val"]}"></div>`;
             },
           };
         }),
@@ -500,7 +506,8 @@ describe("#view Props & Events", () => {
         defineView((ctx) => {
           ctx.updater.digest({});
           return {
-            template: () => `<div #view="test/child" data-event-customEvent="onCustom"></div>`,
+            template: () =>
+              `<div v-lark="test/child" e-lark-customEvent="onCustom"></div>`,
             events: { "onCustom<click>": handler },
           };
         }),
@@ -538,7 +545,8 @@ describe("#view Props & Events", () => {
         defineView((ctx) => {
           ctx.updater.digest({});
           return {
-            template: () => `<div #view="test/child" data-event-dataEvent="onData"></div>`,
+            template: () =>
+              `<div v-lark="test/child" e-lark-dataEvent="onData"></div>`,
             events: {
               "onData<click>": (data: Record<string, unknown>) => {
                 received = data;
@@ -580,7 +588,8 @@ describe("#view Props & Events", () => {
         defineView((ctx) => {
           ctx.updater.digest({});
           return {
-            template: () => `<div #view="test/child" data-event-asyncEvent="onAsync"></div>`,
+            template: () =>
+              `<div v-lark="test/child" e-lark-asyncEvent="onAsync"></div>`,
             events: {
               "onAsync<click>": () => {
                 return new Promise<void>((resolve) => {
@@ -627,9 +636,10 @@ describe("#view Props & Events", () => {
         defineView((ctx) => {
           ctx.updater.digest({});
           return {
-            // HTML lowercases attr name: data-event-clearHistory → data-event-clearhistory
+            // HTML lowercases attr name: e-lark-clearHistory → e-lark-clearhistory
             // Emitter matches case-insensitively: fire("clearHistory") matches on("clearhistory")
-            template: () => `<div #view="test/child" data-event-clearHistory="onClear"></div>`,
+            template: () =>
+              `<div v-lark="test/child" e-lark-clearHistory="onClear"></div>`,
             events: { "onClear<click>": handler },
           };
         }),
@@ -667,7 +677,8 @@ describe("#view Props & Events", () => {
         defineView((ctx) => {
           ctx.updater.digest({});
           return {
-            template: () => `<div #view="test/child" data-event-childEvent="parentHandler"></div>`,
+            template: () =>
+              `<div v-lark="test/child" e-lark-childEvent="parentHandler"></div>`,
             events: { "parentHandler<click>": handler },
           };
         }),
@@ -704,7 +715,8 @@ describe("#view Props & Events", () => {
         defineView((ctx) => {
           ctx.updater.digest({});
           return {
-            template: () => `<div #view="test/child" data-event-noHandler="nonExistent"></div>`,
+            template: () =>
+              `<div v-lark="test/child" e-lark-noHandler="nonExistent"></div>`,
             events: {},
           };
         }),
@@ -714,7 +726,9 @@ describe("#view Props & Events", () => {
       frame.mountView("test/parent");
       await flush();
 
-      expect(() => findChild(frame)?.view?.owner.fire("noHandler")).not.toThrow();
+      expect(() =>
+        findChild(frame)?.view?.owner.fire("noHandler"),
+      ).not.toThrow();
     });
   });
 
@@ -740,7 +754,7 @@ describe("#view Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div #view="test/child" data-prop-a="${d["a"]}" data-prop-b="${d["b"]}" data-prop-c="${d["c"]}"></div>`;
+              return `<div v-lark="test/child" p-lark"${d["a"]}" p-lp-larkd["b"]}" p-larkp-larkc"]}"></div>`;
             },
           };
         }),
@@ -755,7 +769,7 @@ describe("#view Props & Events", () => {
       expect(received["c"]).toBe("valC");
     });
 
-    it("does not call digest on child when no data-prop-* attributes", async () => {
+    it("does not call digest on child when no p-larkattributes", async () => {
       registerViewClass(
         "test/child",
         defineView((ctx) => {
@@ -768,7 +782,7 @@ describe("#view Props & Events", () => {
         "test/parent",
         defineView((ctx) => {
           ctx.updater.digest({ msg: "parent" });
-          return { template: () => `<div #view="test/child"></div>` };
+          return { template: () => `<div v-lark="test/child"></div>` };
         }),
       );
 
@@ -805,7 +819,7 @@ describe("#view Props & Events", () => {
           return {
             template: (data: unknown) => {
               const d = (data || {}) as Record<string, unknown>;
-              return `<div #view="test/child" data-prop-count="${d["count"]}"></div>`;
+              return `<div v-lark="test/child" p-larkunt="${d["count"]}"></div>`;
             },
           };
         }),

@@ -133,25 +133,31 @@ export function processViewEvents(source: string): string {
 }
 
 /**
- * Process *prop and @event bindings on #view elements.
+ * Process *prop and @event bindings on v-lark elements.
  *
- * *count="{{=count}}"        → data-prop-count="{{=count}}"
- * *history="{{@history}}"    → data-prop-history="{{@history}}"
- * @increment="increment"    → data-event-increment="increment"
+ * *count="{{=count}}"        → p-larkunt="{{=count}}"
+ * *history="{{@history}}"    → p-larkstory="{{@history}}"
+ * @increment="increment"    → e-lark-increment="increment"
  *
  * Must run AFTER processViewEvents (which only processes @event with parens).
  */
 export function processViewBindings(source: string): string {
-  // Transform *prop="value" → data-prop-name="value"
-  let result = source.replace(/\s\*(\w+)="([^"]*)"/g, (_, name: string, value: string) => {
-    return ` data-prop-${name}="${value}"`;
-  });
+  // Transform *prop="value" → p-larkme="value"
+  let result = source.replace(
+    /\s\*(\w+)="([^"]*)"/g,
+    (_, name: string, value: string) => {
+      return ` p-larkname}="${value}"`;
+    },
+  );
 
   // Transform @event="handlerName" (no parens, plain identifier)
-  // → data-event-name="handlerName"
-  result = result.replace(/\s@(\w+)="(\w+)"/g, (_, eventName: string, handlerName: string) => {
-    return ` data-event-${eventName}="${handlerName}"`;
-  });
+  // → e-lark-name="handlerName"
+  result = result.replace(
+    /\s@(\w+)="(\w+)"/g,
+    (_, eventName: string, handlerName: string) => {
+      return ` e-lark-${eventName}="${handlerName}"`;
+    },
+  );
 
   return result;
 }
@@ -254,14 +260,21 @@ export function convertArtSyntax(source: string, debug: boolean): string {
     }
 
     // Convert the art expression to <% %> syntax
-    const converted = convertArtExpression(cleanCode, debug, lineNo, blockStack);
+    const converted = convertArtExpression(
+      cleanCode,
+      debug,
+      lineNo,
+      blockStack,
+    );
     result.push(converted);
     result.push(rest);
   }
 
   // Check for unclosed blocks at end
   if (blockStack.length > 0) {
-    const unclosed = blockStack.map((b) => `"${b.ctrl}" at line ${b.line}`).join(", ");
+    const unclosed = blockStack
+      .map((b) => `"${b.ctrl}" at line ${b.line}`)
+      .join(", ");
     throw new Error(`Unclosed block(s): ${unclosed}`);
   }
 
@@ -428,14 +441,18 @@ function convertArtExpression(
       // Parse as expression: "value index" or "{value} key"
       const asExpr = parseAsExpr(asValue);
       const index = asExpr.key || "_i";
-      const refObj = /[.[\]]/.test(object) ? `_art_obj_${object.replace(/[^\w]/g, "_")}` : object;
+      const refObj = /[.[\]]/.test(object)
+        ? `_art_obj_${object.replace(/[^\w]/g, "_")}`
+        : object;
       const refExpr = /[.[\]]/.test(object) ? `,${refObj}=${object}` : "";
 
       // Length cache variable
       // Using _l which is scoped to the for block, won't conflict with user vars
       const refObjCount = "_l";
 
-      const valueDecl = asExpr.vars ? `let ${asExpr.vars}=${refObj}[${index}]` : "";
+      const valueDecl = asExpr.vars
+        ? `let ${asExpr.vars}=${refObj}[${index}]`
+        : "";
 
       // Support first/last helpers
       let firstAndLast = "";
@@ -466,9 +483,13 @@ function convertArtExpression(
       const asValue2 = restTokens2.join(" ");
       const asExpr2 = parseAsExpr(asValue2);
       const key1 = asExpr2.key || "_k";
-      const refObj2 = /[.[\]]/.test(object) ? `_art_obj_${object.replace(/[^\w]/g, "_")}` : object;
+      const refObj2 = /[.[\]]/.test(object)
+        ? `_art_obj_${object.replace(/[^\w]/g, "_")}`
+        : object;
       const refExpr2 = /[.[\]]/.test(object) ? `let ${refObj2}=${object};` : "";
-      const valueDecl2 = asExpr2.vars ? `let ${asExpr2.vars}=${refObj2}[${key1}]` : "";
+      const valueDecl2 = asExpr2.vars
+        ? `let ${asExpr2.vars}=${refObj2}[${key1}]`
+        : "";
 
       return `${debugPrefix}<%${refExpr2}for(let ${key1} in ${refObj2}){${valueDecl2}%>`;
     }

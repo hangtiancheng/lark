@@ -6,7 +6,7 @@
  * it calls Framework.use() → require() → import() → registers + mounts.
  *
  * Sub-components of "counter" are preloaded in parallel with the parent
- * view so they're available when mountZone processes #view elements.
+ * view so they're available when mountZone processes v-lark elements.
  */
 import { Framework, registerViewClass } from "@lark.js/mvc";
 import type { FrameworkConfig, ViewSetup } from "@lark.js/mvc";
@@ -35,7 +35,7 @@ const VIEW_MODULES: Record<string, () => Promise<unknown>> = {
 
 // ── Sub-component dependency map ──
 // When a parent view is loaded, its sub-components are preloaded in
-// parallel so they're registered before mountZone processes #view.
+// parallel so they're registered before mountZone processes v-lark.
 const VIEW_DEPS: Record<string, string[]> = {
   counter: ["components/counter-store", "components/counter-updater"],
 };

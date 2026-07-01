@@ -1,6 +1,6 @@
 /**
  * Counter View
- * Demonstrates #view nested sub-components
+ * Demonstrates v-lark nested sub-components
  */
 import { defineView, Router } from "@lark.js/mvc";
 import { withBaseView } from "../view";

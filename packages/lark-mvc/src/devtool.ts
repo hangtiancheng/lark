@@ -53,7 +53,7 @@ export interface SerializedFrameNode {
   id: string;
   /** Parent frame ID (null for root) */
   parentId: string | null;
-  /** View path (#view attribute value) */
+  /** View path (v-lark attribute value) */
   viewPath: string | null;
   /** Number of child frames */
   childrenCount: number;
@@ -119,7 +119,8 @@ function serializeView(view: ViewCtx): SerializedViewInfo {
       updaterData = {};
       for (const k of Object.keys(ref as Record<string, unknown>)) {
         const v = (ref as Record<string, unknown>)[k];
-        updaterData[k] = v === null || typeof v !== "object" ? v : `[${typeof v}]`;
+        updaterData[k] =
+          v === null || typeof v !== "object" ? v : `[${typeof v}]`;
       }
     }
   } catch {
@@ -236,7 +237,10 @@ export function installFrameDevtoolBridge(): void {
       // Respond with pong so the devtool knows we're a Lark app
       const source = event.source as WindowProxy | null;
       if (source) {
-        source.postMessage({ type: FrameDevtoolBridge.MSG_PONG }, { targetOrigin: "*" });
+        source.postMessage(
+          { type: FrameDevtoolBridge.MSG_PONG },
+          { targetOrigin: "*" },
+        );
       }
       return;
     }
@@ -281,6 +285,9 @@ function pushTreeUpdate(): void {
 
   if (treeJson !== lastTreeJson) {
     lastTreeJson = treeJson;
-    window.parent.postMessage({ type: FrameDevtoolBridge.MSG_TREE_DELTA, data: tree }, "*");
+    window.parent.postMessage(
+      { type: FrameDevtoolBridge.MSG_TREE_DELTA, data: tree },
+      "*",
+    );
   }
 }

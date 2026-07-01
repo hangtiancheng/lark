@@ -42,8 +42,8 @@ export const RouterEvents = {
   PAGE_UNLOAD: "page_unload",
 };
 
-/** Attribute name: #view */
-export const LARK_VIEW = "#view";
+/** Attribute name: v-lark */
+export const LARK_VIEW = "v-lark";
 
 /** View event method regex: e.g. "app\x1eclickHandler(click)" or "clickHandler()"
  * Group 1: optional frame ID (before SPLITTER)
@@ -157,7 +157,10 @@ const URI_ENT_REGEXP = /[!')(*]/g;
  * compliance. Applied to values in `@event` URL parameters.
  */
 export function encodeURIExtra(v: unknown): string {
-  return encodeURIComponent(strSafe(v)).replace(URI_ENT_REGEXP, (m: string) => URI_ENT_MAP[m]);
+  return encodeURIComponent(strSafe(v)).replace(
+    URI_ENT_REGEXP,
+    (m: string) => URI_ENT_MAP[m],
+  );
 }
 
 const QUOTE_ENT_REGEXP = /['"\\]/g;
@@ -176,7 +179,11 @@ export function encodeQuote(v: unknown): string {
  * Template reference function for creating stable keys for objects.
  * Stores objects in refData with SPLITTER-prefixed keys.
  */
-export function refFn(ref: Record<string, unknown>, value: unknown, key: string): string {
+export function refFn(
+  ref: Record<string, unknown>,
+  value: unknown,
+  key: string,
+): string {
   const counter = ref[SPLITTER] as number;
   for (let i = counter; --i; ) {
     key = SPLITTER + i;

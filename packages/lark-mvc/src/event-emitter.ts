@@ -16,7 +16,12 @@
  */
 import { SPLITTER } from "./common";
 import { noop, funcWithTry } from "./utils";
-import type { AnyFunc, ChangeEvent, EmitterApi, EventListenerEntry } from "./types";
+import type {
+  AnyFunc,
+  ChangeEvent,
+  EmitterApi,
+  EventListenerEntry,
+} from "./types";
 
 /**
  * Internal emitter shape — the public `EmitterApi` plus the `listeners` Map
@@ -100,7 +105,7 @@ export function createEmitter<T = unknown>(): EmitterApi<T> {
     lastToFirst?: boolean,
   ): EmitterApi<T> {
     // Case-insensitive event matching: HTML attribute names are lowercased
-    // by the parser, so data-event-clearHistory becomes data-event-clearhistory.
+    // by the parser, so e-lark-clearHistory becomes e-lark-clearhistory.
     // Lowercasing the key lets fire("clearHistory") match on("clearhistory").
     const key = SPLITTER + event.toLowerCase();
     const list = listeners.get(key);

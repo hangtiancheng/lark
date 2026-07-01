@@ -1,7 +1,7 @@
 /**
  * Counter Updater Component
  * Pure display + event relay — no own state.
- * Props (count, step, history) come from parent via #view data-prop-*.
+ * Props (count, step, history) come from parent via v-lark p-lark-*.
  * Button clicks fire events to parent via ctx.owner.fire().
  */
 import { defineView } from "@lark.js/mvc";

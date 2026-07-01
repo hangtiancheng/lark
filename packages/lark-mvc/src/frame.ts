@@ -87,7 +87,10 @@ export function createFrame(id: string, parentId?: string): FrameObj {
     readyMap,
     emitter,
 
-    mountView(viewPathArg: string, viewInitParams?: Record<string, unknown>): void {
+    mountView(
+      viewPathArg: string,
+      viewInitParams?: Record<string, unknown>,
+    ): void {
       const node = document.getElementById(frame.id);
       const pId = frame.parentId;
 
@@ -246,12 +249,13 @@ export function createFrame(id: string, parentId?: string): FrameObj {
       // Hold fire created event
       frame.holdFireCreated = 1;
 
-      // Find all #view elements in zone
+      // Find all v-lark elements in zone
       const rootEl = document.getElementById(targetZone);
       if (!rootEl) return;
 
-      // Escape # for CSS selector: [#view] → [\#view]
-      const selector = LARK_VIEW.charAt(0) === "#" ? `[\\${LARK_VIEW}]` : `[${LARK_VIEW}]`;
+      // Escape # for CSS selector: [v-lark] → [\v-lark]
+      const selector =
+        LARK_VIEW.charAt(0) === "#" ? `[\\${LARK_VIEW}]` : `[${LARK_VIEW}]`;
       const viewElements = rootEl.querySelectorAll(selector);
       const mountList: Array<{
         frameId: string;
@@ -260,16 +264,18 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         events: Record<string, string>;
       }> = [];
 
-      // Helper: read data-prop-* from a #view element, resolving ref tokens
+      // Helper: read p-lark-* from a v-lark element, resolving ref tokens
       const readProps = (el: Element): Record<string, unknown> => {
         const props: Record<string, unknown> = {};
         const parentRefData = frame.view?.updater.refData;
         for (const attr of el.attributes) {
-          if (attr.name.startsWith("data-prop-")) {
-            const propName = attr.name.slice("data-prop-".length);
+          if (attr.name.startsWith("p-lark-")) {
+            const propName = attr.name.slice("p-lark-".length);
             const val = attr.value;
             if (parentRefData && isRefToken(val)) {
-              props[propName] = hasOwnProperty(parentRefData, val) ? parentRefData[val] : val;
+              props[propName] = hasOwnProperty(parentRefData, val)
+                ? parentRefData[val]
+                : val;
             } else {
               props[propName] = val;
             }
@@ -282,7 +288,7 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         if (!(el instanceof HTMLElement)) return;
         const elId = el.id || ensureElementId(el, "frame_");
 
-        // Already-bound #view element: update props on the existing child view
+        // Already-bound v-lark element: update props on the existing child view
         if (htmlElIsBound(el)) {
           const childFrame = Frame.get(elId);
           const childView = childFrame?.view;
@@ -295,19 +301,19 @@ export function createFrame(id: string, parentId?: string): FrameObj {
           return;
         }
 
-        // New #view element: mount with props and events
+        // New v-lark element: mount with props and events
         Reflect.set(el, "frameBound", 1);
         const viewPathArg = getAttribute(el, LARK_VIEW);
         if (!viewPathArg) return;
 
         const props = readProps(el);
 
-        // Read data-event-* attributes → child-to-parent event bindings
+        // Read e-lark-* attributes → child-to-parent event bindings
         // HTML lowercases attribute names; emitter matches case-insensitively
         const events: Record<string, string> = {};
         for (const attr of el.attributes) {
-          if (attr.name.startsWith("data-event-")) {
-            const eventName = attr.name.slice("data-event-".length);
+          if (attr.name.startsWith("e-lark-")) {
+            const eventName = attr.name.slice("e-lark-".length);
             events[eventName] = attr.value;
           }
         }
@@ -320,7 +326,7 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         const childFrame = frame.mountFrame(frameId, viewPathArg, props);
 
         // Wire child-to-parent event bindings:
-        // data-event-increment="increment" → childFrame.on("increment", parentHandler)
+        // e-lark-increment="increment" → childFrame.on("increment", parentHandler)
         // The parent handler is found by matching the name prefix in the parent's events map
         const parentEvents = frame.view?.getEvents();
         if (parentEvents) {
@@ -644,11 +650,15 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
  * Translate SPLITTER-prefixed reference tokens in child-view params back to
  * their original JS values from the parent view's `refData`.
  *
- * When a template uses `{{@value}}` inside a `#view` attribute, the compiler
+ * When a template uses `{{@value}}` inside a `v-lark` attribute, the compiler
  * emits a SPLITTER-prefixed token instead of the raw value. This function
  * resolves those tokens so the child view receives the actual objects.
  */
-function translateQuery(pId: string, src: string, params: Record<string, string>): void {
+function translateQuery(
+  pId: string,
+  src: string,
+  params: Record<string, string>,
+): void {
   const parentFrame = frameRegistry.get(pId);
   const parentView = parentFrame?.view;
   if (!parentView) return;
@@ -679,4 +689,8 @@ function translateQuery(pId: string, src: string, params: Record<string, string>
 // View setup registration (re-exported)
 // ============================================================
 
-export { registerViewClass, invalidateViewClass, getViewClassRegistry } from "./view-registry";
+export {
+  registerViewClass,
+  invalidateViewClass,
+  getViewClassRegistry,
+} from "./view-registry";

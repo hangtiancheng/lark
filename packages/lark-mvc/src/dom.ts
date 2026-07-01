@@ -120,7 +120,7 @@ export function domGetNode(html: string, refNode: Element): Element {
 
 /**
  * Get compare key for a DOM node (for keyed diff).
- * Uses id or #view path.
+ * Uses id or v-lark path.
  */
 export function domGetCompareKey(node: ChildNode): string | undefined {
   if (node.nodeType !== 1) return undefined;
@@ -329,11 +329,17 @@ export function domSetNode(
   const newAsEl = newNode instanceof Element ? newNode : null;
 
   const equalAsNodes =
-    oldAsEl !== null && newAsEl !== null && oldAsEl.isEqualNode && oldAsEl.isEqualNode(newAsEl);
+    oldAsEl !== null &&
+    newAsEl !== null &&
+    oldAsEl.isEqualNode &&
+    oldAsEl.isEqualNode(newAsEl);
 
   if (domSpecialDiff(oldNode, newNode) || !equalAsNodes) {
     // Same type (same nodeName and nodeType) → diff in place
-    if (oldNode.nodeType === newNode.nodeType && oldNode.nodeName === newNode.nodeName) {
+    if (
+      oldNode.nodeType === newNode.nodeType &&
+      oldNode.nodeName === newNode.nodeName
+    ) {
       if (oldAsEl !== null && newAsEl !== null) {
         const oldEl = oldAsEl;
         const newEl = newAsEl;
@@ -342,7 +348,7 @@ export function domSetNode(
         const newLarkView = newEl.getAttribute(LARK_VIEW);
         let updateChildren = true;
 
-        // If same #view, keep existing view
+        // If same v-lark, keep existing view
         if (newLarkView) {
           const oldFrameId = oldEl.getAttribute("id") || "";
           const newViewPath = parseUri(newLarkView).path;

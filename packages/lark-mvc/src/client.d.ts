@@ -22,7 +22,10 @@ declare global {
   /** Scheduler API (Chrome 94+) — used by `Framework.task` for time-slicing. */
   var scheduler: Scheduler;
   var __lark_hmr__: {
-    hotSwapByTemplate: (oldTemplate: ViewTemplate, newTemplate: ViewTemplate) => boolean;
+    hotSwapByTemplate: (
+      oldTemplate: ViewTemplate,
+      newTemplate: ViewTemplate,
+    ) => boolean;
     hotSwapByView: (oldSetup: ViewSetup, newSetup: ViewSetup) => boolean;
   };
 
@@ -46,10 +49,10 @@ declare global {
   interface Element {
     /** DOM diff cache flag — 1 when `cachedCompareKey` is valid */
     compareKeyCached?: number | undefined;
-    /** Cached compare key (from `id`, `#`, or `#view` path) for keyed diff */
+    /** Cached compare key (from `id`, `#`, or `v-lark` path) for keyed diff */
     cachedCompareKey?: string | undefined;
-    /** `#view` attribute — declares a child view embedding point */
-    "#view"?: string | undefined;
+    /** `v-lark` attribute — declares a child view embedding point */
+    "v-lark"?: string | undefined;
 
     // @lark.js/sentry — declarative tracking attributes (read by the sentry SDK)
     /** Sentry event name for declarative click tracking */

@@ -360,7 +360,7 @@ Links starting with `/` or `#` are automatically tagged with `data-lark-nav="tru
 
 ### Table of Contents
 
-Insert `[[toc]]` anywhere in your markdown to render a table of contents inline. The `[[toc]]` marker is compiled to `<div #view="theme/toc"></div>`, which mounts the TOC theme View at that position.
+Insert `[[toc]]` anywhere in your markdown to render a table of contents inline. The `[[toc]]` marker is compiled to `<div v-lark="theme/toc"></div>`, which mounts the TOC theme View at that position.
 
 ### Admonition Containers
 

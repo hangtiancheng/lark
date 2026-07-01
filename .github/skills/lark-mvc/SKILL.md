@@ -8,7 +8,7 @@ description: >
   and ViewCtx, defining zustand-aligned Stores with createStore() / getState() /
   setState() / subscribe() / computed() / bindStore(), wiring State for cross-view
   data, setting up Router (history or hash mode, Router.beforeEach async guards,
-  useUrlState), writing HTML templates with {{=}}/{{forOf}}/{{if}}/@event/#view/*prop
+  useUrlState), writing HTML templates with {{=}}/{{forOf}}/{{if}}/@event/v-lark/*prop
   syntax, configuring the Vite plugin (larkMvcPlugin), Webpack loader
   (larkMvcLoader), or Rspack loader, registering Views with registerViewClass,
   integrating Module Federation with CrossSite, calling Service for API requests
@@ -16,8 +16,8 @@ description: >
   binding child-to-parent events with @event="handlerName" and ctx.owner.fire(),
   or anything mentioning Frame trees, real-DOM diff, virtual-DOM diff with
   LIS reconciliation, capture-phase event delegation, HMR (hotSwapByView,
-  hotSwapByTemplate), the #view attribute for embedding child views, props
-  reactivity via data-prop-* attributes, the Framework singleton, or the
+  hotSwapByTemplate), the v-lark attribute for embedding child views, props
+  reactivity via p-lark-* attributes, the Framework singleton, or the
   functional factory pattern (createEmitter, createCache, createUpdater,
   createFrame).
   Trigger eagerly on any of these symbols and concepts — defineView, ViewCtx,
@@ -27,7 +27,7 @@ description: >
   injectTemplateHmrSnippet, injectViewHmr, registerViewClass,
   invalidateViewClass, Framework.boot, Framework.setConfig, Router.to,
   Router.beforeEach, Router.parse, State.set, State.digest, State.clean,
-  EventDelegator.bind, Frame.createRoot, Frame.get, vdomCreate, #view,
+  EventDelegator.bind, Frame.createRoot, Frame.get, vdomCreate, v-lark,
   *prop, @event, ctx.owner.fire, larkMvcPlugin, larkMvcLoader, CrossSite,
   or any file that imports from @lark.js/mvc.
 ---
@@ -45,7 +45,7 @@ Any task that names or clearly implies Lark:
 - Creating, extending, or registering Views; wiring view event handlers; setting up view lifecycle.
 - Designing state with `createStore()` (zustand-aligned), `computed()`, `bindStore()`, or cross-view sharing through `State`.
 - Routing tasks: history/hash navigation, route guards (`Router.beforeEach`), `useUrlState()`.
-- Authoring `.html` templates with the `{{=}}` / `{{forOf}}` / `{{if}}` / `@event` / `#view` / `*prop` syntax.
+- Authoring `.html` templates with the `{{=}}` / `{{forOf}}` / `{{if}}` / `@event` / `v-lark` / `*prop` syntax.
 - Configuring the Vite plugin (`larkMvcPlugin`), Webpack loader (`larkMvcLoader`), or Rspack loader.
 - Embedding remote views via Module Federation (`CrossSite`, `FrameworkConfig.require`).
 - API request layers using `createService`, `service.all/one/save`, `cleanKeys`.
@@ -115,7 +115,7 @@ project/
    |- views/
    |  |- home.ts         # defineView((ctx, params) => { ... })
    |  |- home.html       # compiled by larkMvcPlugin / larkMvcLoader
-   +- components/        # sub-views embedded via #view
+   +- components/        # sub-views embedded via v-lark
       |  |- counter-updater.ts   # receives *prop, fires @event
       +- counter-updater.html
 ```
@@ -319,7 +319,7 @@ useCountStore.destroy();
     <li>{{=item.name}}</li>
     {{/forOf}}
   </ul>
-  <div #view="components/child"></div>
+  <div v-lark="components/child"></div>
 </div>
 ```
 
@@ -459,17 +459,17 @@ async loadData() {
 }
 ```
 
-### Sub-view embedding (#view)
+### Sub-view embedding (v-lark)
 
-Child views are embedded via the `#view` attribute. Props are passed with `*prop` and child-to-parent events with `@event`:
+Child views are embedded via the `v-lark` attribute. Props are passed with `*prop` and child-to-parent events with `@event`:
 
 ```html
 <!-- Basic embedding -->
-<div #view="components/child"></div>
+<div v-lark="components/child"></div>
 
 <!-- With props and events -->
 <div
-  #view="components/counter-updater"
+  v-lark="components/counter-updater"
   *count="{{=count}}"
   *step="{{=step}}"
   *history="{{@history}}"
@@ -479,7 +479,7 @@ Child views are embedded via the `#view` attribute. Props are passed with `*prop
 ></div>
 ```
 
-At mount time, `Frame.mountZone` scans `#view` elements, reads `data-prop-*` attributes (compiled from `*prop`), and passes them as `viewInitParams` to the child view's setup function. On parent re-render, updated props are automatically pushed to the child's updater via `childView.updater.set(props).digest()`.
+At mount time, `Frame.mountZone` scans `v-lark` elements, reads `p-lark-*` attributes (compiled from `*prop`), and passes them as `viewInitParams` to the child view's setup function. On parent re-render, updated props are automatically pushed to the child's updater via `childView.updater.set(props).digest()`.
 
 For `{{@value}}` props (object/array references), the compiler uses `refFn` to store the value in the parent's `refData` and emits a SPLITTER token. `mountZone` resolves the token back to the original JS object.
 
@@ -701,6 +701,6 @@ At event dispatch time, `EventDelegator` looks up handlers via `view.getEvents()
 ## References
 
 - **API reference**: `references/api-reference.md` — full type signatures
-- **Template syntax**: `references/template-syntax.md` — `{{=}}` / `{{forOf}}` / `{{if}}` / `@event` / `#view` / `*prop` syntax
+- **Template syntax**: `references/template-syntax.md` — `{{=}}` / `{{forOf}}` / `{{if}}` / `@event` / `v-lark` / `*prop` syntax
 - **HMR**: `hmr.md` — hot module replacement architecture and API
 - **Naming conventions**: `naming-convention.md` — identifier contracts across compilation layers

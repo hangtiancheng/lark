@@ -212,21 +212,21 @@ export default defineView((ctx, params) => {
 
 The `ViewCtx` is the first argument to every setup function. It provides all framework APIs:
 
-| Method                             | Description                              |
-| ---------------------------------- | ---------------------------------------- |
-| `ctx.render()`                     | Force re-render the view                 |
-| `ctx.observeLocation(params)`      | Declare URL params this view reacts to   |
-| `ctx.observeState(keys)`           | Declare State keys this view reacts to   |
-| `ctx.capture(key, resource)`       | Register a destroyable resource          |
-| `ctx.release(key)`                 | Remove and destroy a resource            |
-| `ctx.on(event, handler)`           | Listen to view lifecycle events          |
-| `ctx.fire(event, data)`            | Emit a view event                        |
-| `ctx.wrapAsync(fn)`                | Wrap async callback with signature guard |
-| `ctx.beginUpdate(zoneId)`          | Begin zone update (unmount children)     |
-| `ctx.endUpdate(zoneId)`            | End zone update (remount children)       |
-| `ctx.updater`                      | Per-view data binding API                |
-| `ctx.id`                           | View ID (same as owner frame ID)         |
-| `ctx.owner`                        | Owner frame reference                    |
+| Method                        | Description                              |
+| ----------------------------- | ---------------------------------------- |
+| `ctx.render()`                | Force re-render the view                 |
+| `ctx.observeLocation(params)` | Declare URL params this view reacts to   |
+| `ctx.observeState(keys)`      | Declare State keys this view reacts to   |
+| `ctx.capture(key, resource)`  | Register a destroyable resource          |
+| `ctx.release(key)`            | Remove and destroy a resource            |
+| `ctx.on(event, handler)`      | Listen to view lifecycle events          |
+| `ctx.fire(event, data)`       | Emit a view event                        |
+| `ctx.wrapAsync(fn)`           | Wrap async callback with signature guard |
+| `ctx.beginUpdate(zoneId)`     | Begin zone update (unmount children)     |
+| `ctx.endUpdate(zoneId)`       | End zone update (remount children)       |
+| `ctx.updater`                 | Per-view data binding API                |
+| `ctx.id`                      | View ID (same as owner frame ID)         |
+| `ctx.owner`                   | Owner frame reference                    |
 
 #### View Lifecycle
 
@@ -316,28 +316,28 @@ root.unmountFrame("child-id");
 
 #### Frame Instance Methods
 
-| Method                                | Description                                |
-| ------------------------------------- | ------------------------------------------ |
-| `frame.mountView(path, params?)`      | Mount a view (sync or async load)          |
-| `frame.unmountView()`                 | Unmount current view                       |
-| `frame.mountFrame(id, path, params?)` | Mount a child frame                        |
-| `frame.unmountFrame(id?)`             | Unmount a child frame                      |
-| `frame.mountZone(zoneId?)`            | Find and mount all \#view elements in zone |
-| `frame.unmountZone(zoneId?)`          | Unmount child frames in zone               |
-| `frame.parent(level?)`                | Navigate up the tree                       |
-| `frame.invoke(name, args?)`           | Cross-view method call                     |
-| `frame.children()`                    | Get child frame IDs                        |
-| `frame.on/off/fire`                   | Frame-level events                         |
+| Method                                | Description                                 |
+| ------------------------------------- | ------------------------------------------- |
+| `frame.mountView(path, params?)`      | Mount a view (sync or async load)           |
+| `frame.unmountView()`                 | Unmount current view                        |
+| `frame.mountFrame(id, path, params?)` | Mount a child frame                         |
+| `frame.unmountFrame(id?)`             | Unmount a child frame                       |
+| `frame.mountZone(zoneId?)`            | Find and mount all \v-lark elements in zone |
+| `frame.unmountZone(zoneId?)`          | Unmount child frames in zone                |
+| `frame.parent(level?)`                | Navigate up the tree                        |
+| `frame.invoke(name, args?)`           | Cross-view method call                      |
+| `frame.children()`                    | Get child frame IDs                         |
+| `frame.on/off/fire`                   | Frame-level events                          |
 
-#### Embedded Views (#view)
+#### Embedded Views (v-lark)
 
-Child views are embedded in templates via the `#view` attribute:
+Child views are embedded in templates via the `v-lark` attribute:
 
 ```html
-<div #view="src/views/detail"></div>
+<div v-lark="src/views/detail"></div>
 ```
 
-The compiler encodes the view path. At render time, `mountZone` scans for `#view` elements and calls `mountFrame` for each one.
+The compiler encodes the view path. At render time, `mountZone` scans for `v-lark` elements and calls `mountFrame` for each one.
 
 #### Component Props & Events
 
@@ -345,7 +345,7 @@ Pass data to child views with `*prop` and bind child-to-parent events with `@eve
 
 ```html
 <div
-  #view="components/counter-updater"
+  v-lark="components/counter-updater"
   *count="{{=count}}"
   *step="{{=step}}"
   *history="{{@history}}"
@@ -355,13 +355,13 @@ Pass data to child views with `*prop` and bind child-to-parent events with `@eve
 ></div>
 ```
 
-| Syntax | Description |
-| ------ | ----------- |
-| `*prop="{{=expr}}"` | Pass string value (HTML-escaped) |
-| `*prop="{{@expr}}"` | Pass object/array reference (resolved via refData) |
-| `@event="handlerName"` | Bind child event to parent handler |
+| Syntax                 | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `*prop="{{=expr}}"`    | Pass string value (HTML-escaped)                   |
+| `*prop="{{@expr}}"`    | Pass object/array reference (resolved via refData) |
+| `@event="handlerName"` | Bind child event to parent handler                 |
 
-**Props flow:** Parent `updater.set().digest()` → template re-renders → `data-prop-*` attributes update → `mountZone` reads and pushes to `childView.updater.set(props).digest()` → child re-renders.
+**Props flow:** Parent `updater.set().digest()` → template re-renders → `p-lark-*` attributes update → `mountZone` reads and pushes to `childView.updater.set(props).digest()` → child re-renders.
 
 **Events flow:** Child calls `ctx.owner.fire("eventName", data?)` → parent handler found by prefix-matching in events map → handler called with data.
 
@@ -1060,17 +1060,17 @@ All DOM events are delegated to `document.body` in the capture phase. The EventD
 
 ### Exports
 
-| Category  | Exports                                                                                                                       |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Framework | `Framework`, `defineView`, `EventDelegator`                                                                                  |
-| State     | `State`, `createStore`, `computed`, `bindStore`, `useUrlState`                                                               |
-| Router    | `Router`                                                                                                                      |
-| View      | `defineView`, `ViewCtx`, `ViewSetup` (types)                                                                                  |
-| Hooks     | `useState`, `useEffect`, `useStore`, `useInterval`, `useTimeout`, `useResource`, `useEvent`                                  |
-| Frame     | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass`, `FrameApi` (type)                                         |
-| Service   | `createService`, `ServiceApi`, `ServiceInstance` (types)                                                                      |
-| VDOM      | `vdomCreate` (used by compiled templates)                                                                                     |
-| Types     | All types from `./types` via `export *`                                                                                       |
+| Category  | Exports                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------- |
+| Framework | `Framework`, `defineView`, `EventDelegator`                                                 |
+| State     | `State`, `createStore`, `computed`, `bindStore`, `useUrlState`                              |
+| Router    | `Router`                                                                                    |
+| View      | `defineView`, `ViewCtx`, `ViewSetup` (types)                                                |
+| Hooks     | `useState`, `useEffect`, `useStore`, `useInterval`, `useTimeout`, `useResource`, `useEvent` |
+| Frame     | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass`, `FrameApi` (type)       |
+| Service   | `createService`, `ServiceApi`, `ServiceInstance` (types)                                    |
+| VDOM      | `vdomCreate` (used by compiled templates)                                                   |
+| Types     | All types from `./types` via `export *`                                                     |
 
 ### Bundler Entry Points
 

@@ -46,7 +46,7 @@
     <aside
       class="border-base-200 sticky top-11 hidden h-[calc(100vh-2.75rem)] w-56 shrink-0 overflow-y-auto border-r py-3 lg:block"
     >
-      <div #view="theme/sidebar"></div>
+      <div v-lark="theme/sidebar"></div>
     </aside>
 
     <!-- Main content -->
@@ -85,12 +85,12 @@
     <aside
       class="sticky top-11 hidden h-[calc(100vh-2.75rem)] w-48 shrink-0 overflow-y-auto py-3 xl:block"
     >
-      <div #view="theme/toc"></div>
+      <div v-lark="theme/toc"></div>
     </aside>
   </div>
 
   <!-- Search modal (local provider only; DocSearch manages its own modal) -->
   {{if searchProvider === "local"}}
-  <div #view="theme/search"></div>
+  <div v-lark="theme/search"></div>
   {{/if}}
 </div>

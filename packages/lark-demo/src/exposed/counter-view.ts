@@ -33,7 +33,7 @@ const MF_COUNTER = "mf/counter";
 // Register views (idempotent)
 // Top-level view uses mf/ prefix to avoid collision with host app.
 // Sub-components MUST use their ORIGINAL paths because the compiled
-// template embeds these path strings in #view attributes at build time.
+// template embeds these path strings in v-lark attributes at build time.
 registerViewClass(MF_COUNTER, CounterView);
 registerViewClass("components/counter-store", CounterStoreComponent);
 registerViewClass("components/counter-updater", CounterUpdaterComponent);

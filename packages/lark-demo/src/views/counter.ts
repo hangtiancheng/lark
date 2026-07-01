@@ -57,10 +57,8 @@ export default defineView(
             })
             .digest();
         },
-        "stepChange<change>": (e: { step?: number } | Event) => {
-          const stepVal = (e as { step?: number })?.step;
-          const target = (e as Event)?.target as HTMLInputElement;
-          const newStep = stepVal ?? (target ? parseInt(target.value) || 1 : 1);
+        "stepChange<change>": (e: { step?: number }) => {
+          const newStep = e?.step ?? 1;
           ctx.updater.set({ step: newStep }).digest();
         },
         "clearHistory<click>": () => {

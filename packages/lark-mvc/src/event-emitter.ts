@@ -51,7 +51,7 @@ export function createEmitter<T = unknown>(): EmitterApi<T> {
   let pendingCompaction: Set<string> | undefined;
 
   function on(event: string, handler: (e: ChangeEvent) => void): EmitterApi<T> {
-    const key = SPLITTER + event;
+    const key = SPLITTER + event.toLowerCase();
     let list = listeners.get(key);
     if (!list) {
       list = [];
@@ -62,7 +62,7 @@ export function createEmitter<T = unknown>(): EmitterApi<T> {
   }
 
   function off(event: string, handler?: AnyFunc): EmitterApi<T> {
-    const key = SPLITTER + event;
+    const key = SPLITTER + event.toLowerCase();
     if (handler) {
       const list = listeners.get(key);
       if (!list) return api;
@@ -99,11 +99,14 @@ export function createEmitter<T = unknown>(): EmitterApi<T> {
     remove?: boolean,
     lastToFirst?: boolean,
   ): EmitterApi<T> {
-    const key = SPLITTER + event;
+    // Case-insensitive event matching: HTML attribute names are lowercased
+    // by the parser, so data-event-clearHistory becomes data-event-clearhistory.
+    // Lowercasing the key lets fire("clearHistory") match on("clearhistory").
+    const key = SPLITTER + event.toLowerCase();
     const list = listeners.get(key);
 
     const eventData: Record<string, unknown> = data ?? {};
-    eventData["type"] = event;
+    eventData["type"] = event; // preserve original case in event data
 
     firingDepth++;
     try {

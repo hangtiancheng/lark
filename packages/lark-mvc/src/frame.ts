@@ -260,18 +260,10 @@ export function createFrame(id: string, parentId?: string): FrameObj {
         events: Record<string, string>;
       }> = [];
 
-      viewElements.forEach((el) => {
-        if (!(el instanceof HTMLElement)) return;
-        if (htmlElIsBound(el)) return;
-        const elId = ensureElementId(el, "frame_");
-        Reflect.set(el, "frameBound", 1);
-        const viewPathArg = getAttribute(el, LARK_VIEW);
-        if (!viewPathArg) return;
-
-        // Read data-prop-* attributes → resolve ref tokens from parent refData
+      // Helper: read data-prop-* from a #view element, resolving ref tokens
+      const readProps = (el: Element): Record<string, unknown> => {
         const props: Record<string, unknown> = {};
-        const parentView = frame.view;
-        const parentRefData = parentView?.updater.refData;
+        const parentRefData = frame.view?.updater.refData;
         for (const attr of el.attributes) {
           if (attr.name.startsWith("data-prop-")) {
             const propName = attr.name.slice("data-prop-".length);
@@ -283,8 +275,35 @@ export function createFrame(id: string, parentId?: string): FrameObj {
             }
           }
         }
+        return props;
+      };
+
+      viewElements.forEach((el) => {
+        if (!(el instanceof HTMLElement)) return;
+        const elId = el.id || ensureElementId(el, "frame_");
+
+        // Already-bound #view element: update props on the existing child view
+        if (htmlElIsBound(el)) {
+          const childFrame = Frame.get(elId);
+          const childView = childFrame?.view;
+          if (childView && childView.signature.value > 0) {
+            const props = readProps(el);
+            if (Object.keys(props).length > 0) {
+              childView.updater.set(props).digest();
+            }
+          }
+          return;
+        }
+
+        // New #view element: mount with props and events
+        Reflect.set(el, "frameBound", 1);
+        const viewPathArg = getAttribute(el, LARK_VIEW);
+        if (!viewPathArg) return;
+
+        const props = readProps(el);
 
         // Read data-event-* attributes → child-to-parent event bindings
+        // HTML lowercases attribute names; emitter matches case-insensitively
         const events: Record<string, string> = {};
         for (const attr of el.attributes) {
           if (attr.name.startsWith("data-event-")) {

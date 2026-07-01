@@ -167,9 +167,10 @@ export function createUpdater(viewId: string): UpdaterApi {
           domSetChildNodes(node, newDom, ref, frame, keys);
           applyIdUpdates(ref.idUpdates);
           applyDomOps(ref.domOps);
-          if (ref.hasChanged || !view.rendered.value) {
-            view.endUpdate(viewId);
-          }
+          // Always endUpdate after a successful digest — child #view elements
+          // may need prop updates even when the parent DOM didn't visibly change
+          // (e.g., refFn returns the same token for a mutated array reference)
+          view.endUpdate(viewId);
         } else {
           // ── VDOM rendering path ──
           const newVDom = result;

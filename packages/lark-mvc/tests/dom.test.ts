@@ -52,8 +52,12 @@ describe("DOM Diff Engine", () => {
     });
 
     it("falls back to #view path when present", () => {
-      const el = document.createElement("div");
-      el.setAttribute("#view", "views/home?x=1");
+      // Use innerHTML because setAttribute("#view", ...) throws in jsdom
+      // — # is not a valid XML Name start char. In production, the attribute
+      // is created by the HTML parser (innerHTML), which accepts # in attr names.
+      const container = document.createElement("div");
+      container.innerHTML = '<div #view="views/home?x=1"></div>';
+      const el = container.firstElementChild as Element;
       expect(domGetCompareKey(el)).toBe("views/home");
     });
 

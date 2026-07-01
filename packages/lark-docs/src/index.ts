@@ -25,11 +25,6 @@ export {
   State,
   Router,
   registerViewClass,
-  createStore,
-  computed,
-  bindStore,
-  createService,
-  useUrlState,
 } from "@lark.js/mvc";
 
 export type FrameworkConfig = Omit<LarkMvcFrameworkConfig, "routeMode"> & {
@@ -53,8 +48,6 @@ export type {
   PageData,
   HeadingInfo,
   DocsRoute,
-  SidebarData,
-  TocData,
   SearchEntry,
   FrontmatterResult,
   CompileMarkdownOptions,

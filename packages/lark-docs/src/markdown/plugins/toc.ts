@@ -6,12 +6,7 @@
  */
 import type MarkdownIt from "markdown-it";
 
-export interface TocOptions {
-  /** Heading levels to include. Default: [2, 3] */
-  level?: number[];
-}
-
-export function tocPlugin(md: MarkdownIt, _options?: TocOptions): void {
+export function tocPlugin(md: MarkdownIt): void {
   // Register inline rule to match [[toc]]
   md.inline.ruler.before("emphasis", "toc", (state, silent) => {
     const src = state.src.slice(state.pos);

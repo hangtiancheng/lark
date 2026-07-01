@@ -14,7 +14,6 @@ function makeRoute(
 ): DocsRoute {
   return {
     path,
-    viewId: path.replace(/\//g, "-"),
     filePath: `/project/docs${path.replace("/docs", "")}.md`,
     pageData: {
       title,
@@ -36,7 +35,7 @@ describe("generateSidebar", () => {
       makeRoute("/docs/guide/plugins", "Plugins"),
     ];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
 
     expect(items.length).toBeGreaterThan(0);
     const allTexts = items.flatMap((item) =>
@@ -63,7 +62,7 @@ describe("generateSidebar", () => {
       }),
     ];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
 
     const flatItems = items.flatMap((item) => item.items || [item]);
     expect(flatItems[0].text).toBe("Configuration");
@@ -89,7 +88,7 @@ describe("generateSidebar", () => {
       }),
     ];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
     const flatItems = items.flatMap((item) => item.items || [item]);
 
     // Filename order: config, intro, plugins
@@ -111,7 +110,7 @@ describe("generateSidebar", () => {
       }),
     ];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
     const flatItems = items.flatMap((item) => item.items || [item]);
 
     // Filename order: apple, mango, zebra
@@ -134,7 +133,7 @@ describe("generateSidebar", () => {
       }),
     ];
 
-    const items = generateSidebar(routes, "/docs/markdown/", "/docs/");
+    const items = generateSidebar(routes, "/docs/markdown/");
     const flatItems = items.flatMap((item) => item.items || [item]);
 
     // Virtual index should not appear; only 2 real routes
@@ -149,7 +148,7 @@ describe("generateSidebar", () => {
       }),
     ];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
     const flatItems = items.flatMap((item) => item.items || [item]);
     expect(flatItems[0].text).toBe("Config");
   });
@@ -161,7 +160,7 @@ describe("generateSidebar", () => {
       makeRoute("/docs/guide/api/state", "State API"),
     ];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
 
     // Should have root items and an "Api" group
     const groups = items.filter((item) => item.items && item.items.length > 0);
@@ -174,14 +173,14 @@ describe("generateSidebar", () => {
   });
 
   it("handles empty routes", () => {
-    const items = generateSidebar([], "/docs/guide/", "/docs/");
+    const items = generateSidebar([], "/docs/guide/");
     expect(items).toEqual([]);
   });
 
   it("handles no matching routes for prefix", () => {
     const routes: DocsRoute[] = [makeRoute("/docs/api/router", "Router")];
 
-    const items = generateSidebar(routes, "/docs/guide/", "/docs/");
+    const items = generateSidebar(routes, "/docs/guide/");
     expect(items).toEqual([]);
   });
 });

@@ -71,7 +71,7 @@ function generateRoutesFile(config: DocsConfig, projectRoot: string): void {
   if (config.sidebar) {
     for (const [prefix, sidebarConfig] of Object.entries(config.sidebar)) {
       if (sidebarConfig === "auto") {
-        sidebar[prefix] = generateSidebar(routes, prefix, config.baseUrl);
+        sidebar[prefix] = generateSidebar(routes, prefix);
       } else {
         sidebar[prefix] = sidebarConfig;
       }

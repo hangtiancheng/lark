@@ -25,7 +25,7 @@ export function createParser(options?: MarkdownOptions): MarkdownIt {
 
   // Plugin chain (order matters: anchors before TOC, containers after)
   md.use(anchorPlugin, { permalink: options?.anchor?.permalink ?? true });
-  md.use(tocPlugin, { level: options?.toc?.level ?? [2, 3] });
+  md.use(tocPlugin);
   md.use(containerPlugin, options?.containers);
   md.use(codeBlockPlugin);
 

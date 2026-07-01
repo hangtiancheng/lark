@@ -95,7 +95,6 @@ export function scanDocsDir(
       // relied on implicit precedence. Make it obvious.
       const computedPath = effectiveBase + routeSegment;
       const fullRoutePath = computedPath || "/";
-      const viewId = generateViewId(routeSegment, isIndex);
 
       // Read and parse
       const raw = fs.readFileSync(fullPath, "utf-8");
@@ -115,16 +114,13 @@ export function scanDocsDir(
         excerpt: extractExcerpt(content),
         sidebarPosition: frontmatter["sidebar_position"] as number | undefined,
         sidebarLabel: frontmatter["sidebar_label"] as string | undefined,
-        sidebarGroup: frontmatter["sidebar_group"] as string | undefined,
         draft: frontmatter["draft"] as boolean | undefined,
         headings: extractHeadings(content),
         relativePath,
-        lastUpdated: fs.statSync(fullPath).mtimeMs,
       };
 
       const route: DocsRoute = {
         path: fullRoutePath,
-        viewId,
         filePath: fullPath,
         pageData,
       };
@@ -159,7 +155,6 @@ export function scanDocsDir(
 
     const virtualRoute: DocsRoute = {
       path: fullRoutePath,
-      viewId: generateViewId(routeSegment, true),
       filePath: firstRoute.filePath,
       pageData: firstRoute.pageData,
       isDirectoryIndex: true,
@@ -178,22 +173,4 @@ export function scanDocsDir(
 function normalizeBase(baseUrl: string): string {
   const trimmed = baseUrl.replace(/\/+$/, "");
   return trimmed || "/";
-}
-
-/**
- * Generate a unique view ID from the route segment and index flag.
- *
- * - Root index (segment="") → "index"
- * - Subdir index (segment="/guide") → "guide-index"
- * - Regular file (segment="/guide/config") → "guide-config"
- */
-function generateViewId(routeSegment: string, isIndex: boolean): string {
-  const id = routeSegment
-    .replace(/^\//, "")
-    .replace(/\//g, "-")
-    .replace(/[^a-zA-Z0-9-]/g, "");
-  if (isIndex) {
-    return id ? `${id}-index` : "index";
-  }
-  return id || "index";
 }

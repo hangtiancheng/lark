@@ -77,8 +77,6 @@ export interface SidebarItem {
 export interface MarkdownOptions {
   /** Heading anchor options. */
   anchor?: { permalink?: boolean };
-  /** TOC extraction levels. Default: [2, 3] */
-  toc?: { level?: number[] };
   /** Custom container labels. Keys: tip, warning, danger, details. */
   containers?: Record<string, { label: string }>;
 }
@@ -122,16 +120,12 @@ export interface PageData {
   sidebarPosition?: number;
   /** Override sidebar label (from frontmatter sidebar_label). */
   sidebarLabel?: string;
-  /** Sidebar group name (from frontmatter sidebar_group). */
-  sidebarGroup?: string;
   /** If true, excluded from production builds. */
   draft?: boolean;
   /** Extracted h2/h3 headings for TOC. */
   headings: HeadingInfo[];
   /** Path relative to the docs directory. */
   relativePath: string;
-  /** Last modified timestamp (ms since epoch). */
-  lastUpdated?: number;
 }
 
 /** A heading extracted from markdown content. */
@@ -152,8 +146,6 @@ export interface HeadingInfo {
 export interface DocsRoute {
   /** Full route path including baseUrl prefix. e.g. "/docs/guide/config" */
   path: string;
-  /** View ID for registerViewClass. e.g. "docs-guide-config" */
-  viewId: string;
   /** Absolute file path to the .md source. */
   filePath: string;
   /** Extracted page metadata. */
@@ -164,30 +156,6 @@ export interface DocsRoute {
    * filename order) and are excluded from the sidebar to avoid duplicates.
    */
   isDirectoryIndex?: boolean;
-}
-
-// ============================================================
-// Sidebar types
-// ============================================================
-
-/** Sidebar data passed to the Sidebar View at runtime. */
-export interface SidebarData {
-  /** Sidebar item tree. */
-  items: SidebarItem[];
-  /** Currently active route path. */
-  currentPath: string;
-}
-
-// ============================================================
-// TOC types
-// ============================================================
-
-/** TOC data passed to the TocView at runtime. */
-export interface TocData {
-  /** Headings to display. */
-  headings: HeadingInfo[];
-  /** Currently visible heading slug. */
-  activeSlug?: string;
 }
 
 // ============================================================

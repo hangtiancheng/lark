@@ -206,23 +206,6 @@ describe("scanDocsDir", () => {
     }
   });
 
-  it("generates unique viewIds", () => {
-    const dir = createTempDocs({
-      "index.md": "# Home\n",
-      "guide/index.md": "# Guide\n",
-      "guide/config.md": "# Config\n",
-    });
-
-    try {
-      const routes = scanDocsDir(dir, "/docs/");
-      const viewIds = routes.map((r) => r.viewId);
-      const unique = new Set(viewIds);
-      expect(unique.size).toBe(viewIds.length);
-    } finally {
-      cleanup(dir);
-    }
-  });
-
   it("normalizes baseUrl", () => {
     const dir = createTempDocs({
       "index.md": "# Home\n",

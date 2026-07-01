@@ -289,11 +289,10 @@ Auto-generated sidebars group routes by subdirectory, sort by `sidebarPosition` 
 
 ### MarkdownOptions
 
-| Field              | Type                                | Default    | Description                       |
-| ------------------ | ----------------------------------- | ---------- | --------------------------------- |
-| `anchor.permalink` | `boolean`                           | `true`     | Add permalink anchors to h1-h3    |
-| `toc.level`        | `number[]`                          | `[2, 3]`   | Heading levels to extract for TOC |
-| `containers`       | `Record<string, { label: string }>` | (built-in) | Custom container labels           |
+| Field              | Type                                | Default    | Description                    |
+| ------------------ | ----------------------------------- | ---------- | ------------------------------ |
+| `anchor.permalink` | `boolean`                           | `true`     | Add permalink anchors to h1-h3 |
+| `containers`       | `Record<string, { label: string }>` | (built-in) | Custom container labels        |
 
 ### HighlightOptions
 
@@ -322,7 +321,6 @@ title: Page Title
 description: Page description for SEO and search
 sidebar_position: 1
 sidebar_label: Custom Label
-sidebar_group: Guide
 draft: false
 ---
 ```
@@ -333,7 +331,6 @@ draft: false
 | `description`      | `string`  | Page description for meta tags and search index. Falls back to filename-derived title                                                                     |
 | `sidebar_position` | `number`  | Sort order in auto-generated sidebar (lower = higher). Uses all-or-nothing rule: if any page in a group lacks this field, all pages sort by filename only |
 | `sidebar_label`    | `string`  | Override sidebar display text                                                                                                                             |
-| `sidebar_group`    | `string`  | Sidebar group name for grouping                                                                                                                           |
 | `draft`            | `boolean` | When `true`, excluded from production builds via `excludeDrafts` option                                                                                   |
 
 ### Title Resolution Chain
@@ -566,9 +563,9 @@ Registers all four theme views (layout, sidebar, TOC, search) with the lark-mvc 
 
 ### `scanDocsDir(docsDir: string, baseUrl: string, options?: { excludeDrafts?: boolean }): DocsRoute[]`
 
-Recursively scans a docs directory and returns route entries. Skips entries starting with `_` or `.`, plus `node_modules`, `__tests__`, `__fixtures__`, `.git`, `.vitepress`, `.lark-docs`, and `dist`. `index.md` maps to the directory root without trailing `/`. Generates a unique `viewId` from the route path.
+Recursively scans a docs directory and returns route entries. Skips entries starting with `_` or `.`, plus `node_modules`, `__tests__`, `__fixtures__`, `.git`, `.vitepress`, `.lark-docs`, and `dist`. `index.md` maps to the directory root without trailing `/`.
 
-### `generateSidebar(routes: DocsRoute[], prefix: string, baseUrl: string): SidebarItem[]`
+### `generateSidebar(routes: DocsRoute[], prefix: string): SidebarItem[]`
 
 Auto-generates sidebar items for routes under a given prefix. Groups by subdirectory, sorts by `sidebarPosition` then title, produces a `SidebarItem[]` tree.
 
@@ -606,8 +603,6 @@ import type {
   PageData,
   HeadingInfo,
   DocsRoute,
-  SidebarData,
-  TocData,
   SearchEntry,
   FrontmatterResult,
   CompileMarkdownOptions,

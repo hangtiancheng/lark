@@ -19,10 +19,7 @@ import { sortDocsRoutes } from "./utils/route-sorting";
 export function generateSidebar(
   routes: DocsRoute[],
   prefix: string,
-  _baseUrl: string,
 ): SidebarItem[] {
-  // _baseUrl is accepted for API compatibility but not used — prefix already
-  // carries the full path (including baseUrl) from the sidebar config keys.
   const normalizedPrefix = normalizePrefix(prefix);
   // Exclude virtual index routes (directories without index.md) — they
   // duplicate the first page's content and should not appear in the sidebar.
@@ -52,7 +49,7 @@ export function generateSidebar(
 
   // Process root-level items first (no subdirectory)
   const rootRoutes = groups.get("") || [];
-  sortRoutes(rootRoutes);
+  sortDocsRoutes(rootRoutes);
   for (const r of rootRoutes) {
     items.push({
       text: r.pageData.sidebarLabel || r.pageData.title,
@@ -64,7 +61,7 @@ export function generateSidebar(
   for (const [groupKey, groupRoutes] of groups) {
     if (!groupKey) continue; // already handled
 
-    sortRoutes(groupRoutes);
+    sortDocsRoutes(groupRoutes);
     const subItems: SidebarItem[] = groupRoutes.map((r) => ({
       text: r.pageData.sidebarLabel || r.pageData.title,
       link: r.path,
@@ -85,9 +82,6 @@ function normalizePrefix(prefix: string): string {
   // route paths. e.g. "/docs/get-started/" → "/docs/get-started"
   return prefix.replace(/\/+$/, "");
 }
-
-// Re-export the shared sorting function under the local name used below.
-const sortRoutes = sortDocsRoutes;
 
 function formatGroupLabel(key: string): string {
   return key

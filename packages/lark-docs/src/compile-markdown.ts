@@ -99,7 +99,6 @@ export async function compileMarkdown(
     excerpt,
     sidebarPosition: frontmatter["sidebar_position"] as number | undefined,
     sidebarLabel: (frontmatter["sidebar_label"] as string) || undefined,
-    sidebarGroup: (frontmatter["sidebar_group"] as string) || undefined,
     draft: (frontmatter["draft"] as boolean) || undefined,
     headings,
     relativePath: relativeFilePath,

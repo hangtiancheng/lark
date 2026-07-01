@@ -12,20 +12,9 @@
 // have incompatible return types (`string` vs `VDomNode`), so a union
 // return type would not be assignable to either.
 
-// import type { VDomTemplate, ViewSetup, ViewTemplate } from "@lark.js/mvc";
-type ViewTemplate = (
-  data: unknown,
-  viewId: string,
-  refData: unknown,
-  ...encoders: unknown[]
-) => string;
-type VDomTemplate = (
-  data: unknown,
-  viewId: string,
-  refData: unknown,
-) => VDomNode;
-
 declare module "*.html" {
+  import type { ViewTemplate, VDomTemplate } from "@lark.js/mvc";
+
   const template: ViewTemplate | VDomTemplate;
   export default template;
 }
@@ -50,24 +39,28 @@ declare module "*.html" {
  */
 
 declare module "virtual:lark-docs/docs-layout" {
+  import type { VDomTemplate, ViewTemplate } from "@lark.js/mvc";
   const __str: ViewTemplate;
   const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 
 declare module "virtual:lark-docs/sidebar" {
+  import type { VDomTemplate, ViewTemplate } from "@lark.js/mvc";
   const __str: ViewTemplate;
   const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 
 declare module "virtual:lark-docs/toc" {
+  import type { VDomTemplate, ViewTemplate } from "@lark.js/mvc";
   const __str: ViewTemplate;
   const __vdom: VDomTemplate;
   export { __str, __vdom };
 }
 
 declare module "virtual:lark-docs/search" {
+  import type { VDomTemplate, ViewTemplate } from "@lark.js/mvc";
   const __str: ViewTemplate;
   const __vdom: VDomTemplate;
   export { __str, __vdom };

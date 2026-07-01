@@ -87,7 +87,10 @@ export function createFrame(id: string, parentId?: string): FrameObj {
     readyMap,
     emitter,
 
-    mountView(viewPathArg: string, viewInitParams?: Record<string, unknown>): void {
+    mountView(
+      viewPathArg: string,
+      viewInitParams?: Record<string, unknown>,
+    ): void {
       const node = document.getElementById(frame.id);
       const pId = frame.parentId;
 
@@ -246,7 +249,7 @@ export function createFrame(id: string, parentId?: string): FrameObj {
       // Hold fire created event
       frame.holdFireCreated = 1;
 
-      // Find all v-lark elements in zone
+      // Find all #view elements in zone
       const rootEl = document.getElementById(targetZone);
       if (!rootEl) return;
 
@@ -569,11 +572,15 @@ function notifyAlter(frameInstance: FrameObj, data: { id: string }): void {
  * Translate SPLITTER-prefixed reference tokens in child-view params back to
  * their original JS values from the parent view's `refData`.
  *
- * When a template uses `{{@value}}` inside a `v-lark` attribute, the compiler
+ * When a template uses `{{@value}}` inside a `#view` attribute, the compiler
  * emits a SPLITTER-prefixed token instead of the raw value. This function
  * resolves those tokens so the child view receives the actual objects.
  */
-function translateQuery(pId: string, src: string, params: Record<string, string>): void {
+function translateQuery(
+  pId: string,
+  src: string,
+  params: Record<string, string>,
+): void {
   const parentFrame = frameRegistry.get(pId);
   const parentView = parentFrame?.view;
   if (!parentView) return;
@@ -604,4 +611,8 @@ function translateQuery(pId: string, src: string, params: Record<string, string>
 // View setup registration (re-exported)
 // ============================================================
 
-export { registerViewClass, invalidateViewClass, getViewClassRegistry } from "./view-registry";
+export {
+  registerViewClass,
+  invalidateViewClass,
+  getViewClassRegistry,
+} from "./view-registry";

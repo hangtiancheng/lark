@@ -490,12 +490,12 @@ interface VDomNode {
   attrsSpecials?: Record<string, string>; // attribute names that are set as DOM properties
   hasSpecials?: Record<string, string> | undefined; // original specials argument
   children?: VDomNode[] | undefined; // child VDomNode array
-  compareKey?: string | undefined; // diff key: from id, #, or v-lark path
+  compareKey?: string | undefined; // diff key: from id, #, or #view path
   reused?: Record<string, number> | undefined; // keyed children count map
   reusedTotal?: number; // total count of keyed children
   views?: [string, string, string, Record<string, string>][] | undefined; // sub-view references
   selfClose?: boolean; // whether self-closing
-  isLarkView?: string | undefined; // sub-view path if this node hosts a v-lark view
+  isLarkView?: string | undefined; // sub-view path if this node hosts a #view view
 }
 ```
 
@@ -754,7 +754,7 @@ Framework shared constants and encoding helpers.
 
 - `SPLITTER: string` — internal splitter character (U+001E Record Separator)
 - `RouterEvents: { CHANGE: string; CHANGED: string; PAGE_UNLOAD: string }` — router event name constants
-- `LARK_VIEW: string` — attribute name: "v-lark"
+- `LARK_VIEW: string` — attribute name: "\#view"
 - `EVENT_METHOD_REGEXP: RegExp` — view event method regex
 - `VIEW_EVENT_METHOD_REGEXP: RegExp` — view event method name regex
 - `URL_TRIM_HASH_REGEXP: RegExp` — URL query/hash trim regexp
@@ -1237,7 +1237,7 @@ acceptView(import.meta.hot, viewPath);
 
 7. **Async callbacks executing after view destroy**: Use `ctx.wrapAsync(fn)` to wrap async callbacks. The wrapped function only executes if the view is still alive (signature > 0 and hasn't changed).
 
-8. **DOM diff mismatches**: If you see unexpected DOM mutations, check that your template produces consistent HTML structure. The keyed diff algorithm relies on stable `id` attributes or `v-lark` paths.
+8. **DOM diff mismatches**: If you see unexpected DOM mutations, check that your template produces consistent HTML structure. The keyed diff algorithm relies on stable `id` attributes or `#view` paths.
 
 9. **VDOM mode performance**: VDOM mode is opt-in for a reason. For most use cases, string mode (real-DOM diff) is faster. Only enable VDOM mode if you have complex, deeply nested component trees that benefit from LIS reconciliation.
 
@@ -1423,7 +1423,7 @@ export default defineView((ctx, params) => {
 <!-- parent.html -->
 <div class="parent">
   <h1>Parent View</h1>
-  <div v-lark="views/child?id={{=itemId}}"></div>
+  <div #view="views/child?id={{=itemId}}"></div>
 </div>
 ```
 

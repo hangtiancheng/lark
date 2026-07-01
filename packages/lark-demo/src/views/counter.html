@@ -10,11 +10,18 @@
       <!-- Sub-View: Counter Store Component -->
       <div
         class="{{=styles['counter-page__store-slot']}}"
-        v-lark="components/counter-store"
+        #view="components/counter-store"
       ></div>
 
       <!-- Sub-View: Counter Updater Component -->
-      <div v-lark="components/counter-updater"></div>
+      <div
+        #view="components/counter-updater"
+        *count="{{=count}}"
+        *step="{{=step}}"
+        *history="{{@history}}"
+        @increment="increment"
+        @decrement="decrement"
+      ></div>
     </div>
 
     <button

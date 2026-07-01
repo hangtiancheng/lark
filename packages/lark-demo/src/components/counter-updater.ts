@@ -14,7 +14,9 @@ interface CounterState {
 }
 
 export default defineView(
-  withBaseView((ctx) => {
+  withBaseView((ctx, params) => {
+    // We can get props from params
+    console.log(ctx, params);
     // ── init: set initial data (replaces async render()) ──
     ctx.updater.digest({
       count: 0,

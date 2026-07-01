@@ -9,7 +9,12 @@ import {
   applyDomOps,
   applyIdUpdates,
 } from "../src/dom";
-import { encodeHTML, strSafe, encodeURIExtra, encodeQuote } from "../src/common";
+import {
+  encodeHTML,
+  strSafe,
+  encodeURIExtra,
+  encodeQuote,
+} from "../src/common";
 import { Frame, createFrame } from "../src/frame";
 import type { FrameObj } from "../src/types";
 
@@ -51,9 +56,9 @@ describe("DOM Diff Engine", () => {
       expect(domGetCompareKey(el)).toBe("k1");
     });
 
-    it("falls back to v-lark path when present", () => {
+    it("falls back to #view path when present", () => {
       const el = document.createElement("div");
-      el.setAttribute("v-lark", "views/home?x=1");
+      el.setAttribute("#view", "views/home?x=1");
       expect(domGetCompareKey(el)).toBe("views/home");
     });
 
@@ -194,7 +199,9 @@ describe("DOM Diff Engine", () => {
 
   describe("encoders", () => {
     it("encodeHTML escapes critical entities", () => {
-      expect(encodeHTML(`<a href="x">&y</a>`)).toBe("&lt;a href=&#34;x&#34;&gt;&amp;y&lt;/a&gt;");
+      expect(encodeHTML(`<a href="x">&y</a>`)).toBe(
+        "&lt;a href=&#34;x&#34;&gt;&amp;y&lt;/a&gt;",
+      );
     });
 
     it("encodeSafe stringifies null / undefined to ''", () => {

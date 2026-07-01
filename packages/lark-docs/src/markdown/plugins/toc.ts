@@ -1,7 +1,7 @@
 /**
  * Custom markdown-it plugin: [[toc]] directive.
  *
- * Replaces `[[toc]]` in markdown content with a `<div v-lark="theme/toc">`
+ * Replaces `[[toc]]` in markdown content with a `<div #view="theme/toc">`
  * placeholder that gets mounted as a TocView at runtime.
  */
 import type MarkdownIt from "markdown-it";
@@ -23,8 +23,8 @@ export function tocPlugin(md: MarkdownIt): void {
     return true;
   });
 
-  // Render the [[toc]] placeholder as a v-lark mount point
+  // Render the [[toc]] placeholder as a #view mount point
   md.renderer.rules["toc_placeholder"] = () => {
-    return '<div v-lark="theme/toc"></div>';
+    return '<div #view="theme/toc"></div>';
   };
 }

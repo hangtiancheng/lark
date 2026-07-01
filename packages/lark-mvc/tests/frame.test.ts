@@ -323,7 +323,7 @@ describe("Frame", () => {
   });
 
   describe("mountZone / unmountZone", () => {
-    it("mountZone scans v-lark child elements and mounts them", () => {
+    it("mountZone scans #view child elements and mounts them", () => {
       const parentEl = document.createElement("div");
       parentEl.id = "mz-parent-1";
       parentEl.innerHTML = `
@@ -444,7 +444,10 @@ describe("Frame", () => {
       const TestView = defineView(() => ({ template: () => "" }));
       registerViewClass("test-view-parent", TestView);
 
-      const parentFrame = grandparent.mountFrame("p-1", "test-view-parent") as FrameObj;
+      const parentFrame = grandparent.mountFrame(
+        "p-1",
+        "test-view-parent",
+      ) as FrameObj;
 
       // parent(1) returns direct parent Frame
       expect(parentFrame.parent(1)).toBe(grandparent);

@@ -325,22 +325,22 @@ root.unmountFrame("child-id");
 | `frame.unmountView()`                 | Unmount current view                       |
 | `frame.mountFrame(id, path, params?)` | Mount a child frame                        |
 | `frame.unmountFrame(id?)`             | Unmount a child frame                      |
-| `frame.mountZone(zoneId?)`            | Find and mount all v-lark elements in zone |
+| `frame.mountZone(zoneId?)`            | Find and mount all \#view elements in zone |
 | `frame.unmountZone(zoneId?)`          | Unmount child frames in zone               |
 | `frame.parent(level?)`                | Navigate up the tree                       |
 | `frame.invoke(name, args?)`           | Cross-view method call                     |
 | `frame.children()`                    | Get child frame IDs                        |
 | `frame.on/off/fire`                   | Frame-level events                         |
 
-#### Embedded Views (v-lark)
+#### Embedded Views (\#view)
 
-Child views are embedded in templates via the `v-lark` attribute:
+Child views are embedded in templates via the `#view` attribute:
 
 ```html
-<div v-lark="src/views/detail?id={{=itemId}}"></div>
+<div #view="src/views/detail?id={{=itemId}}"></div>
 ```
 
-The compiler encodes the view path and params. At render time, `mountZone` scans for `v-lark` elements and calls `mountFrame` for each one.
+The compiler encodes the view path and params. At render time, `mountZone` scans for `#view` elements and calls `mountFrame` for each one.
 
 ### Routing
 

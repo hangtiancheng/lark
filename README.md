@@ -376,10 +376,10 @@ Two non-negotiable rules:
 Lowest ceremony. No prepare hook, no skeleton.
 
 ```html
-<div v-lark="remote-app/views/home"></div>
+<div #view="remote-app/views/home"></div>
 ```
 
-Pipeline: `v-lark` → `Frame.mountView("remote-app/views/home")` →
+Pipeline: `#view` → `Frame.mountView("remote-app/views/home")` →
 `getViewClass(...)` miss → `use("remote-app/views/home")` →
 `config.require([...])` → MF runtime resolves the chunk →
 `registerViewClass(path, View)` → `doMountView`.
@@ -392,10 +392,10 @@ business-code-aware initialization.
 Adds prepare preloading, skeleton rendering, and `assign` reuse:
 
 ```html
-<div v-lark="cross-site?view=remote-app/views/home&bizCode=mybiz"></div>
+<div #view="cross-site?view=remote-app/views/home&bizCode=mybiz"></div>
 ```
 
-Pipeline: `v-lark` → mount `CrossSite` → render skeleton template →
+Pipeline: `#view` → mount `CrossSite` → render skeleton template →
 `updateView()` → `loadRemoteView("remote-app/views/home", "mybiz")` →
 `use("remote-app/prepare")` → `prepare({ bizCode })` resolves →
 `owner.mountFrame("mf_" + id, "remote-app/views/home", $params)` → real view.
@@ -589,8 +589,8 @@ async branch.
 1. Progressive disclosure — applications without MF pay zero cost: the
    loader's fallback path uses native dynamic import, and `CrossSite` is
    opt-in.
-2. Template-level transparency — `v-lark="local/path"` and
-   `v-lark="remote-app/path"` are syntactically identical; the framework
+2. Template-level transparency — `#view="local/path"` and
+   `#view="remote-app/path"` are syntactically identical; the framework
    picks the loader based on registry lookup, not template grammar.
 3. Two-tier cache — view classes are cached in `view-registry`, prepare
    promises in `preparePromises`. The first amortizes module instantiation;

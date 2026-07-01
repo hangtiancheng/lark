@@ -89,8 +89,8 @@ describe("VDOM Engine", () => {
       expect(parent.reusedTotal).toBe(2);
     });
 
-    it("detects v-lark sub-views", () => {
-      const node = vdomCreate("div", { "v-lark": "components/child" });
+    it("detects #view sub-views", () => {
+      const node = vdomCreate("div", { "#view": "components/child" });
       expect(node.isLarkView).toBe("components/child");
       expect(node.views).toHaveLength(1);
       expect(node.views![0][0]).toBe("components/child");
@@ -144,7 +144,7 @@ describe("VDOM Engine", () => {
     });
 
     it("propagates views from nested children", () => {
-      const child = vdomCreate("div", { "v-lark": "views/nested" });
+      const child = vdomCreate("div", { "#view": "views/nested" });
       const parent = vdomCreate("div", null, [child]);
       expect(parent.views).toBeDefined();
       expect(parent.views!.length).toBeGreaterThan(0);
@@ -187,7 +187,10 @@ describe("VDOM Engine", () => {
 
     it("handles SVG namespace", () => {
       const ref = createVDomRef("test");
-      const owner = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const owner = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      );
       const vnode = vdomCreate("circle", { r: "10" });
       const dom = vdomCreateNode(vnode, owner, ref) as Element;
       expect(dom.namespaceURI).toBe("http://www.w3.org/2000/svg");
@@ -331,8 +334,19 @@ describe("VDOM Engine", () => {
       const el = document.createElement("div");
       const frame = makeFrame("vdom-test-1");
       const view = { rendered: false, endUpdate: () => {} } as any;
-      const newVDom = vdomCreate("div", null, [vdomCreate("p", null, [vdomCreate(0, "hello")])]);
-      vdomSetChildNodes(el, undefined, newVDom, ref, frame, new Set(), view, () => {});
+      const newVDom = vdomCreate("div", null, [
+        vdomCreate("p", null, [vdomCreate(0, "hello")]),
+      ]);
+      vdomSetChildNodes(
+        el,
+        undefined,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
       expect(ref.changed).toBe(1);
       expect(el.innerHTML).toContain("<p>hello</p>");
       cleanup("vdom-test-1");
@@ -345,7 +359,16 @@ describe("VDOM Engine", () => {
       const view = { rendered: true, endUpdate: () => {} } as any;
       const oldVDom = vdomCreate("div", null, null);
       const newVDom = vdomCreate("div", null, null);
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
       expect(ref.changed).toBe(0);
       cleanup("vdom-test-2");
     });
@@ -361,7 +384,16 @@ describe("VDOM Engine", () => {
         vdomCreate("li", { id: "b" }, [vdomCreate(0, "B")]),
       ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
       expect(ref.changed).toBe(1);
       expect(el.children.length).toBe(2);
       expect(el.children[0].tagName).toBe("LI");
@@ -381,9 +413,20 @@ describe("VDOM Engine", () => {
         vdomCreate("li", null, [vdomCreate(0, "B")]),
         vdomCreate("li", null, [vdomCreate(0, "C")]),
       ]);
-      const newVDom = vdomCreate("ul", null, [vdomCreate("li", null, [vdomCreate(0, "A")])]);
+      const newVDom = vdomCreate("ul", null, [
+        vdomCreate("li", null, [vdomCreate(0, "A")]),
+      ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
       expect(ref.changed).toBe(1);
       expect(el.children.length).toBe(1);
       expect(el.children[0].textContent).toBe("A");
@@ -414,7 +457,16 @@ describe("VDOM Engine", () => {
         vdomCreate("li", { id: "b" }, [vdomCreate(0, "B")]),
       ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
 
       // Nodes should be reordered, not re-created
       expect(el.children[0]).toBe(nodeC);
@@ -430,10 +482,23 @@ describe("VDOM Engine", () => {
       const frame = makeFrame("vdom-test-6");
       const view = { rendered: true, endUpdate: () => {} } as any;
 
-      const oldVDom = vdomCreate("div", null, [vdomCreate("span", null, [vdomCreate(0, "old")])]);
-      const newVDom = vdomCreate("div", null, [vdomCreate("span", null, [vdomCreate(0, "new")])]);
+      const oldVDom = vdomCreate("div", null, [
+        vdomCreate("span", null, [vdomCreate(0, "old")]),
+      ]);
+      const newVDom = vdomCreate("div", null, [
+        vdomCreate("span", null, [vdomCreate(0, "new")]),
+      ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
 
       expect(ref.changed).toBe(1);
       expect(el.querySelector("span")?.textContent).toBe("new");
@@ -447,10 +512,23 @@ describe("VDOM Engine", () => {
       const frame = makeFrame("vdom-test-8");
       const view = { rendered: true, endUpdate: () => {} } as any;
 
-      const oldVDom = vdomCreate("div", null, [vdomCreate("span", null, [vdomCreate(0, "old")])]);
-      const newVDom = vdomCreate("div", null, [vdomCreate("p", null, [vdomCreate(0, "new")])]);
+      const oldVDom = vdomCreate("div", null, [
+        vdomCreate("span", null, [vdomCreate(0, "old")]),
+      ]);
+      const newVDom = vdomCreate("div", null, [
+        vdomCreate("p", null, [vdomCreate(0, "new")]),
+      ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
 
       expect(ref.changed).toBe(1);
       expect(el.children[0].tagName).toBe("P");
@@ -468,22 +546,51 @@ describe("VDOM Engine", () => {
       const view = { rendered: true, endUpdate: () => {} } as any;
 
       const oldVDom = vdomCreate("tbody", null, [
-        vdomCreate("tr", { id: "row-1" }, [vdomCreate("td", null, [vdomCreate(0, "1")])]),
-        vdomCreate("tr", { id: "row-2" }, [vdomCreate("td", null, [vdomCreate(0, "2")])]),
-        vdomCreate("tr", { id: "row-3" }, [vdomCreate("td", null, [vdomCreate(0, "3")])]),
-        vdomCreate("tr", { id: "row-4" }, [vdomCreate("td", null, [vdomCreate(0, "4")])]),
-        vdomCreate("tr", { id: "row-5" }, [vdomCreate("td", null, [vdomCreate(0, "5")])]),
+        vdomCreate("tr", { id: "row-1" }, [
+          vdomCreate("td", null, [vdomCreate(0, "1")]),
+        ]),
+        vdomCreate("tr", { id: "row-2" }, [
+          vdomCreate("td", null, [vdomCreate(0, "2")]),
+        ]),
+        vdomCreate("tr", { id: "row-3" }, [
+          vdomCreate("td", null, [vdomCreate(0, "3")]),
+        ]),
+        vdomCreate("tr", { id: "row-4" }, [
+          vdomCreate("td", null, [vdomCreate(0, "4")]),
+        ]),
+        vdomCreate("tr", { id: "row-5" }, [
+          vdomCreate("td", null, [vdomCreate(0, "5")]),
+        ]),
       ]);
       // Replace with entirely new ids 101-105
       const newVDom = vdomCreate("tbody", null, [
-        vdomCreate("tr", { id: "row-101" }, [vdomCreate("td", null, [vdomCreate(0, "101")])]),
-        vdomCreate("tr", { id: "row-102" }, [vdomCreate("td", null, [vdomCreate(0, "102")])]),
-        vdomCreate("tr", { id: "row-103" }, [vdomCreate("td", null, [vdomCreate(0, "103")])]),
-        vdomCreate("tr", { id: "row-104" }, [vdomCreate("td", null, [vdomCreate(0, "104")])]),
-        vdomCreate("tr", { id: "row-105" }, [vdomCreate("td", null, [vdomCreate(0, "105")])]),
+        vdomCreate("tr", { id: "row-101" }, [
+          vdomCreate("td", null, [vdomCreate(0, "101")]),
+        ]),
+        vdomCreate("tr", { id: "row-102" }, [
+          vdomCreate("td", null, [vdomCreate(0, "102")]),
+        ]),
+        vdomCreate("tr", { id: "row-103" }, [
+          vdomCreate("td", null, [vdomCreate(0, "103")]),
+        ]),
+        vdomCreate("tr", { id: "row-104" }, [
+          vdomCreate("td", null, [vdomCreate(0, "104")]),
+        ]),
+        vdomCreate("tr", { id: "row-105" }, [
+          vdomCreate("td", null, [vdomCreate(0, "105")]),
+        ]),
       ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
 
       expect(ref.changed).toBe(1);
       expect(el.children.length).toBe(5);
@@ -506,22 +613,51 @@ describe("VDOM Engine", () => {
       const view = { rendered: true, endUpdate: () => {} } as any;
 
       const oldVDom = vdomCreate("tbody", null, [
-        vdomCreate("tr", { id: "row-1" }, [vdomCreate("td", null, [vdomCreate(0, "1")])]),
-        vdomCreate("tr", { id: "row-2" }, [vdomCreate("td", null, [vdomCreate(0, "2")])]),
-        vdomCreate("tr", { id: "row-3" }, [vdomCreate("td", null, [vdomCreate(0, "3")])]),
-        vdomCreate("tr", { id: "row-4" }, [vdomCreate("td", null, [vdomCreate(0, "4")])]),
-        vdomCreate("tr", { id: "row-5" }, [vdomCreate("td", null, [vdomCreate(0, "5")])]),
+        vdomCreate("tr", { id: "row-1" }, [
+          vdomCreate("td", null, [vdomCreate(0, "1")]),
+        ]),
+        vdomCreate("tr", { id: "row-2" }, [
+          vdomCreate("td", null, [vdomCreate(0, "2")]),
+        ]),
+        vdomCreate("tr", { id: "row-3" }, [
+          vdomCreate("td", null, [vdomCreate(0, "3")]),
+        ]),
+        vdomCreate("tr", { id: "row-4" }, [
+          vdomCreate("td", null, [vdomCreate(0, "4")]),
+        ]),
+        vdomCreate("tr", { id: "row-5" }, [
+          vdomCreate("td", null, [vdomCreate(0, "5")]),
+        ]),
       ]);
       // Swap rows 2 and 4
       const newVDom = vdomCreate("tbody", null, [
-        vdomCreate("tr", { id: "row-1" }, [vdomCreate("td", null, [vdomCreate(0, "1")])]),
-        vdomCreate("tr", { id: "row-4" }, [vdomCreate("td", null, [vdomCreate(0, "4")])]),
-        vdomCreate("tr", { id: "row-3" }, [vdomCreate("td", null, [vdomCreate(0, "3")])]),
-        vdomCreate("tr", { id: "row-2" }, [vdomCreate("td", null, [vdomCreate(0, "2")])]),
-        vdomCreate("tr", { id: "row-5" }, [vdomCreate("td", null, [vdomCreate(0, "5")])]),
+        vdomCreate("tr", { id: "row-1" }, [
+          vdomCreate("td", null, [vdomCreate(0, "1")]),
+        ]),
+        vdomCreate("tr", { id: "row-4" }, [
+          vdomCreate("td", null, [vdomCreate(0, "4")]),
+        ]),
+        vdomCreate("tr", { id: "row-3" }, [
+          vdomCreate("td", null, [vdomCreate(0, "3")]),
+        ]),
+        vdomCreate("tr", { id: "row-2" }, [
+          vdomCreate("td", null, [vdomCreate(0, "2")]),
+        ]),
+        vdomCreate("tr", { id: "row-5" }, [
+          vdomCreate("td", null, [vdomCreate(0, "5")]),
+        ]),
       ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
 
       expect(ref.changed).toBe(1);
       expect(el.children.length).toBe(5);
@@ -548,7 +684,16 @@ describe("VDOM Engine", () => {
         vdomCreate("li", { id: "dup" }, [vdomCreate(0, "C")]),
       ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
       // Should handle without throwing
       expect(el.children.length).toBeGreaterThanOrEqual(1);
       cleanup("vdom-dup-key");
@@ -561,10 +706,23 @@ describe("VDOM Engine", () => {
       const frame = makeFrame("vdom-noop");
       const view = { rendered: true, endUpdate: () => {} } as any;
 
-      const oldVDom = vdomCreate("div", null, [vdomCreate("p", null, [vdomCreate(0, "same")])]);
-      const newVDom = vdomCreate("div", null, [vdomCreate("p", null, [vdomCreate(0, "same")])]);
+      const oldVDom = vdomCreate("div", null, [
+        vdomCreate("p", null, [vdomCreate(0, "same")]),
+      ]);
+      const newVDom = vdomCreate("div", null, [
+        vdomCreate("p", null, [vdomCreate(0, "same")]),
+      ]);
 
-      vdomSetChildNodes(el, oldVDom, newVDom, ref, frame, new Set(), view, () => {});
+      vdomSetChildNodes(
+        el,
+        oldVDom,
+        newVDom,
+        ref,
+        frame,
+        new Set(),
+        view,
+        () => {},
+      );
       expect(ref.changed).toBe(0);
       cleanup("vdom-noop");
     });

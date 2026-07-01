@@ -246,7 +246,7 @@ export interface VDomNode {
   hasSpecials?: Record<string, string> | undefined;
   /** Child VDomNode array (undefined for text/raw/self-closing) */
   children?: VDomNode[] | undefined;
-  /** Diff key: from id, #, or v-lark path */
+  /** Diff key: from id, #, or #view path */
   compareKey?: string | undefined;
   /** Keyed children count map (compareKey -> count) */
   reused?: Record<string, number> | undefined;
@@ -256,7 +256,7 @@ export interface VDomNode {
   views?: [string, string, string, Record<string, string>][] | undefined;
   /** Whether self-closing (children param was literal 1) */
   selfClose?: boolean;
-  /** Sub-view path if this node hosts a v-lark view, otherwise falsy */
+  /** Sub-view path if this node hosts a #view view, otherwise falsy */
   isLarkView?: string | undefined;
 }
 
@@ -279,7 +279,11 @@ export interface VDomRef {
  * The compiled template imports vdomCreate via ES module import and
  * takes only (data, viewId, refData). Extra arguments are ignored.
  */
-export type VDomTemplate = (data: unknown, viewId: string, refData: unknown) => VDomNode;
+export type VDomTemplate = (
+  data: unknown,
+  viewId: string,
+  refData: unknown,
+) => VDomNode;
 
 // ============================== VDOM ==============================
 
@@ -310,7 +314,11 @@ export interface FrameInvokeEntry {
  * Runtime helpers (encodeHTML/strSafe/refFn) are imported by the compiled
  * module from `@lark.js/mvc/runtime`, not passed as arguments.
  */
-export type ViewTemplate = (data: unknown, viewId: string, refData: unknown) => string;
+export type ViewTemplate = (
+  data: unknown,
+  viewId: string,
+  refData: unknown,
+) => string;
 
 export interface ViewLocationObserved {
   /** Whether observing location */
@@ -391,7 +399,9 @@ export interface RouterApi {
    * Returns an unsubscribe function so the guard can be torn down (e.g.
    * inside a view's `destroy` handler).
    */
-  beforeEach(guard: (to: Location, from: Location) => boolean | Promise<boolean>): () => void;
+  beforeEach(
+    guard: (to: Location, from: Location) => boolean | Promise<boolean>,
+  ): () => void;
   /** Internal: bind hashchange (called by Framework.boot) */
   _bind(): void;
   /** Internal: set framework config */
@@ -452,7 +462,10 @@ export interface CacheApi<T = unknown> {
  */
 export interface UpdaterApi {
   get: <T = unknown>(key?: string) => T;
-  set: (data: Record<string, unknown>, excludes?: ReadonlySet<string>) => UpdaterApi;
+  set: (
+    data: Record<string, unknown>,
+    excludes?: ReadonlySet<string>,
+  ) => UpdaterApi;
   digest: (
     data?: Record<string, unknown>,
     excludes?: ReadonlySet<string>,
@@ -526,7 +539,10 @@ export interface ViewCtx {
     fn: Fn,
     context?: unknown,
   ): (...args: Parameters<Fn>) => ReturnType<Fn> | undefined;
-  observeLocation(params: string | string[] | Record<string, unknown>, observePath?: boolean): void;
+  observeLocation(
+    params: string | string[] | Record<string, unknown>,
+    observePath?: boolean,
+  ): void;
   observeState(keys: string | string[]): void;
   capture(key: string, resource?: unknown, destroyOnRender?: boolean): unknown;
   release(key: string, destroy?: boolean): unknown;
@@ -569,7 +585,11 @@ export interface FrameObj {
 
   mountView(viewPath: string, viewInitParams?: Record<string, unknown>): void;
   unmountView(): void;
-  mountFrame(frameId: string, viewPath: string, viewInitParams?: Record<string, unknown>): FrameObj;
+  mountFrame(
+    frameId: string,
+    viewPath: string,
+    viewInitParams?: Record<string, unknown>,
+  ): FrameObj;
   unmountFrame(id?: string): void;
   mountZone(zoneId?: string): void;
   unmountZone(zoneId?: string): void;
@@ -621,7 +641,10 @@ export interface PayloadApi {
    * @param keyOrData Key/value string, data object, or endpoint metadata object
    * @param value Value when first parameter is a key
    */
-  set(keyOrData: string | Record<string, unknown> | ServiceMetaEntry, value?: unknown): PayloadApi;
+  set(
+    keyOrData: string | Record<string, unknown> | ServiceMetaEntry,
+    value?: unknown,
+  ): PayloadApi;
   data: Record<string, unknown>;
   cacheInfo?: ServiceCacheInfo;
 }
@@ -679,7 +702,9 @@ export interface StateApi {
    * @param keys Comma-separated key string
    * @returns Function that registers destroy cleanup on a ctx
    */
-  clean(keys: string): (ctx: { on: (event: string, handler: () => void) => void }) => void;
+  clean(
+    keys: string,
+  ): (ctx: { on: (event: string, handler: () => void) => void }) => void;
   /**
    * Detect data changes and dispatch changed event.
    * After set, must explicitly call `digest()` to dispatch changed event and notify views to update.
@@ -785,7 +810,11 @@ export interface FrameworkApi {
    * @param params Params object
    * @param keepEmpty Set of keys whose empty values should be preserved
    */
-  toUri(path: string, params?: Record<string, unknown>, keepEmpty?: Set<string>): string;
+  toUri(
+    path: string,
+    params?: Record<string, unknown>,
+    keepEmpty?: Set<string>,
+  ): string;
   /**
    * Parse URL string to path and params object.
    * Example: `Framework.parseUri('/xxx/?a=b&c=d')` => `{path:'/xxx/', params:{a:'b',c:'d'}}`
@@ -810,7 +839,10 @@ export interface FrameworkApi {
    * @param node Node or node ID
    * @param container Container node or node ID
    */
-  nodeInside(node: HTMLElement | string, container: HTMLElement | string): boolean;
+  nodeInside(
+    node: HTMLElement | string,
+    container: HTMLElement | string,
+  ): boolean;
   /**
    * Ensure DOM element has an ID, auto-generates one if missing.
    * Returns element's ID.
@@ -822,7 +854,10 @@ export interface FrameworkApi {
    * @param names Module names, supports string or string array
    * @param callback Callback after modules are loaded
    */
-  use(names: string | string[], callback?: (...modules: unknown[]) => void): void;
+  use(
+    names: string | string[],
+    callback?: (...modules: unknown[]) => void,
+  ): void;
   /**
    * Generate globally unique identifier (GUID).
    * @param prefix GUID prefix, defaults to "lark-"
@@ -857,7 +892,11 @@ export interface FrameworkApi {
    * @param eventType Event type string
    * @param eventInit CustomEvent init options
    */
-  dispatchEvent(target: EventTarget, eventType: string, eventInit?: CustomEventInit): void;
+  dispatchEvent(
+    target: EventTarget,
+    eventType: string,
+    eventInit?: CustomEventInit,
+  ): void;
   /**
    * Execute a function in try-catch with chunked scheduling.
    * @param fn Function to execute
@@ -982,7 +1021,10 @@ export interface FrameworkConfig {
    * @param params - Optional parameters passed to the module initializer
    * @returns Promise resolving to an array of loaded modules, or undefined if not available
    */
-  require?: (names: string[], params?: Record<string, unknown>) => Promise<unknown[]> | undefined;
+  require?: (
+    names: string[],
+    params?: Record<string, unknown>,
+  ) => Promise<unknown[]> | undefined;
   /** Skip view rendered check */
   skipViewRendered?: boolean;
   /**

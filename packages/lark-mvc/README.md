@@ -2,7 +2,7 @@
 
 A lightweight TypeScript MVC frontend framework for single-page applications and micro-frontend scenarios.
 
-Version: 0.0.18
+Version: 0.0.19
 License: ISC
 Package: @lark.js/mvc
 
@@ -219,7 +219,6 @@ The `ViewCtx` is the first argument to every setup function. It provides all fra
 | `ctx.observeState(keys)`           | Declare State keys this view reacts to   |
 | `ctx.capture(key, resource)`       | Register a destroyable resource          |
 | `ctx.release(key)`                 | Remove and destroy a resource            |
-| `ctx.leaveTip(message, condition)` | Unsaved-changes navigation guard         |
 | `ctx.on(event, handler)`           | Listen to view lifecycle events          |
 | `ctx.fire(event, data)`            | Emit a view event                        |
 | `ctx.wrapAsync(fn)`                | Wrap async callback with signature guard |
@@ -267,8 +266,6 @@ unmountView()
    destroyAllResources(ctx, true)
        |
    fire("destroy")
-       |
-   EventDelegator.clearRangeEvents(ctx.id)
        |
    signature.value = 0
 ```
@@ -332,15 +329,62 @@ root.unmountFrame("child-id");
 | `frame.children()`                    | Get child frame IDs                        |
 | `frame.on/off/fire`                   | Frame-level events                         |
 
-#### Embedded Views (\#view)
+#### Embedded Views (#view)
 
 Child views are embedded in templates via the `#view` attribute:
 
 ```html
-<div #view="src/views/detail?id={{=itemId}}"></div>
+<div #view="src/views/detail"></div>
 ```
 
-The compiler encodes the view path and params. At render time, `mountZone` scans for `#view` elements and calls `mountFrame` for each one.
+The compiler encodes the view path. At render time, `mountZone` scans for `#view` elements and calls `mountFrame` for each one.
+
+#### Component Props & Events
+
+Pass data to child views with `*prop` and bind child-to-parent events with `@event`:
+
+```html
+<div
+  #view="components/counter-updater"
+  *count="{{=count}}"
+  *step="{{=step}}"
+  *history="{{@history}}"
+  @increment="increment"
+  @decrement="decrement"
+  @clearHistory="clearHistory"
+></div>
+```
+
+| Syntax | Description |
+| ------ | ----------- |
+| `*prop="{{=expr}}"` | Pass string value (HTML-escaped) |
+| `*prop="{{@expr}}"` | Pass object/array reference (resolved via refData) |
+| `@event="handlerName"` | Bind child event to parent handler |
+
+**Props flow:** Parent `updater.set().digest()` → template re-renders → `data-prop-*` attributes update → `mountZone` reads and pushes to `childView.updater.set(props).digest()` → child re-renders.
+
+**Events flow:** Child calls `ctx.owner.fire("eventName", data?)` → parent handler found by prefix-matching in events map → handler called with data.
+
+Event matching is case-insensitive (emitter lowercases event keys, so `fire("clearHistory")` matches `on("clearhistory")` from HTML-lowercased attribute names).
+
+```ts
+// Child view
+export default defineView((ctx, params) => {
+  const p = (params || {}) as Record<string, unknown>;
+  ctx.updater.digest({
+    count: p["count"] ?? 0,
+    step: p["step"] ?? 1,
+    history: p["history"] ?? [],
+  });
+  return {
+    template,
+    events: {
+      "increment<click>": () => ctx.owner.fire("increment"),
+      "clearHistory<click>": () => ctx.owner.fire("clearHistory"),
+    },
+  };
+});
+```
 
 ### Routing
 
@@ -569,7 +613,7 @@ export default defineView((ctx) => {
 The Service system manages API requests with LFU caching, deduplication, serial queuing, and lifecycle events.
 
 ```ts
-import { createService, createPayload } from "@lark.js/mvc";
+import { createService } from "@lark.js/mvc";
 
 // Create a service type with a transport function
 const apiService = createService(
@@ -966,17 +1010,6 @@ The bundler plugins auto-inject HMR boilerplate at compile time. Users never nee
 - For `.html` modules: self-accepts, calls `hotSwapByTemplate(old, new)`
 - For `.ts` view modules: self-accepts, calls `hotSwapByView(old, new)`
 
-### Manual HMR (if needed)
-
-```ts
-import { acceptView, disposeView } from "@lark.js/mvc";
-
-// In a view .ts file:
-const viewPath = "src/views/home";
-disposeView(import.meta.hot, viewPath);
-acceptView(import.meta.hot, viewPath);
-```
-
 ## Micro-Frontend Support
 
 lark-mvc supports Module Federation and cross-project view loading via `FrameworkConfig.require`.
@@ -1027,21 +1060,17 @@ All DOM events are delegated to `document.body` in the capture phase. The EventD
 
 ### Exports
 
-| Category  | Exports                                                                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Constants | `SPLITTER`, `LARK_VIEW`, `TAG_NAME_REGEXP`, `CALL_BREAK_TIME`, `EVENT_METHOD_REGEXP`, `VIEW_EVENT_METHOD_REGEXP`, `ROUTER_EVENTS`, `nextCounter`        |
-| Framework | `Framework`, `defineView`, `createEmitter`, `createCache`, `createUpdater`                                                                              |
-| State     | `State`, `markBooted`, `createStore`, `computed`, `bindStore`, `useUrlState`                                                                            |
-| Router    | `Router`, `markRouterBooted`, `getRouteMode`                                                                                                            |
-| View      | `defineView`, `ViewCtx`, `ViewSetup` (types)                                                                                                            |
-| Hooks     | `useState`, `useEffect`, `useStore`, `useInterval`, `useTimeout`, `useResource`, `useEvent`                                                             |
-| Frame     | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass`                                                                                      |
-| Service   | `createService`, `createPayload`, `ServiceApi`, `PayloadApi`, `ServiceInstance`                                                                         |
-| HMR       | `reloadViews`, `hotSwapView`, `hotSwapFrames`, `hotSwapByTemplate`, `hotSwapByView`, `injectTemplateHmrSnippet`, `injectViewHmr`, `importsHtmlTemplate` |
-| VDOM      | `vdomCreate`, `createVDomRef`                                                                                                                           |
-| Events    | `EventDelegator`                                                                                                                                        |
-| Mark      | `mark`, `unmark`                                                                                                                                        |
-| Cache     | `createCache`, `CacheApi`                                                                                                                               |
+| Category  | Exports                                                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Framework | `Framework`, `defineView`, `EventDelegator`                                                                                  |
+| State     | `State`, `createStore`, `computed`, `bindStore`, `useUrlState`                                                               |
+| Router    | `Router`                                                                                                                      |
+| View      | `defineView`, `ViewCtx`, `ViewSetup` (types)                                                                                  |
+| Hooks     | `useState`, `useEffect`, `useStore`, `useInterval`, `useTimeout`, `useResource`, `useEvent`                                  |
+| Frame     | `Frame`, `createFrame`, `registerViewClass`, `invalidateViewClass`, `FrameApi` (type)                                         |
+| Service   | `createService`, `ServiceApi`, `ServiceInstance` (types)                                                                      |
+| VDOM      | `vdomCreate` (used by compiled templates)                                                                                     |
+| Types     | All types from `./types` via `export *`                                                                                       |
 
 ### Bundler Entry Points
 
@@ -1141,7 +1170,7 @@ packages/lark-mvc/
     router.ts             -- Router with two-phase change confirmation
     state.ts              -- State singleton for cross-view data
     store.ts              -- createStore, computed, bindStore
-    service.ts            -- createService, createPayload, API management
+    service.ts            -- createService, API management
     hooks.ts              -- useState, useEffect, useStore, etc.
     updater.ts            -- per-view data binding and digest
     dom.ts                -- real-DOM diff engine (string mode)

@@ -3,9 +3,6 @@
  * All shared types for the documentation site generator.
  */
 
-// Re-export FrameworkConfig so consumers don't need @lark.js/mvc directly
-export type { FrameworkConfig } from "@lark.js/mvc";
-
 // ============================================================
 // Configuration types
 // ============================================================

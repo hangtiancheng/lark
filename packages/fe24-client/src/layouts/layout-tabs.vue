@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ElWatermark } from 'element-plus'
+import { ElWatermark } from "element-plus";
 
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from "@/stores/user";
 defineProps<{
-  watermarked: boolean
-}>()
-const userStore = useUserStore()
+  watermarked: boolean;
+}>();
+const userStore = useUserStore();
 </script>
 
 <template>

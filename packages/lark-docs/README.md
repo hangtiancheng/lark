@@ -541,16 +541,16 @@ Same API as Webpack, but the loader returns `Promise<string>` directly (Rspack a
 
 | Sub-path                 | Description                                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `@lark.js/docs`          | Main barrel: all types, scanner, route-map, sidebar, search, markdown, compiler, runtime, theme factories     |
+| `@lark.js/docs`          | Main barrel: all types, scanner, sidebar, markdown, compiler, runtime, theme factories                        |
 | `@lark.js/docs/compiler` | `compileMarkdown()` + `CompileMarkdownOptions` type                                                           |
 | `@lark.js/docs/vite`     | `larkDocsPlugin()` Vite plugin + build-time utility re-exports                                                |
 | `@lark.js/docs/webpack`  | `LarkDocsPlugin` class + `larkDocsLoader()` function                                                          |
 | `@lark.js/docs/rspack`   | `LarkDocsPlugin` class + `larkDocsLoader()` async function                                                    |
-| `@lark.js/docs/runtime`  | `searchDocs()` + `slugify()` (browser-safe, no build deps)                                                    |
+| `@lark.js/docs/runtime`  | `slugify()` (browser-safe, no build deps)                                                                     |
 | `@lark.js/docs/theme`    | `registerThemeViews()` + 4 view factories + `createLocalSearchClient` + `icons`                               |
 | `@lark.js/docs/client`   | Types-only: ambient module declarations for `@lark-docs/generated` and `*.html` (for `/// <reference types>`) |
 
-The `/vite`, `/webpack`, and `/rspack` sub-paths re-export build-time utilities (`scanDocsDir`, `generateRouteMap`, `generateSidebar`, `buildSearchIndex`, `defineConfig`) to avoid pulling in the main entry's `lucide-static` SVG `?raw` imports, which are not valid in Node.js contexts.
+The `/vite`, `/webpack`, and `/rspack` sub-paths re-export build-time utilities (`scanDocsDir`, `generateSidebar`, `defineConfig`) to avoid pulling in the main entry's `lucide-static` SVG `?raw` imports, which are not valid in Node.js contexts.
 
 The `/client` sub-path is types-only (no runtime code). It ships `client.d.ts` which provides `declare module "@lark-docs/generated"` and `declare module "*.html"` ambient declarations. Consumer projects reference it via `/// <reference types="@lark.js/docs/client" />` in their `shims.d.ts`.
 
@@ -568,29 +568,13 @@ Registers all four theme views (layout, sidebar, TOC, search) with the lark-mvc 
 
 Recursively scans a docs directory and returns route entries. Skips entries starting with `_` or `.`, plus `node_modules`, `__tests__`, `__fixtures__`, `.git`, `.vitepress`, `.lark-docs`, and `dist`. `index.md` maps to the directory root without trailing `/`. Generates a unique `viewId` from the route path.
 
-### `generateRouteMap(routes: DocsRoute[]): Record<string, string>`
-
-Maps `route.path` to `route.viewId` for use as the lark-mvc `routes` config.
-
-### `generateBootModule(routes: DocsRoute[], projectRoot?: string): string`
-
-Generates a JS module source string that imports all `.md` files and calls `registerViewClass()` for each.
-
 ### `generateSidebar(routes: DocsRoute[], prefix: string, baseUrl: string): SidebarItem[]`
 
 Auto-generates sidebar items for routes under a given prefix. Groups by subdirectory, sorts by `sidebarPosition` then title, produces a `SidebarItem[]` tree.
 
-### `buildSearchIndex(routes: DocsRoute[]): SearchEntry[]`
-
-Maps non-draft routes to `{ title, link, headings[], excerpt }` entries for client-side search.
-
 ### `compileMarkdown(source: string, options: CompileMarkdownOptions): Promise<string>`
 
 Compiles a `.md` source string into a JS module string that exports `pageData` and `contentHtml`. The pipeline: extract frontmatter, create parser, optionally initialize Shiki, parse and render to HTML, build page metadata, emit JS module.
-
-### `searchDocs(index: SearchEntry[], query: string, limit?: number): SearchEntry[]`
-
-Client-side full-text search over the pre-built index. Uses AND-logic substring matching with weighted scoring.
 
 ### `slugify(text: string): string`
 

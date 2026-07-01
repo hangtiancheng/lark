@@ -1,79 +1,85 @@
 <script setup lang="ts">
-import MapContainer from '@/components/map/map-container.vue'
-import { ElRow, ElCol, ElCard, type CascaderOption } from 'element-plus'
-import { reactive, ref } from 'vue'
-import { ROBOT_STATES, ROBOT_STATE_2_TEXT_AND_TYPE } from '@/constants'
+import MapContainer from "@/components/map/map-container.vue";
+import { ElRow, ElCol, ElCard, type CascaderOption } from "element-plus";
+import { reactive, ref } from "vue";
+import { ROBOT_STATES, ROBOT_STATE_2_TEXT_AND_TYPE } from "@/constants";
 
-import { fetchLocation } from '@/utils/fetch-location'
-import { AddOne, CloseOne, CheckOne } from '@icon-park/vue-next'
-import type { IRobotItem } from '@/types/robot'
-import bus from '@/utils/bus'
-import { robotAddApi } from '@/apis'
-import { fakerZH_CN as faker } from '@faker-js/faker'
+import { fetchLocation } from "@/utils/fetch-location";
+import { AddOne, CloseOne, CheckOne } from "@icon-park/vue-next";
+import type { IRobotItem } from "@/types/robot";
+import bus from "@/utils/bus";
+import { robotAddApi } from "@/apis";
+import { fakerZH_CN as faker } from "@faker-js/faker";
 
 const addressOptions: CascaderOption[] = Array.from({
   length: faker.number.int({ min: 5, max: 10 }),
 }).map(() => {
-  const province = faker.location.state()
+  const province = faker.location.state();
   return {
     value: province,
     label: province,
-    children: Array.from({ length: faker.number.int({ min: 3, max: 8 }) }).map(() => {
-      const city = faker.location.city()
-      return {
-        value: city,
-        label: city,
-      }
-    }),
-  }
-})
-const addressList = ref([])
+    children: Array.from({ length: faker.number.int({ min: 3, max: 8 }) }).map(
+      () => {
+        const city = faker.location.city();
+        return {
+          value: city,
+          label: city,
+        };
+      },
+    ),
+  };
+});
+const addressList = ref([]);
 
-const stateCounts = ref<number[] & { length: 6 }>([0, 0, 0, 0, 0, 0])
-const minMaxAvg = ref<[number, number, number]>([0, 0, 0])
+const stateCounts = ref<number[] & { length: 6 }>([0, 0, 0, 0, 0, 0]);
+const minMaxAvg = ref<[number, number, number]>([0, 0, 0]);
 const handleStatData = (
   stateCounts_: number[] & { length: 6 },
   minMaxAvg_: [number, number, number],
 ) => {
-  stateCounts.value = stateCounts_
-  minMaxAvg.value = minMaxAvg_
-}
+  stateCounts.value = stateCounts_;
+  minMaxAvg.value = minMaxAvg_;
+};
 
-const fixedDisabled = ref(true)
+const fixedDisabled = ref(true);
 
-const addrLatLng: [addr: string, lat: number, lng: number] = ['', 0, 0] as const
+const addrLatLng: [addr: string, lat: number, lng: number] = [
+  "",
+  0,
+  0,
+] as const;
 
 const handleChange = async () => {
-  addrLatLng[0] = addressList.value.join('')
-  ;[addrLatLng[1], addrLatLng[2]] = await fetchLocation(addrLatLng[0])
-}
+  addrLatLng[0] = addressList.value.join("");
+  [addrLatLng[1], addrLatLng[2]] = await fetchLocation(addrLatLng[0]);
+};
 
-const formData = reactive<Omit<IRobotItem, 'id' | 'address'>>({
-  name: '',
+const formData = reactive<Omit<IRobotItem, "id" | "address">>({
+  name: "",
   state: 1,
   failureNum: 0,
-  admin: '',
-  email: '',
-})
+  admin: "",
+  email: "",
+});
 
 const resetFormData = () => {
-  formData.name = ''
-  formData.state = 1
-  formData.failureNum = 0
-  formData.admin = ''
-  formData.email = ''
-}
+  formData.name = "";
+  formData.state = 1;
+  formData.failureNum = 0;
+  formData.admin = "";
+  formData.email = "";
+};
 
 const handleClick = () => {
-  fixedDisabled.value = !fixedDisabled.value
-}
+  fixedDisabled.value = !fixedDisabled.value;
+};
 
 const handleClose = () => {
-  fixedDisabled.value = !fixedDisabled.value
-  resetFormData()
-}
+  fixedDisabled.value = !fixedDisabled.value;
+  resetFormData();
+};
 // 是否持久化
-const persistent = ref(false)
+const persistent = ref(false);
 
 const handleSubmit = async () => {
   if (
@@ -82,26 +88,26 @@ const handleSubmit = async () => {
     formData.admin.length === 0 ||
     formData.email.length === 0
   ) {
-    return
+    return;
   }
-  bus.publish('add-marker', {
+  bus.publish("add-marker", {
     lat: addrLatLng[1],
     lng: addrLatLng[2],
     address: addrLatLng[0],
     ...formData,
-  })
+  });
   if (!persistent.value) {
-    resetFormData()
-    return
+    resetFormData();
+    return;
   }
   await robotAddApi({
     lat: addrLatLng[1],
     lng: addrLatLng[2],
     address: addrLatLng[0],
     ...formData,
-  })
-  resetFormData()
-}
+  });
+  resetFormData();
+};
 </script>
 
 <template>
@@ -135,11 +141,15 @@ const handleSubmit = async () => {
         >
           <template #header>
             <div v-if="fixedDisabled" class="flex justify-between text-[20px]">
-              <h1 @click="handleClick" class="cursor-pointer">放大新增地图标记窗口</h1>
+              <h1 @click="handleClick" class="cursor-pointer">
+                放大新增地图标记窗口
+              </h1>
             </div>
 
             <div v-else class="flex justify-between text-[20px]">
-              <h1 @click="handleClick" class="cursor-pointer">缩小新增地图标记窗口</h1>
+              <h1 @click="handleClick" class="cursor-pointer">
+                缩小新增地图标记窗口
+              </h1>
               <div class="flex justify-center gap-2.5">
                 <!-- 点击以提交表单 -->
                 <CheckOne
@@ -191,18 +201,27 @@ const handleSubmit = async () => {
 
               <ElForm class="pt-5">
                 <ElFormItem label="机器人名字" prop="name">
-                  <ElInput placeholder="请输入机器人名字" v-model="formData.name"></ElInput>
+                  <ElInput
+                    placeholder="请输入机器人名字"
+                    v-model="formData.name"
+                  ></ElInput>
                 </ElFormItem>
 
                 <ElFormItem label="机器人状态" prop="state">
-                  <ElSelect placeholder="请选择机器人状态" v-model="formData.state">
+                  <ElSelect
+                    placeholder="请选择机器人状态"
+                    v-model="formData.state"
+                  >
                     <ElOption
                       v-for="(state, idx) of ROBOT_STATES.slice(1)"
                       :key="state"
                       :value="idx + 1"
                       :label="state"
                     >
-                      <ElTag size="large" :type="ROBOT_STATE_2_TEXT_AND_TYPE.get(idx + 1)?.type">
+                      <ElTag
+                        size="large"
+                        :type="ROBOT_STATE_2_TEXT_AND_TYPE.get(idx + 1)?.type"
+                      >
                         {{ state }}
                       </ElTag>
                     </ElOption>
@@ -217,15 +236,26 @@ const handleSubmit = async () => {
                     controls-position="right"
                     v-model="formData.failureNum"
                   /> -->
-                  <ElSlider class="mx-5" v-model="formData.failureNum" :min="0" :max="100" />
+                  <ElSlider
+                    class="mx-5"
+                    v-model="formData.failureNum"
+                    :min="0"
+                    :max="100"
+                  />
                 </ElFormItem>
 
                 <ElFormItem label="管理员名字" prop="admin">
-                  <ElInput placeholder="请输入管理员名字" v-model="formData.admin"></ElInput>
+                  <ElInput
+                    placeholder="请输入管理员名字"
+                    v-model="formData.admin"
+                  ></ElInput>
                 </ElFormItem>
 
                 <ElFormItem label="管理员邮箱" prop="email">
-                  <ElInput placeholder="请输入管理员邮箱" v-model="formData.email"></ElInput>
+                  <ElInput
+                    placeholder="请输入管理员邮箱"
+                    v-model="formData.email"
+                  ></ElInput>
                 </ElFormItem>
               </ElForm>
             </div>

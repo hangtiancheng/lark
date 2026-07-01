@@ -42,7 +42,8 @@
 :root {
   --color-green: rgba(184, 233, 134); // #b8e986;
   --color-green-light: rgba(184, 233, 134, 0.5); // #b8e98680
-  font-family: 'Iosevka', 'Menlo', 'Cascadia Code', 'PingFang SC', 'Microsoft YaHei' !important;
+  font-family:
+    "Iosevka", "Menlo", "Cascadia Code", "PingFang SC", "Microsoft YaHei" !important;
   --color-1st: #3d8d7a;
   --color-2nd: #b3d8a8;
   --color-3rd: #fbffe4;
@@ -57,7 +58,7 @@
   // position: relative; // 父元素相对定位, 参考点: 原位置
   z-index: 1;
   &::before {
-    content: '';
+    content: "";
     position: absolute; // 子元素绝对定位, 参考点: 包含块
     top: 0;
     left: 0;

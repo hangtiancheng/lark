@@ -1,37 +1,37 @@
 export interface IResData {
-  code: number
-  message: string
+  code: number;
+  message: string;
 }
 
 export type IChartData = {
   data: {
-    name: string
-    value: number
-  }[]
-} & IResData
+    name: string;
+    value: number;
+  }[];
+} & IResData;
 
 export type IChartData2 = {
   data: {
-    name: string
-    data: number[]
-  }[]
-} & IResData
+    name: string;
+    data: number[];
+  }[];
+} & IResData;
 
 export type IChartData3 = {
-  data: [number, number, number, number, number]
-} & IResData
+  data: [number, number, number, number, number];
+} & IResData;
 
 export interface IRevenueItem {
-  id: number
-  address: string
-  revenue: number
+  id: number;
+  address: string;
+  revenue: number;
 }
 
 export type IRevenueList = {
-  data: IRevenueItem[]
-} & IResData
+  data: IRevenueItem[];
+} & IResData;
 
 export interface ITimeLineItem {
-  timestamp: number
-  message: string
+  timestamp: number;
+  message: string;
 }

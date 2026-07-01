@@ -1,7 +1,7 @@
-import adminMenu from '../assets/admin-menu.json'
-import userMenu from '../assets/user-menu.json'
+import adminMenu from "../assets/admin-menu.json";
+import userMenu from "../assets/user-menu.json";
 
-const version = 'v1'
+const version = "v1";
 
 export const enum Api {
   RobotQuery = `/api/${version}/robotQuery`,
@@ -19,4 +19,4 @@ export const enum Api {
   AddressList = `/api/${version}/addressList`,
 }
 
-export { adminMenu, userMenu }
+export { adminMenu, userMenu };

@@ -1,54 +1,65 @@
 <script setup lang="ts">
-import type { IRevenueItem } from '@/types/dashboard'
-import { useVirtualizer } from '@tanstack/vue-virtual'
-import { computed, inject, onMounted, ref, toRefs, useTemplateRef, type Ref } from 'vue'
-import VirtualListItem from './virtual-list-item.vue'
+import type { IRevenueItem } from "@/types/dashboard";
+import { useVirtualizer } from "@tanstack/vue-virtual";
+import {
+  computed,
+  inject,
+  onMounted,
+  ref,
+  toRefs,
+  useTemplateRef,
+  type Ref,
+} from "vue";
+import VirtualListItem from "./virtual-list-item.vue";
 
 const props = defineProps<{
   // 可视区高度
-  height: number
+  height: number;
   // 列表项高度
-  itemHeight: number
+  itemHeight: number;
   // 获取列表项数组的函数
-  fetchLargeList: () => Promise<IRevenueItem[]>
-}>()
+  fetchLargeList: () => Promise<IRevenueItem[]>;
+}>();
 
-const virtualListLength = inject<Ref<number>>('virtual-list-length', ref(0) /** defaultVal */)
+const virtualListLength = inject<Ref<number>>(
+  "virtual-list-length",
+  ref(0) /** defaultVal */,
+);
 
 // 组件暴露接口
 defineExpose<{
-  updateLargeList: () => Promise<void>
+  updateLargeList: () => Promise<void>;
 }>({
   updateLargeList: async () => {
-    largeList.value = await props.fetchLargeList()
-    virtualListLength.value = largeList.value.length
+    largeList.value = await props.fetchLargeList();
+    virtualListLength.value = largeList.value.length;
   },
-})
+});
 
-const { fetchLargeList } = props
-const { height, itemHeight } = toRefs(props)
+const { fetchLargeList } = props;
+const { height, itemHeight } = toRefs(props);
 
-const containerHeight = computed(() => `${height.value}px`)
+const containerHeight = computed(() => `${height.value}px`);
 
-const largeList = ref<IRevenueItem[]>([])
+const largeList = ref<IRevenueItem[]>([]);
 
 onMounted(async () => {
-  largeList.value = await fetchLargeList()
-  virtualListLength.value = largeList.value.length
-})
+  largeList.value = await fetchLargeList();
+  virtualListLength.value = largeList.value.length;
+});
 
-const containerRef = useTemplateRef('container')
+const containerRef = useTemplateRef("container");
 
 const virtualizerConfig = computed(() => ({
   count: largeList.value.length,
   overscan: 5,
   estimateSize: () => itemHeight.value,
   getScrollElement: () => containerRef.value,
-}))
+}));
 
-const virtualizer = useVirtualizer(virtualizerConfig)
+const virtualizer = useVirtualizer(virtualizerConfig);
 
-const virtualHeight = computed(() => `${virtualizer.value.getTotalSize()}px`)
+const virtualHeight = computed(() => `${virtualizer.value.getTotalSize()}px`);
 </script>
 
 <template>
@@ -67,7 +78,10 @@ const virtualHeight = computed(() => `${virtualizer.value.getTotalSize()}px`)
           transform: `translateY(${virtualItem.start}px)`,
         }"
       >
-        <VirtualListItem :item="largeList[virtualItem.index]!" :idx="virtualItem.index" />
+        <VirtualListItem
+          :item="largeList[virtualItem.index]!"
+          :idx="virtualItem.index"
+        />
       </div>
     </div>
   </div>

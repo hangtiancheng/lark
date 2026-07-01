@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { commaSep } from '@/utils/comma-sep.ts'
-import type { IRevenueItem } from '@/types/dashboard'
+import { commaSep } from "@/utils/comma-sep.ts";
+import type { IRevenueItem } from "@/types/dashboard";
 
 defineProps<{
-  item: IRevenueItem
-  idx: number
-}>()
+  item: IRevenueItem;
+  idx: number;
+}>();
 </script>
 
 <template>

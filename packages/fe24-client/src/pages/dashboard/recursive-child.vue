@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import type { IMenuItem } from '@/types/user'
-import { name2icon } from '@/utils/icons'
-import { useRouter } from 'vue-router'
+import type { IMenuItem } from "@/types/user";
+import { name2icon } from "@/utils/icons";
+import { useRouter } from "vue-router";
 
 defineOptions({
-  name: 'RecursiveChild',
-})
+  name: "RecursiveChild",
+});
 
 defineProps<{
-  item: IMenuItem
-}>()
+  item: IMenuItem;
+}>();
 
-const router = useRouter()
+const router = useRouter();
 const handleClick = (url: string) => {
-  router.push(url)
-}
+  router.push(url);
+};
 </script>
 
 <template>

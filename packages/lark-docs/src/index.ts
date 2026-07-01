@@ -64,8 +64,8 @@ export type {
 // Runtime utilities (browser-safe)
 // ============================================================
 
-// Runtime search (also available at @lark.js/docs/runtime)
-export { searchDocs, slugify } from "./runtime";
+// Browser-safe runtime utility (also available at @lark.js/docs/runtime)
+export { slugify } from "./runtime";
 
 // Theme view factories
 export {

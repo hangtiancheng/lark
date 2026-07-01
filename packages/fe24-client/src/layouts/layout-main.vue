@@ -1,28 +1,34 @@
 <script setup lang="ts">
-import { ElContainer, ElHeader, ElAside, ElMain } from 'element-plus'
-import AsideMenu from '@/components/aside/aside-menu.vue'
-import HeaderMain from '@/components/header/header-main.vue'
-import LayoutTab from './layout-tabs.vue'
-import { onUnmounted, ref, useTemplateRef } from 'vue'
-import bus from '@/utils/bus'
+import { ElContainer, ElHeader, ElAside, ElMain } from "element-plus";
+import AsideMenu from "@/components/aside/aside-menu.vue";
+import HeaderMain from "@/components/header/header-main.vue";
+import LayoutTab from "./layout-tabs.vue";
+import { onUnmounted, ref, useTemplateRef } from "vue";
+import bus from "@/utils/bus";
 
-const watermarked = ref(false)
+const watermarked = ref(false);
 
-const tabContainerRef = useTemplateRef<InstanceType<typeof ElMain>>('tabContainerRef')
+const tabContainerRef =
+  useTemplateRef<InstanceType<typeof ElMain>>("tabContainerRef");
 const storeScrollTop = () => {
-  sessionStorage.setItem('scroll-top', tabContainerRef.value?.$el.scrollTop.toString())
-  tabContainerRef.value!.$el.scrollTop = 0
-}
+  sessionStorage.setItem(
+    "scroll-top",
+    tabContainerRef.value?.$el.scrollTop.toString(),
+  );
+  tabContainerRef.value!.$el.scrollTop = 0;
+};
 const setScrollTop = () => {
-  tabContainerRef.value!.$el.scrollTop = Number.parseFloat(sessionStorage.getItem('scroll-top')!)
-}
-bus.subscribe('store-scrollTop', storeScrollTop)
-bus.subscribe('set-scrollTop', setScrollTop)
+  tabContainerRef.value!.$el.scrollTop = Number.parseFloat(
+    sessionStorage.getItem("scroll-top")!,
+  );
+};
+bus.subscribe("store-scrollTop", storeScrollTop);
+bus.subscribe("set-scrollTop", setScrollTop);
 
 onUnmounted(() => {
-  bus.unsubscribe('store-scrollTop', storeScrollTop)
-  bus.unsubscribe('set-scrollTop', setScrollTop)
-})
+  bus.unsubscribe("store-scrollTop", storeScrollTop);
+  bus.unsubscribe("set-scrollTop", setScrollTop);
+});
 </script>
 
 <template>
@@ -32,7 +38,9 @@ onUnmounted(() => {
     </ElAside>
     <ElContainer>
       <ElHeader class="z-10 h-[10vh]! p-0!">
-        <HeaderMain @switch-watermark="(isAlive: boolean) => (watermarked = isAlive)"></HeaderMain>
+        <HeaderMain
+          @switch-watermark="(isAlive: boolean) => (watermarked = isAlive)"
+        ></HeaderMain>
       </ElHeader>
       <ElMain class="h-[90vh]!" ref="tabContainerRef">
         <LayoutTab :watermarked="watermarked"></LayoutTab>

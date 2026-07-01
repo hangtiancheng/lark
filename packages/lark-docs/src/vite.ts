@@ -30,9 +30,7 @@ import {
 // (avoids importing from main entry which pulls in lucide-static SVG ?raw imports)
 export { defineConfig } from "./define-config";
 export { scanDocsDir } from "./scanner";
-export { generateRouteMap, generateBootModule } from "./route-map";
 export { generateSidebar } from "./sidebar-generator";
-export { buildSearchIndex } from "./search-index";
 export type { DocsConfig, SidebarConfig } from "./types";
 
 export interface LarkDocsVitePluginOptions extends LarkMvcVitePluginOptions {

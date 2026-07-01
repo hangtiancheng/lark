@@ -1,4 +1,4 @@
-const version = 'v1'
+const version = "v1";
 
 export const enum Api {
   RobotQuery = `/api/${version}/robotQuery`,

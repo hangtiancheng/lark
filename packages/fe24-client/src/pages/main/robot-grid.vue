@@ -1,11 +1,19 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { ElCard, ElSelect } from 'element-plus'
-import RobotCard from './components/robot-card.vue'
-import { robotQueryApi } from '@/apis'
-import type { IRobotItem } from '@/types/robot'
-import { computed, onActivated, onDeactivated, onMounted, reactive, ref, watch } from 'vue'
-import bus from '@/utils/bus'
+import { ElCard, ElSelect } from "element-plus";
+import RobotCard from "./components/robot-card.vue";
+import { robotQueryApi } from "@/apis";
+import type { IRobotItem } from "@/types/robot";
+import {
+  computed,
+  onActivated,
+  onDeactivated,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import bus from "@/utils/bus";
 
 const stateId2list = reactive(
   new Map<number, IRobotItem[]>(
@@ -15,44 +23,45 @@ const stateId2list = reactive(
       .fill({})
       .map((item, idx) => [idx, []]),
   ),
-)
-const stateId = ref<number>(0) // 响应式
-const stateCnt = reactive<number[]>(new Array<number>(6).fill(0)) // 响应式
-const totalList = computed(() => stateId2list.get(stateId.value)) // 响应式
-const robotList = ref<IRobotItem[]>([]) // 响应式
+);
+const stateId = ref<number>(0); // 响应式
+const stateCnt = reactive<number[]>(new Array<number>(6).fill(0)); // 响应式
+const totalList = computed(() => stateId2list.get(stateId.value)); // 响应式
+const robotList = ref<IRobotItem[]>([]); // 响应式
 
 onMounted(async () => {
-  const dataList = (await robotQueryApi({ pageNum: 0, pageSize: -1 })).data.list
-  robotList.value = dataList
-  stateCnt[0] = dataList.length
-  stateId2list.set(0, dataList)
+  const dataList = (await robotQueryApi({ pageNum: 0, pageSize: -1 })).data
+    .list;
+  robotList.value = dataList;
+  stateCnt[0] = dataList.length;
+  stateId2list.set(0, dataList);
   for (const robot of dataList) {
-    stateCnt[robot.state]++
-    stateId2list.get(robot.state)!.push(robot)
+    stateCnt[robot.state]++;
+    stateId2list.get(robot.state)!.push(robot);
   }
-})
+});
 
-onDeactivated(() => bus.publish('store-scrollTop'))
-onActivated(() => bus.publish('set-scrollTop'))
+onDeactivated(() => bus.publish("store-scrollTop"));
+onActivated(() => bus.publish("set-scrollTop"));
 
 const handleChange = () => {
-  checkedName.value = ''
-  robotList.value = stateId2list.get(stateId.value)!
-}
+  checkedName.value = "";
+  robotList.value = stateId2list.get(stateId.value)!;
+};
 
-const checkedName = ref<string>('')
+const checkedName = ref<string>("");
 watch(
   () => checkedName.value,
   () => {
     if (!checkedName.value) {
-      robotList.value = stateId2list.get(stateId.value)!
-      return
+      robotList.value = stateId2list.get(stateId.value)!;
+      return;
     }
     robotList.value = stateId2list
       .get(stateId.value)!
-      .filter((robot) => robot.name === checkedName.value)
+      .filter((robot) => robot.name === checkedName.value);
   },
-)
+);
 </script>
 
 <template>
@@ -60,12 +69,30 @@ watch(
     <ElCard class="rounded-3xl!">
       <div class="flex flex-col gap-5">
         <ElRadioGroup v-model="stateId" @change="handleChange">
-          <ElRadioButton :label="`全部 (${stateCnt[0]})`" :value="0"></ElRadioButton>
-          <ElRadioButton :label="`闲置 (${stateCnt[1]})`" :value="1"></ElRadioButton>
-          <ElRadioButton :label="`使用 (${stateCnt[2]})`" :value="2"></ElRadioButton>
-          <ElRadioButton :label="`故障 (${stateCnt[3]})`" :value="3"></ElRadioButton>
-          <ElRadioButton :label="`维修 (${stateCnt[4]})`" :value="4"></ElRadioButton>
-          <ElRadioButton :label="`报废 (${stateCnt[5]})`" :value="5"></ElRadioButton>
+          <ElRadioButton
+            :label="`全部 (${stateCnt[0]})`"
+            :value="0"
+          ></ElRadioButton>
+          <ElRadioButton
+            :label="`闲置 (${stateCnt[1]})`"
+            :value="1"
+          ></ElRadioButton>
+          <ElRadioButton
+            :label="`使用 (${stateCnt[2]})`"
+            :value="2"
+          ></ElRadioButton>
+          <ElRadioButton
+            :label="`故障 (${stateCnt[3]})`"
+            :value="3"
+          ></ElRadioButton>
+          <ElRadioButton
+            :label="`维修 (${stateCnt[4]})`"
+            :value="4"
+          ></ElRadioButton>
+          <ElRadioButton
+            :label="`报废 (${stateCnt[5]})`"
+            :value="5"
+          ></ElRadioButton>
         </ElRadioGroup>
 
         <ElSelect

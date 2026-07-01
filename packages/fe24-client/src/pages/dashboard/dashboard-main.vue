@@ -6,21 +6,21 @@ import {
   ref,
   onBeforeUnmount /** useTemplateRef */,
   // getCurrentInstance,
-} from 'vue'
-import { ElCol, ElRow, ElCard, ElTimeline, ElTimelineItem } from 'element-plus'
-import { useUserStore } from '@/stores/user'
-import { storeToRefs } from 'pinia'
-import RecursiveChild from './recursive-child.vue'
-import { useChart, type ICustomEventOption } from '@/composables/use-chart.ts'
-import getChartOption from './chart-option.ts'
-import getChartOption2 from './chart-option2.ts'
-import getChartOption3 from './chart-option3.ts'
-import { revenueListApi } from '@/apis/dashboard.ts'
-import type { ITimeLineItem } from '@/types/dashboard.ts'
-import VirtualList from '@/components/common/virtual-list-v2.vue'
-import bus from '@/utils/bus'
-import { Refresh } from '@icon-park/vue-next'
-import { useToast } from '@/components/toast/toast.ts'
+} from "vue";
+import { ElCol, ElRow, ElCard, ElTimeline, ElTimelineItem } from "element-plus";
+import { useUserStore } from "@/stores/user";
+import { storeToRefs } from "pinia";
+import RecursiveChild from "./recursive-child.vue";
+import { useChart, type ICustomEventOption } from "@/composables/use-chart.ts";
+import getChartOption from "./chart-option.ts";
+import getChartOption2 from "./chart-option2.ts";
+import getChartOption3 from "./chart-option3.ts";
+import { revenueListApi } from "@/apis/dashboard.ts";
+import type { ITimeLineItem } from "@/types/dashboard.ts";
+import VirtualList from "@/components/common/virtual-list-v2.vue";
+import bus from "@/utils/bus";
+import { Refresh } from "@icon-park/vue-next";
+import { useToast } from "@/components/toast/toast.ts";
 
 //============================================
 //                                           *
@@ -54,58 +54,60 @@ import { useToast } from '@/components/toast/toast.ts'
 // const appInstance = getCurrentInstance()
 // const proxy = appInstance?.proxy
 // const toast = inject('toast') as IToast
-const toast = useToast()
+const toast = useToast();
 
-const userStore = useUserStore()
-const { menuList } = storeToRefs(userStore)
+const userStore = useUserStore();
+const { menuList } = storeToRefs(userStore);
 
-const chartRef = ref<HTMLDivElement | null>(null)
-const chartRef2 = ref<HTMLDivElement | null>(null)
-const chartRef3 = ref<HTMLDivElement | null>(null)
+const chartRef = ref<HTMLDivElement | null>(null);
+const chartRef2 = ref<HTMLDivElement | null>(null);
+const chartRef3 = ref<HTMLDivElement | null>(null);
 
 const customEventConfigs: ICustomEventOption[] = [
   {
-    evName: 'updateAxisPointer',
+    evName: "updateAxisPointer",
     handler: (event, chartInstance) => {
-      const xAxisInfo = event.axesInfo?.[0]
+      const xAxisInfo = event.axesInfo?.[0];
       if (import.meta.env.DEV) {
-        console.log(xAxisInfo?.value, chartInstance)
+        console.log(xAxisInfo?.value, chartInstance);
       }
     },
   },
-]
+];
 
-const updateChart = useChart(chartRef, getChartOption, customEventConfigs)
-const updateChart2 = useChart(chartRef2, getChartOption2)
-const updateChart3 = useChart(chartRef3, getChartOption3)
+const updateChart = useChart(chartRef, getChartOption, customEventConfigs);
+const updateChart2 = useChart(chartRef2, getChartOption2);
+const updateChart3 = useChart(chartRef3, getChartOption3);
 
 //! 异步组件
-const fetchRevenueList = async () => (await revenueListApi()).data
+const fetchRevenueList = async () => (await revenueListApi()).data;
 
 const timelineList = reactive<ITimeLineItem[]>([
   /** { timestamp: Date.now(), message: '测试' } */
-])
+]);
 const formatter = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const hh = date.getHours().toString().padStart(2, '0')
-  const mm = date.getMinutes().toString().padStart(2, '0')
-  const ss = date.getSeconds().toString().padStart(2, '0')
-  return `${hh}:${mm}:${ss}`
-}
-bus.subscribe('http-response', (item: ITimeLineItem) => timelineList.unshift(item))
+  const date = new Date(timestamp);
+  const hh = date.getHours().toString().padStart(2, "0");
+  const mm = date.getMinutes().toString().padStart(2, "0");
+  const ss = date.getSeconds().toString().padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+};
+bus.subscribe("http-response", (item: ITimeLineItem) =>
+  timelineList.unshift(item),
+);
 
-let timer: number | null = null
+let timer: number | null = null;
 
 // 资源清理
 onBeforeUnmount(() => {
   if (timer) {
-    clearTimeout(timer)
-    timer = null
+    clearTimeout(timer);
+    timer = null;
   }
-})
+});
 
-const animated = ref<boolean>(false)
-const animatedIdx = ref(0)
+const animated = ref<boolean>(false);
+const animatedIdx = ref(0);
 
 /**
  *
@@ -115,26 +117,26 @@ const animatedIdx = ref(0)
  */
 const handleClick = (idx: 0 | 1 | 2, callbacks: (() => void)[]) => {
   if (timer) {
-    return
+    return;
   }
 
   // proxy?.$toast.default('请等待')
-  toast.default('请等待')
+  toast.default("请等待");
 
-  animated.value = true
-  animatedIdx.value = idx
+  animated.value = true;
+  animatedIdx.value = idx;
   timer = setTimeout(() => {
-    animated.value = false
-    timer = null
-    callbacks.forEach((cb) => cb())
-  }, 2000)
-}
+    animated.value = false;
+    timer = null;
+    callbacks.forEach((cb) => cb());
+  }, 2000);
+};
 
-const virtualListRef = ref /** <InstanceType<typeof VirtualList>> */()
-const virtualListLength = ref<number>(0)
+const virtualListRef = ref /** <InstanceType<typeof VirtualList>> */();
+const virtualListLength = ref<number>(0);
 
 // provide
-provide('virtual-list-length' /** key */, virtualListLength /** value */)
+provide("virtual-list-length" /** key */, virtualListLength /** value */);
 </script>
 
 <template>
@@ -147,7 +149,11 @@ provide('virtual-list-length' /** key */, virtualListLength /** value */)
           </template>
           <!-- gap: 80px -->
           <div class="flex justify-center gap-20">
-            <RecursiveChild v-for="item of menuList" :key="item.url" :item="item"></RecursiveChild>
+            <RecursiveChild
+              v-for="item of menuList"
+              :key="item.url"
+              :item="item"
+            ></RecursiveChild>
           </div>
         </ElCard>
 
@@ -179,7 +185,9 @@ provide('virtual-list-length' /** key */, virtualListLength /** value */)
         <ElCard class="mt-5 rounded-3xl!">
           <template #header>
             <div class="flex items-center gap-2.5">
-              <h1 class="text-[20px]">营收排行榜, 数据量 {{ virtualListLength }}</h1>
+              <h1 class="text-[20px]">
+                营收排行榜, 数据量 {{ virtualListLength }}
+              </h1>
               <Refresh
                 theme="outline"
                 size="24"
@@ -187,7 +195,9 @@ provide('virtual-list-length' /** key */, virtualListLength /** value */)
                 :strokeWidth="3"
                 class="cursor-pointer"
                 :class="{ ['rotate-x']: animated && animatedIdx === 2 }"
-                @click="handleClick(2, [() => virtualListRef?.updateLargeList()])"
+                @click="
+                  handleClick(2, [() => virtualListRef?.updateLargeList()])
+                "
               />
             </div>
           </template>

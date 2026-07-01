@@ -1,13 +1,13 @@
-import { onMounted, onUnmounted, type Ref } from 'vue'
-import echarts, { type ECOption } from '@/utils/echarts'
+import { onMounted, onUnmounted, type Ref } from "vue";
+import echarts, { type ECOption } from "@/utils/echarts";
 
 interface IEvent {
-  axesInfo?: { value: number }[]
+  axesInfo?: { value: number }[];
 }
 
 export interface ICustomEventOption {
-  evName: string
-  handler: (ev: IEvent, chartInstance: echarts.ECharts | null) => void
+  evName: string;
+  handler: (ev: IEvent, chartInstance: echarts.ECharts | null) => void;
 }
 
 export function useChart(
@@ -15,36 +15,36 @@ export function useChart(
   getChartOption: () => Promise<ECOption>,
   customEventOptions?: ICustomEventOption[],
 ) {
-  let chartInstance: echarts.ECharts | null = null
+  let chartInstance: echarts.ECharts | null = null;
   const initChart = async () => {
     if (elemRef.value) {
-      chartInstance = echarts.init(elemRef.value)
-      chartInstance.setOption(await getChartOption())
+      chartInstance = echarts.init(elemRef.value);
+      chartInstance.setOption(await getChartOption());
       customEventOptions?.forEach(({ evName, handler }) => {
         chartInstance?.on(evName, (...args: unknown[]) => {
-          handler(args[0] as IEvent, chartInstance)
-        })
-      })
+          handler(args[0] as IEvent, chartInstance);
+        });
+      });
     }
-  }
+  };
 
   const resizeChart = () => {
-    chartInstance?.resize()
-  }
+    chartInstance?.resize();
+  };
 
   const updateChart = async () => {
-    chartInstance?.setOption(await getChartOption())
-  }
+    chartInstance?.setOption(await getChartOption());
+  };
 
   onMounted(() => {
-    initChart()
-    window.addEventListener('resize', resizeChart)
-  })
+    initChart();
+    window.addEventListener("resize", resizeChart);
+  });
 
   onUnmounted(() => {
-    window.removeEventListener('resize', resizeChart)
-    chartInstance?.dispose() // 释放图表实例占用的资源
-  })
+    window.removeEventListener("resize", resizeChart);
+    chartInstance?.dispose(); // 释放图表实例占用的资源
+  });
 
-  return updateChart
+  return updateChart;
 }

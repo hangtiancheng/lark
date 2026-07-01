@@ -1,7 +1,7 @@
 /**
  * Local search client adapter for Algolia DocSearch.
  *
- * Bridges the local search index (built by buildSearchIndex) with DocSearch's
+ * Bridges the local search index (built at runtime by getSearchIndex) with DocSearch's
  * UI widget. DocSearch expects an Algolia-compatible search client; this module
  * provides one that queries the local index instead of Algolia's hosted API.
  *
@@ -16,10 +16,10 @@ import type { SearchEntry } from "../types";
  * Each request has `params.query` (the search string) and `params.hitsPerPage`.
  * The response must wrap hits in `{ results: [{ hits, nbHits, ... }] }`.
  *
- * Scoring logic mirrors `searchDocs()` in runtime.ts:
- *   title match  = 10 pts per term
- *   heading match = 5 pts per term
- *   excerpt match = 1 pt per term
+ * Scoring (per matched term):
+ *   title match  = 10 pts
+ *   heading match = 5 pts
+ *   excerpt match = 1 pt
  * All terms must match (AND logic). Results are sorted by score descending.
  */
 export function createLocalSearchClient(index: SearchEntry[]) {

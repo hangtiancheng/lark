@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import routes from '@/router/routes'
+import { createRouter, createWebHistory } from "vue-router";
+import routes from "@/router/routes";
 
 const router = createRouter(
   {
@@ -9,19 +9,19 @@ const router = createRouter(
     scrollBehavior: (to, from, savedPosition) => {
       // 滚动到原位置
       if (savedPosition) {
-        return savedPosition
+        return savedPosition;
       }
       // 滚动到锚点
       if (to.hash) {
         return {
           el: to.hash,
-          behavior: 'smooth',
-        }
+          behavior: "smooth",
+        };
       }
       // 滚动到顶部
       return {
         top: 0,
-      }
+      };
       // 延迟滚动
       // return new Promise((resolve, reject) => {
       //   setTimeout(() => {
@@ -35,6 +35,6 @@ const router = createRouter(
 
     routes,
   } /** RouterOptions */,
-)
+);
 
-export default router
+export default router;

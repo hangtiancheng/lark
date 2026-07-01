@@ -1,38 +1,38 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
-import { Flag, Skull } from '@icon-park/vue-next'
+import { ref, watchEffect } from "vue";
+import { Flag, Skull } from "@icon-park/vue-next";
 
 interface ICeilState {
-  x: number
-  y: number
-  flipped: boolean // 是否被翻开
-  flagged: boolean // 是否被标记
-  mine: boolean // 是否为炸弹
-  adjacentMines: number // 相邻的炸弹数
+  x: number;
+  y: number;
+  flipped: boolean; // 是否被翻开
+  flagged: boolean; // 是否被标记
+  mine: boolean; // 是否为炸弹
+  adjacentMines: number; // 相邻的炸弹数
 }
 
-const WIDTH = 10 // 5
-const HEIGHT = 10 // 5
+const WIDTH = 10; // 5
+const HEIGHT = 10; // 5
 const BG_COLORS = [
-  'bg-transparent', // 0
-  'bg-orange-300', // 1
+  "bg-transparent", // 0
+  "bg-orange-300", // 1
   // amber
-  'bg-yellow-300', // 2
+  "bg-yellow-300", // 2
   // lime
-  'bg-green-300', // 3
+  "bg-green-300", // 3
   // emerald
-  'bg-teal-300', // 4
+  "bg-teal-300", // 4
   // cyan
-  'bg-sky-300', // 5
+  "bg-sky-300", // 5
   // blue
-  'bg-indigo-300', // 6
+  "bg-indigo-300", // 6
   // violet
-  'bg-purple-300', // 7
+  "bg-purple-300", // 7
   // fuchsia
-  'bg-pink-300', // 8
+  "bg-pink-300", // 8
   // rose
-]
-let mineGenerated = false
+];
+let mineGenerated = false;
 const DIRECTIONS = [
   [0, -1],
   [1, -1],
@@ -42,7 +42,7 @@ const DIRECTIONS = [
   [-1, 1],
   [-1, 0],
   [-1, -1],
-]
+];
 
 const ceilsGrid = ref<ICeilState[][]>(
   Array.from(
@@ -62,72 +62,72 @@ const ceilsGrid = ref<ICeilState[][]>(
             flagged: false,
             mine: false,
             adjacentMines: 0,
-          }
+          };
         },
       ),
   ),
-)
+);
 
 function generateMines(initialCeil: ICeilState) {
   for (const ceilsRow of ceilsGrid.value) {
     for (const ceil of ceilsRow) {
       if (initialCeil.x === ceil.x && initialCeil.y === ceil.y) {
-        continue
+        continue;
       }
-      ceil.mine = Math.random() < 0.2
+      ceil.mine = Math.random() < 0.2;
     }
   }
-  setAdjacentMines()
+  setAdjacentMines();
 }
 
 function expandZero(ceil: ICeilState) {
   if (ceil.adjacentMines > 0) {
-    return
+    return;
   }
   getSiblings(ceil).forEach((item) => {
     if (item.flipped) {
-      return
+      return;
     }
-    item.flipped = true
-    expandZero(item)
-  })
+    item.flipped = true;
+    expandZero(item);
+  });
 }
 
 function setAdjacentMines() {
   ceilsGrid.value.forEach((ceilsRow /** , y */) => {
     ceilsRow.forEach((ceil /** , x */) => {
       if (ceil.mine) {
-        return
+        return;
       }
-      ceil.adjacentMines = getSiblings(ceil).filter((item) => item.mine).length
-    })
-  })
+      ceil.adjacentMines = getSiblings(ceil).filter((item) => item.mine).length;
+    });
+  });
 }
 
 function handleClick(ceil: ICeilState) {
-  ceil.flagged = false
+  ceil.flagged = false;
 
-  let isFirstClick = false
+  let isFirstClick = false;
   if (!mineGenerated) {
-    generateMines(ceil)
-    mineGenerated = true
-    isFirstClick = true
+    generateMines(ceil);
+    mineGenerated = true;
+    isFirstClick = true;
   }
 
-  ceil.flipped = true
+  ceil.flipped = true;
 
   if (ceil.mine && !isFirstClick) {
-    setTimeout(() => alert('You lose'), 100)
-    return
+    setTimeout(() => alert("You lose"), 100);
+    return;
   }
-  expandZero(ceil)
+  expandZero(ceil);
 }
 
 function handleContextMenu(ceil: ICeilState) {
   if (ceil.flipped) {
-    return
+    return;
   }
-  ceil.flagged = !ceil.flagged
+  ceil.flagged = !ceil.flagged;
   // 检查右键
   // judger()
 }
@@ -135,43 +135,43 @@ function handleContextMenu(ceil: ICeilState) {
 function getCeilClass(ceil: ICeilState) {
   if (ceil.flagged) {
     // alpha channel: 50%
-    return 'bg-slate-100/50'
+    return "bg-slate-100/50";
   }
   if (!ceil.flipped) {
     // alpha channel: 50%
-    return 'hover:bg-slate-300/50 bg-slate-100/50'
+    return "hover:bg-slate-300/50 bg-slate-100/50";
   }
   // ceil.flagged === false && ceil.flipped === true
-  return ceil.mine ? 'bg-red-300' : BG_COLORS[ceil.adjacentMines]
+  return ceil.mine ? "bg-red-300" : BG_COLORS[ceil.adjacentMines];
 }
 
 function getSiblings(ceil: ICeilState): ICeilState[] {
   return DIRECTIONS.map(([dx, dy]) => {
-    const x2 = ceil.x + dx
-    const y2 = ceil.y + dy
+    const x2 = ceil.x + dx;
+    const y2 = ceil.y + dy;
     if (x2 < 0 || x2 >= WIDTH || y2 < 0 || y2 >= HEIGHT) {
-      return null
+      return null;
     }
-    return ceilsGrid.value[y2][x2]
-  }).filter(Boolean) as ICeilState[] // 过滤 null 值
+    return ceilsGrid.value[y2][x2];
+  }).filter(Boolean) as ICeilState[]; // 过滤 null 值
 }
 
 function judger() {
   if (!mineGenerated) {
-    return
+    return;
   }
 
-  const ceils = ceilsGrid.value.flat() // 数组拍平
+  const ceils = ceilsGrid.value.flat(); // 数组拍平
   if (ceils.every((ceil) => ceil.flipped || ceil.flagged)) {
     if (ceils.some((ceil) => ceil.flagged && !ceil.mine)) {
-      setTimeout(() => alert('You lose'), 100)
+      setTimeout(() => alert("You lose"), 100);
     } else {
-      setTimeout(() => alert('You win'), 100)
+      setTimeout(() => alert("You win"), 100);
     }
   }
 }
 
-watchEffect(judger /** () => { judger() } */)
+watchEffect(judger /** () => { judger() } */);
 </script>
 
 <template>

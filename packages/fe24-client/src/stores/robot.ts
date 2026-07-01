@@ -1,33 +1,33 @@
-import type { IRobotItem } from '@/types/robot'
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import type { IRobotItem } from "@/types/robot";
+import { defineStore } from "pinia";
+import { ref } from "vue";
 
-export const useRobotStore = defineStore('robot', () => {
+export const useRobotStore = defineStore("robot", () => {
   const defaultRowData: IRobotItem = {
     id: 0, // id > 0
-    name: '',
-    address: '',
+    name: "",
+    address: "",
     state: 1,
     failureNum: 0,
-    admin: '',
-    email: '',
-  }
+    admin: "",
+    email: "",
+  };
 
   // state
-  const rowData = ref<IRobotItem>(defaultRowData)
+  const rowData = ref<IRobotItem>(defaultRowData);
 
   // actions
   const setRowData = (newRowData: IRobotItem) => {
-    rowData.value = newRowData
-  }
+    rowData.value = newRowData;
+  };
 
   const resetRowData = () => {
-    rowData.value = defaultRowData
-  }
+    rowData.value = defaultRowData;
+  };
 
   return {
     rowData,
     setRowData,
     resetRowData,
-  }
-})
+  };
+});

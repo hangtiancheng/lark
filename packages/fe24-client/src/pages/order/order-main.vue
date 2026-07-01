@@ -7,181 +7,183 @@ import {
   ElMessage,
   ElMessageBox,
   ElTable,
-} from 'element-plus'
-import { onBeforeMount, reactive, ref, useTemplateRef, watchEffect } from 'vue'
-import { name2icon } from '@/utils/icons'
-import { orderQueryApi, orderDeleteApi } from '@/apis/order'
-import type { IOrderItem } from '@/types/order'
-import { usePagination } from '@/composables/use-pagination'
-import { ORDER_STATES, ORDER_STATE_2_TEXT_AND_TYPE } from '@/constants'
-import { useToast2 } from '@/components/toast/toast'
-import { useRouter } from 'vue-router'
-import DraggableWindow from './components/draggable-window.vue'
-import { getDate, getTime } from '@/utils'
-import { tableData2xlsx } from '@/utils/to-xlsx'
+} from "element-plus";
+import { onBeforeMount, reactive, ref, useTemplateRef, watchEffect } from "vue";
+import { name2icon } from "@/utils/icons";
+import { orderQueryApi, orderDeleteApi } from "@/apis/order";
+import type { IOrderItem } from "@/types/order";
+import { usePagination } from "@/composables/use-pagination";
+import { ORDER_STATES, ORDER_STATE_2_TEXT_AND_TYPE } from "@/constants";
+import { useToast2 } from "@/components/toast/toast";
+import { useRouter } from "vue-router";
+import DraggableWindow from "./components/draggable-window.vue";
+import { getDate, getTime } from "@/utils";
+import { tableData2xlsx } from "@/utils/to-xlsx";
 
-const router = useRouter()
-const toast = useToast2()
+const router = useRouter();
+const toast = useToast2();
 
 const formData = reactive<{
-  startDate?: string
-  endDate?: string
+  startDate?: string;
+  endDate?: string;
   // 订单号
-  id?: string
+  id?: string;
   // 订单状态
-  state?: 0 | 1 | 2 | 3
+  state?: 0 | 1 | 2 | 3;
   // 机器人 ID
-  robotId?: number
+  robotId?: number;
   // 机器人名字
-  robotName?: string
-}>({})
+  robotName?: string;
+}>({});
 
-const date = ref<[startDate: string, endDate: string]>(['', ''])
+const date = ref<[startDate: string, endDate: string]>(["", ""]);
 const handleChange = (newDate: typeof date.value) => {
-  formData.startDate = newDate /* date.value */[0]
-  formData.endDate = newDate /* date.value */[1]
-}
+  formData.startDate = newDate /* date.value */[0];
+  formData.endDate = newDate /* date.value */[1];
+};
 
-const orderList = ref<IOrderItem[]>()
-const orderTable = useTemplateRef<InstanceType<typeof ElTable>>('orderTable')
-const loading /** v-loading */ = ref(false)
+const orderList = ref<IOrderItem[]>();
+const orderTable = useTemplateRef<InstanceType<typeof ElTable>>("orderTable");
+const loading /** v-loading */ = ref(false);
 const loadOrderList = async () => {
-  loading.value = true
+  loading.value = true;
   const { list, total } = (
     await orderQueryApi({
       ...formData,
       ...pageInfo,
     })
-  ).data
-  orderList.value = list
-  pageInfo.total = total!
-  loading.value = false
-}
+  ).data;
+  orderList.value = list;
+  pageInfo.total = total!;
+  loading.value = false;
+};
 
 const { handleCurrentChange, handleSizeChange, pageInfo } = usePagination(
   loadOrderList,
   10 /** initialPageSize */,
-)
+);
 
 // const idList: number[] = []
 const handleDelete = async (orderId: string) => {
-  const { code, message } = await orderDeleteApi({ idList: [orderId] })
+  const { code, message } = await orderDeleteApi({ idList: [orderId] });
   if (code === 200) {
     ElMessage.success({
       message,
       grouping: true,
-    })
-    loadOrderList()
+    });
+    loadOrderList();
   }
-}
+};
 
-const idList = ref<string[]>([])
+const idList = ref<string[]>([]);
 
 const handleBatchDelete = () => {
   const doBatchDelete = async () => {
-    const { code, message } = await orderDeleteApi({ idList: idList.value })
+    const { code, message } = await orderDeleteApi({ idList: idList.value });
     if (code === 200) {
-      toast.success(message)
-      loadOrderList()
+      toast.success(message);
+      loadOrderList();
     }
-  }
+  };
 
-  ElMessageBox.confirm('确定批量删除订单吗?', 'Warning', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
+  ElMessageBox.confirm("确定批量删除订单吗?", "Warning", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
   })
     .then(doBatchDelete)
     .catch(() => {
-      toast.warning('批量删除订单取消')
+      toast.warning("批量删除订单取消");
     })
     .finally(() => {
-      orderTable?.value?.clearSelection()
-      idList.value = []
-    })
-}
+      orderTable?.value?.clearSelection();
+      idList.value = [];
+    });
+};
 
 const handleSelectionChange = (selectedRows: IOrderItem[]) => {
-  idList.value = selectedRows.map((item) => item.id)
-}
+  idList.value = selectedRows.map((item) => item.id);
+};
 
 const handleReset = () => {
-  formData.startDate = undefined
-  formData.endDate = undefined
-  formData.id = undefined
-  formData.state = undefined
-  formData.robotId = undefined
-  formData.robotName = undefined
+  formData.startDate = undefined;
+  formData.endDate = undefined;
+  formData.id = undefined;
+  formData.state = undefined;
+  formData.robotId = undefined;
+  formData.robotName = undefined;
   //! for (const key in formData) {}
   //! Object.keys(formData)
   //! Reflect.ownKeys(formData)
-  loadOrderList()
-}
+  loadOrderList();
+};
 
-const ctxMenuIsAlive = ref(false)
-const ctxMenuX = ref<string>('0px')
-const ctxMenuY = ref<string>('0px')
+const ctxMenuIsAlive = ref(false);
+const ctxMenuX = ref<string>("0px");
+const ctxMenuY = ref<string>("0px");
 
-const orderData = ref<IOrderItem>()
-const draggableWindowIsAlive = ref(false)
+const orderData = ref<IOrderItem>();
+const draggableWindowIsAlive = ref(false);
 const handleCtxMenu = (ev: MouseEvent, rowData: IOrderItem) => {
-  ctxMenuX.value = `${ev.pageX}px`
-  ctxMenuY.value = `${ev.pageY}px`
-  orderData.value = rowData
-  ctxMenuIsAlive.value = true
-}
+  ctxMenuX.value = `${ev.pageX}px`;
+  ctxMenuY.value = `${ev.pageY}px`;
+  orderData.value = rowData;
+  ctxMenuIsAlive.value = true;
+};
 
-const handleWindowClick = () => (ctxMenuIsAlive.value = false)
+const handleWindowClick = () => (ctxMenuIsAlive.value = false);
 watchEffect(() => {
   if (ctxMenuIsAlive.value) {
-    window.addEventListener('click', handleWindowClick)
+    window.addEventListener("click", handleWindowClick);
   } else {
-    window.removeEventListener('click', handleWindowClick)
+    window.removeEventListener("click", handleWindowClick);
   }
-})
-onBeforeMount(() => window.removeEventListener('click', handleWindowClick))
+});
+onBeforeMount(() => window.removeEventListener("click", handleWindowClick));
 
 // 左键, 在悬浮窗中打开
 const handleDetail = (rowData: IOrderItem) => {
-  orderData.value = rowData
-  draggableWindowIsAlive.value = true
-}
+  orderData.value = rowData;
+  draggableWindowIsAlive.value = true;
+};
 
 // 右键, 在悬浮窗中打开
 const handleDetail2 = () => {
-  draggableWindowIsAlive.value = true
-}
+  draggableWindowIsAlive.value = true;
+};
 
 // 右键, 在新标签页中打开
 const handleDetail3 = () => {
   if (!orderData.value) {
-    return
+    return;
   }
   // route.path === '/operations/detail'
   router.push({
     // path: `/operations/detail?orderId=${orderData.value.id}&robotId=${orderData.value.robotId}`,
-    name: 'Detail',
+    name: "Detail",
     //! query: URL 查询参数 (URL query parameters), 使用 query 时不需要指定路由组件的名字
     //! params: URL 路径参数 (URL path parameters), 使用 params 时必须指定路由组件的名字
     query: {
       orderId: orderData.value.id,
       robotId: orderData.value.robotId,
     },
-  })
-}
+  });
+};
 
 const export2xlsx = () => {
   if (!orderList.value || !orderList.value.length) {
-    return
+    return;
   }
-  const tableData = orderList.value.filter((item) => idList.value.includes(item.id))
+  const tableData = orderList.value.filter((item) =>
+    idList.value.includes(item.id),
+  );
   if (!tableData.length) {
-    return
+    return;
   }
-  console.log(tableData)
-  const filename = `订单数据__${getDate()}__${getTime().replace(/:/g, '-')}.xlsx`
-  tableData2xlsx(tableData, filename)
-}
+  console.log(tableData);
+  const filename = `订单数据__${getDate()}__${getTime().replace(/:/g, "-")}.xlsx`;
+  tableData2xlsx(tableData, filename);
+};
 </script>
 
 <template>
@@ -194,14 +196,21 @@ const export2xlsx = () => {
           v-model="formData.id"
         ></ElInput>
 
-        <ElSelect class="grid-select w-75!" placeholder="请选择订单状态" v-model="formData.state">
+        <ElSelect
+          class="grid-select w-75!"
+          placeholder="请选择订单状态"
+          v-model="formData.state"
+        >
           <ElOption
             v-for="(state, idx) of ORDER_STATES.slice(1)"
             :label="state"
             :value="idx + 1"
             :key="state"
           >
-            <ElTag size="large" :type="ORDER_STATE_2_TEXT_AND_TYPE.get(idx + 1)?.type">
+            <ElTag
+              size="large"
+              :type="ORDER_STATE_2_TEXT_AND_TYPE.get(idx + 1)?.type"
+            >
               {{ state }}
             </ElTag>
           </ElOption>
@@ -268,13 +277,19 @@ const export2xlsx = () => {
           ref="orderTable"
         >
           <!-- <ElTableColumn fixed="left" type="index" label="序号"></ElTableColumn> -->
-          <ElTableColumn fixed="left" type="selection" label="序号"></ElTableColumn>
+          <ElTableColumn
+            fixed="left"
+            type="selection"
+            label="序号"
+          ></ElTableColumn>
           <ElTableColumn label="订单号" prop="id"> </ElTableColumn>
           <ElTableColumn label="订单状态" prop="state">
             <template #default="tableData">
               <ElTag
                 size="large"
-                :type="ORDER_STATE_2_TEXT_AND_TYPE.get(tableData.row.state)?.type"
+                :type="
+                  ORDER_STATE_2_TEXT_AND_TYPE.get(tableData.row.state)?.type
+                "
                 class="text-[14px]!"
               >
                 {{ ORDER_STATE_2_TEXT_AND_TYPE.get(tableData.row.state)?.text }}
@@ -291,7 +306,8 @@ const export2xlsx = () => {
                 type="success"
                 @click="handleDetail(tableData.row /** rowData */)"
                 @contextmenu.prevent="
-                  (ev: MouseEvent) => handleCtxMenu(ev, tableData.row /** rowData */)
+                  (ev: MouseEvent) =>
+                    handleCtxMenu(ev, tableData.row /** rowData */)
                 "
               >
                 详情
@@ -367,8 +383,8 @@ const export2xlsx = () => {
 
   // 定义区域, 配合 grid-area 使用
   grid-template-areas:
-    'input        select date-picker'
-    'input-number input2 buttons';
+    "input        select date-picker"
+    "input-number input2 buttons";
   // 网格项目水平居中
   justify-items: center;
   .grid-input {

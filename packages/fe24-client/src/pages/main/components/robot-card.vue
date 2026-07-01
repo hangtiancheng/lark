@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ROBOT_STATE_2_TEXT_AND_TYPE } from '@/constants'
-import { toRefs } from 'vue'
+import { ROBOT_STATE_2_TEXT_AND_TYPE } from "@/constants";
+import { toRefs } from "vue";
 
 const props = defineProps<{
-  stateId: 0 | 1 | 2 | 3 | 4 | 5
-  failureNum: number
-}>()
-const { stateId, failureNum } = toRefs(props)
+  stateId: 0 | 1 | 2 | 3 | 4 | 5;
+  failureNum: number;
+}>();
+const { stateId, failureNum } = toRefs(props);
 </script>
 
 <template>
@@ -31,7 +31,11 @@ const { stateId, failureNum } = toRefs(props)
     <div>
       <slot name="default"></slot>
       <p :style="{ color: failureNum > 50 ? '#fb2c36' : '#a1e3f9' }">
-        {{ failureNum > 50 ? '有预警 (零件故障数 > 50)' : '无预警 (零件故障数 <= 50)' }}
+        {{
+          failureNum > 50
+            ? "有预警 (零件故障数 > 50)"
+            : "无预警 (零件故障数 <= 50)"
+        }}
       </p>
     </div>
   </div>

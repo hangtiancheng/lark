@@ -1,58 +1,58 @@
 <script setup lang="ts">
-import type { IOrderItem } from '@/types/order'
-import { CloseOne } from '@icon-park/vue-next'
-import { toRef, type Directive } from 'vue'
-import { ORDER_STATE_2_TEXT_AND_TYPE } from '@/constants'
+import type { IOrderItem } from "@/types/order";
+import { CloseOne } from "@icon-park/vue-next";
+import { toRef, type Directive } from "vue";
+import { ORDER_STATE_2_TEXT_AND_TYPE } from "@/constants";
 
 const props = defineProps<{
-  orderData: IOrderItem
-}>()
+  orderData: IOrderItem;
+}>();
 
 const emit = defineEmits<{
-  closeWindow: []
-}>()
+  closeWindow: [];
+}>();
 
 const vDrag: Directive<HTMLElement, void> = {
   mounted(el: HTMLElement) {
-    const dragEl = el.firstElementChild as HTMLDivElement
-    let onMousemove: ((moveEv: MouseEvent) => void) | null = null
+    const dragEl = el.firstElementChild as HTMLDivElement;
+    let onMousemove: ((moveEv: MouseEvent) => void) | null = null;
 
     const onMousedown = (downEv: MouseEvent) => {
-      const dx = downEv.clientX - el.offsetLeft
-      const dy = downEv.clientY - el.offsetTop
+      const dx = downEv.clientX - el.offsetLeft;
+      const dy = downEv.clientY - el.offsetTop;
       onMousemove = (moveEv: MouseEvent) => {
-        el.style.left = `${moveEv.clientX - dx}px`
-        el.style.top = `${moveEv.clientY - dy}px`
-      }
-      document.addEventListener('mousemove', onMousemove)
-      document.addEventListener('mouseup', onMouseup)
-    }
+        el.style.left = `${moveEv.clientX - dx}px`;
+        el.style.top = `${moveEv.clientY - dy}px`;
+      };
+      document.addEventListener("mousemove", onMousemove);
+      document.addEventListener("mouseup", onMouseup);
+    };
 
     const onMouseup = () => {
       if (onMousemove) {
-        document.removeEventListener('mousemove', onMousemove)
-        onMousemove = null
+        document.removeEventListener("mousemove", onMousemove);
+        onMousemove = null;
       }
-      document.removeEventListener('mouseup', onMouseup)
-    }
+      document.removeEventListener("mouseup", onMouseup);
+    };
 
-    dragEl.addEventListener('mousedown', onMousedown)
-    ;(el as any).__dragCleanup = () => {
-      dragEl.removeEventListener('mousedown', onMousedown)
+    dragEl.addEventListener("mousedown", onMousedown);
+    (el as any).__dragCleanup = () => {
+      dragEl.removeEventListener("mousedown", onMousedown);
       if (onMousemove) {
-        document.removeEventListener('mousemove', onMousemove)
+        document.removeEventListener("mousemove", onMousemove);
       }
-      document.removeEventListener('mouseup', onMouseup)
-    }
+      document.removeEventListener("mouseup", onMouseup);
+    };
   },
   unmounted(el: HTMLElement) {
-    ;(el as any).__dragCleanup?.()
+    (el as any).__dragCleanup?.();
   },
-}
+};
 const handleClose = () => {
-  emit('closeWindow')
-}
-const orderData = toRef(props, 'orderData')
+  emit("closeWindow");
+};
+const orderData = toRef(props, "orderData");
 </script>
 
 <template>
@@ -99,7 +99,7 @@ const orderData = toRef(props, 'orderData')
 </template>
 
 <style scoped lang="scss">
-@use '../../../assets/global.scss';
+@use "../../../assets/global.scss";
 
 .glass-container {
   @include global.glass-container(1px /** blurVal */);

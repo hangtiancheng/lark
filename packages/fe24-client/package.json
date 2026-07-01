@@ -18,7 +18,7 @@
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@icon-park/vue-next": "^1.4.2",
     "@lark.js/conditional-bundle-plugin": "workspace:*",
-    "@lark.js/sentry": "catalog:",
+    "@lark.js/sentry": "file:../../../lark-sentry/sentry",
     "@tanstack/vue-virtual": "^3.13.30",
     "animate.css": "^4.1.1",
     "axios": "^1.18.1",

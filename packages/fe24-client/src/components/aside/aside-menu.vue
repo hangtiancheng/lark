@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import { useUserStore } from '@/stores/user'
-import { storeToRefs } from 'pinia'
-import RecursiveChild from './recursive-child.vue'
-import { ElMenu } from 'element-plus'
-import { Rice } from '@icon-park/vue-next'
-import { useRoute, useRouter } from 'vue-router'
-import { computed } from 'vue'
-import type { IMenuItem } from '@/types/user'
+import { useUserStore } from "@/stores/user";
+import { storeToRefs } from "pinia";
+import RecursiveChild from "./recursive-child.vue";
+import { ElMenu } from "element-plus";
+import { Rice } from "@icon-park/vue-next";
+import { useRoute, useRouter } from "vue-router";
+import { computed } from "vue";
+import type { IMenuItem } from "@/types/user";
 
-const userStore = useUserStore()
-const { menuList } = storeToRefs(userStore)
-const route = useRoute()
-const router = useRouter()
-const handleClick = () => router.push({ name: 'Home' })
+const userStore = useUserStore();
+const { menuList } = storeToRefs(userStore);
+const route = useRoute();
+const router = useRouter();
+const handleClick = () => router.push({ name: "Home" });
 
 const defaultOpeneds = computed(() => {
-  const keys: string[] = []
+  const keys: string[] = [];
   const findParent = (list: IMenuItem[], parentName?: string) => {
     for (const item of list) {
       if (item.url === route.path && parentName) {
-        keys.push(parentName)
+        keys.push(parentName);
       }
       if (item.children) {
-        findParent(item.children, item.name)
+        findParent(item.children, item.name);
       }
     }
-  }
-  findParent(menuList.value)
-  return keys
-})
+  };
+  findParent(menuList.value);
+  return keys;
+});
 </script>
 
 <template>
@@ -47,7 +47,11 @@ const defaultOpeneds = computed(() => {
       :default-active="route.path"
       :default-openeds="defaultOpeneds"
     >
-      <RecursiveChild v-for="item of menuList" :key="item.url" :item="item"></RecursiveChild>
+      <RecursiveChild
+        v-for="item of menuList"
+        :key="item.url"
+        :item="item"
+      ></RecursiveChild>
     </ElMenu>
   </div>
 </template>

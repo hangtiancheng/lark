@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { robotDeleteApi, robotQueryApi } from '@/apis'
-import { ROBOT_STATES, ROBOT_STATE_2_TEXT_AND_TYPE } from '@/constants'
-import type { IRobotItem } from '@/types/robot'
-import { AddOne } from '@icon-park/vue-next'
-import FeDialog from './components/fe-dialog.vue'
+import { robotDeleteApi, robotQueryApi } from "@/apis";
+import { ROBOT_STATES, ROBOT_STATE_2_TEXT_AND_TYPE } from "@/constants";
+import type { IRobotItem } from "@/types/robot";
+import { AddOne } from "@icon-park/vue-next";
+import FeDialog from "./components/fe-dialog.vue";
 import {
   ElCard,
   ElRow,
@@ -16,18 +16,18 @@ import {
   ElPagination,
   ElPopconfirm,
   ElMessage,
-} from 'element-plus'
-import { reactive, ref } from 'vue'
-import { useRobotStore } from '@/stores/robot'
-import { usePagination } from '@/composables/use-pagination'
+} from "element-plus";
+import { reactive, ref } from "vue";
+import { useRobotStore } from "@/stores/robot";
+import { usePagination } from "@/composables/use-pagination";
 
-const robotStore = useRobotStore()
-const nameOrAddress = ref('name')
+const robotStore = useRobotStore();
+const nameOrAddress = ref("name");
 
 const formData = reactive({
-  nameOrAddress: '',
+  nameOrAddress: "",
   state: undefined,
-})
+});
 
 // const pageInfo = reactive({
 //   pageNum: 1,
@@ -35,11 +35,11 @@ const formData = reactive({
 //   total: 0,
 // })
 
-const robotList = ref<IRobotItem[]>([])
-const loading /** v-loading */ = ref(false)
+const robotList = ref<IRobotItem[]>([]);
+const loading /** v-loading */ = ref(false);
 
 const loadRobotList = async () => {
-  loading.value = true
+  loading.value = true;
   const { list, total } = (
     await robotQueryApi({
       [nameOrAddress.value]: formData.nameOrAddress,
@@ -48,17 +48,17 @@ const loadRobotList = async () => {
       // pageSize: pageInfo.pageSize,
       ...pageInfo,
     })
-  ).data
-  robotList.value = list
-  pageInfo.total = total!
-  loading.value = false
-}
+  ).data;
+  robotList.value = list;
+  pageInfo.total = total!;
+  loading.value = false;
+};
 // onMounted(loadRobotList /** () => getRobotList() */)
 
 const { handleCurrentChange, handleSizeChange, pageInfo } = usePagination(
   loadRobotList,
   10 /** initialPageSize */,
-)
+);
 
 //! 类型体操
 // type TupleToUnion<T extends readonly unknown[]> = T[number]
@@ -66,43 +66,43 @@ const { handleCurrentChange, handleSizeChange, pageInfo } = usePagination(
 // type RobotState = (typeof ROBOT_STATES)[number] // 也可以
 
 const handleReset = () => {
-  formData.nameOrAddress = ''
-  formData.state = undefined
-  loadRobotList()
-}
+  formData.nameOrAddress = "";
+  formData.state = undefined;
+  loadRobotList();
+};
 
-const isUpdate = ref(false)
-const dialogVisible = ref(false)
+const isUpdate = ref(false);
+const dialogVisible = ref(false);
 
 const handleAdd = () => {
-  robotStore.resetRowData()
-  isUpdate.value = false // 是新增
-  dialogVisible.value = true
-}
+  robotStore.resetRowData();
+  isUpdate.value = false; // 是新增
+  dialogVisible.value = true;
+};
 
 const handleUpdate = (rowData: IRobotItem) => {
-  robotStore.setRowData(rowData)
-  isUpdate.value = true // 是更新
-  dialogVisible.value = true
-}
+  robotStore.setRowData(rowData);
+  isUpdate.value = true; // 是更新
+  dialogVisible.value = true;
+};
 
 const handleDelete = async (id: number) => {
-  const { code, message } = await robotDeleteApi({ id })
+  const { code, message } = await robotDeleteApi({ id });
   if (code === 200) {
     ElMessage.success({
       message,
       grouping: true,
-    })
-    loadRobotList()
+    });
+    loadRobotList();
   }
-}
+};
 
-const robotFormRef = ref<InstanceType<typeof FeDialog>>()
+const robotFormRef = ref<InstanceType<typeof FeDialog>>();
 // const robotFormRef = useTemplateRef<InstanceType<typeof RobotDialog>>('robotFormRef')
 const handleClose = () => {
-  dialogVisible.value = false
-  robotFormRef.value?.resetFields()
-}
+  dialogVisible.value = false;
+  robotFormRef.value?.resetFields();
+};
 </script>
 
 <template>
@@ -132,7 +132,10 @@ const handleClose = () => {
               :value="idx + 1"
               :key="state"
             >
-              <ElTag size="large" :type="ROBOT_STATE_2_TEXT_AND_TYPE.get(idx + 1)?.type">
+              <ElTag
+                size="large"
+                :type="ROBOT_STATE_2_TEXT_AND_TYPE.get(idx + 1)?.type"
+              >
                 {{ state }}
               </ElTag>
             </ElOption>
@@ -147,7 +150,10 @@ const handleClose = () => {
     <ElCard class="mt-5 rounded-3xl!">
       <ElRow>
         <ElButton type="default">
-          <div class="flex items-center justify-center gap-1.25" @click="handleAdd">
+          <div
+            class="flex items-center justify-center gap-1.25"
+            @click="handleAdd"
+          >
             <AddOne theme="outline" size="16" fill="#333" :strokeWidth="3" />
             新增机器人
           </div>
@@ -176,7 +182,11 @@ const handleClose = () => {
         <!-- <ElTableColumn width="60" type="index" label="序号" /> -->
         <ElTableColumn fixed="left" width="60" prop="id" label="序号" />
         <ElTableColumn width="150" prop="name" label="机器人名字" />
-        <ElTableColumn show-overflow-tooltip prop="address" label="机器人地址" />
+        <ElTableColumn
+          show-overflow-tooltip
+          prop="address"
+          label="机器人地址"
+        />
 
         <!-- state: stateId -->
         <ElTableColumn width="150" prop="state" label="机器人状态">
@@ -184,19 +194,31 @@ const handleClose = () => {
             <ElTag
               size="large"
               :type="ROBOT_STATE_2_TEXT_AND_TYPE.get(tableData.row.state)?.type"
-              >{{ ROBOT_STATE_2_TEXT_AND_TYPE.get(tableData.row.state)?.text }}</ElTag
+              >{{
+                ROBOT_STATE_2_TEXT_AND_TYPE.get(tableData.row.state)?.text
+              }}</ElTag
             >
           </template>
         </ElTableColumn>
 
-        <ElTableColumn width="150" prop="failureNum" label="零件故障数" sortable />
+        <ElTableColumn
+          width="150"
+          prop="failureNum"
+          label="零件故障数"
+          sortable
+        />
         <ElTableColumn width="150" prop="admin" label="管理员名字" />
         <ElTableColumn show-overflow-tooltip prop="email" label="管理员邮箱" />
 
         <ElTableColumn width="180" fixed="right" label="操作">
           <template #default="tableData">
-            <ElButton type="success" @click="handleUpdate(tableData.row)"> 更新 </ElButton>
-            <ElPopconfirm title="确定删除吗" @confirm="handleDelete(tableData.row.id)">
+            <ElButton type="success" @click="handleUpdate(tableData.row)">
+              更新
+            </ElButton>
+            <ElPopconfirm
+              title="确定删除吗"
+              @confirm="handleDelete(tableData.row.id)"
+            >
               <template #reference>
                 <ElButton type="danger"> 删除 </ElButton>
               </template>

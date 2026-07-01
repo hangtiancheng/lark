@@ -6,37 +6,45 @@ import {
   ElMessage,
   type FormInstance,
   type FormRules,
-} from 'element-plus'
-import { Lock, Rice, User } from '@icon-park/vue-next'
-import { reactive, ref } from 'vue'
-import { useUserStore } from '@/stores/user'
-import { useRouter } from 'vue-router'
+} from "element-plus";
+import { Lock, Rice, User } from "@icon-park/vue-next";
+import { reactive, ref } from "vue";
+import { useUserStore } from "@/stores/user";
+import { useRouter } from "vue-router";
 interface IFormData {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }
 
 const formData = reactive<IFormData>({
-  username: 'admin',
-  password: '1111',
-})
+  username: "admin",
+  password: "1111",
+});
 
 const formRules = reactive<FormRules<IFormData>>({
   username: [
-    { required: true, message: '账号是必填项', trigger: 'blur' },
-    { min: 4, max: 16, message: '账号是4到16个字符', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9_]{4,16}$/, message: '账号格式错误', trigger: 'blur' },
+    { required: true, message: "账号是必填项", trigger: "blur" },
+    { min: 4, max: 16, message: "账号是4到16个字符", trigger: "blur" },
+    {
+      pattern: /^[a-zA-Z0-9_]{4,16}$/,
+      message: "账号格式错误",
+      trigger: "blur",
+    },
   ],
   password: [
-    { required: true, message: '密码是必填项', trigger: 'blur' },
-    { min: 4, max: 16, message: '密码是4到16个字符', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9_]{4,16}$/, message: '密码格式错误', trigger: 'blur' },
+    { required: true, message: "密码是必填项", trigger: "blur" },
+    { min: 4, max: 16, message: "密码是4到16个字符", trigger: "blur" },
+    {
+      pattern: /^[a-zA-Z0-9_]{4,16}$/,
+      message: "密码格式错误",
+      trigger: "blur",
+    },
   ],
-})
+});
 
-const formRef = ref<FormInstance>() // ref<InstanceType<typeof ElForm>>()
-const userStore = useUserStore()
-const router = useRouter()
+const formRef = ref<FormInstance>(); // ref<InstanceType<typeof ElForm>>()
+const userStore = useUserStore();
+const router = useRouter();
 
 const handleLogin = () => {
   // 如果不使用 async...await
@@ -46,15 +54,15 @@ const handleLogin = () => {
   formRef.value?.validate(async (isValid: boolean) => {
     if (isValid) {
       try {
-        await userStore.login(formData)
-        ElMessage.success('登录成功')
-        router.replace({ name: 'Home' })
+        await userStore.login(formData);
+        ElMessage.success("登录成功");
+        router.replace({ name: "Home" });
       } catch {
-        ElMessage.error('登录失败')
+        ElMessage.error("登录失败");
       }
     }
-  })
-}
+  });
+};
 </script>
 
 <template>
@@ -70,9 +78,18 @@ const handleLogin = () => {
         <h1 class="text-3xl text-slate-700">机器人管理</h1>
       </div>
 
-      <ElForm :model="formData" label-width="auto" :rules="formRules" ref="formRef">
+      <ElForm
+        :model="formData"
+        label-width="auto"
+        :rules="formRules"
+        ref="formRef"
+      >
         <ElFormItem label="账号" prop="username">
-          <ElInput v-model="formData.username" placeholder="请输入账号" :prefix-icon="User" />
+          <ElInput
+            v-model="formData.username"
+            placeholder="请输入账号"
+            :prefix-icon="User"
+          />
         </ElFormItem>
 
         <ElFormItem label="密码" prop="password">
@@ -86,7 +103,9 @@ const handleLogin = () => {
 
         <div class="flex flex-row-reverse gap-5">
           <ElButton type="default" class="w-25!">注册</ElButton>
-          <ElButton type="success" class="w-25!" @click="handleLogin">登录</ElButton>
+          <ElButton type="success" class="w-25!" @click="handleLogin"
+            >登录</ElButton
+          >
         </div>
       </ElForm>
     </div>
@@ -94,7 +113,7 @@ const handleLogin = () => {
 </template>
 
 <style scoped lang="scss">
-@use '../assets/global.scss';
+@use "../assets/global.scss";
 
 .el-button {
   border: none;

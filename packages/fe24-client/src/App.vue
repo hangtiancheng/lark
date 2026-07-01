@@ -4,7 +4,10 @@
       <Suspense>
         <component :is="Component" />
         <template #fallback>
-          <div class="flex h-screen w-screen items-center justify-center" v-loading="true" />
+          <div
+            class="flex h-screen w-screen items-center justify-center"
+            v-loading="true"
+          />
         </template>
       </Suspense>
     </RouterView>

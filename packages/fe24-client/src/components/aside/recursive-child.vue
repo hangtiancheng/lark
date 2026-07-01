@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import { ElSubMenu, ElMenuItem, ElIcon } from 'element-plus'
-import type { IMenuItem } from '@/types/user'
-import { name2icon } from '@/utils/icons'
-import { useTabStore } from '@/stores/tab'
+import { ElSubMenu, ElMenuItem, ElIcon } from "element-plus";
+import type { IMenuItem } from "@/types/user";
+import { name2icon } from "@/utils/icons";
+import { useTabStore } from "@/stores/tab";
 defineOptions({
-  name: 'RecursiveChild',
-})
+  name: "RecursiveChild",
+});
 
 defineProps<{
-  item: IMenuItem
-}>()
+  item: IMenuItem;
+}>();
 
-const tabStore = useTabStore()
+const tabStore = useTabStore();
 
 // actions 可以直接解构, 不需要 storeToRefs
 // state, getters 不可以直接解构, 需要 storeToRefs
-const { addTab } = tabStore
+const { addTab } = tabStore;
 
 const handleClick = (item: IMenuItem) => {
-  const { name, icon, url } = item
-  addTab(name, icon, url)
-}
+  const { name, icon, url } = item;
+  addTab(name, icon, url);
+};
 
 // if (import.meta.env.DEV) {
 //   tabStore.$subscribe((mutation, newState) => {
